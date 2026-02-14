@@ -1,5 +1,6 @@
-import { MarkdownPostProcessorContext, Plugin, TFile } from 'obsidian';
+import { MarkdownPostProcessorContext, Notice, Plugin, TFile } from 'obsidian';
 import type { TagMatchMode, WordCloudServices } from '../types';
+import { EmbedWordCloudModal } from '../modals/embed-word-cloud-modal';
 
 type EmbeddedWordCloudMode = 'current-file' | 'specific-file' | 'tag-based';
 
@@ -91,10 +92,14 @@ export function registerEmbeddedWordCloudProcessor(
         ariaLabel: 'Embedded word cloud',
         onProgress: updateProgress,
         onRefresh: () => render(source, el, ctx),
+        onEdit: () => {
+          openEmbeddedWordCloudEditWizard(plugin, services, ctx, el, options);
+        },
         enableOverlayControls: true,
         enableViewportInteraction: options.interactions,
         showRefreshControl: true,
         showZoomControls: options.interactions,
+        showEditControl: true,
         onWordClick: (word) => {
           void services.openSearchForWord(word, searchScope);
         },
@@ -310,4 +315,65 @@ function cleanupEmbeddedRenderState(hostEl: HTMLElement): void {
     window.clearTimeout(state.rerenderTimer);
   }
   embeddedRenderStates.delete(hostEl);
+}
+
+function openEmbeddedWordCloudEditWizard(
+  plugin: Plugin,
+  services: WordCloudServices,
+  ctx: MarkdownPostProcessorContext,
+  hostEl: HTMLElement,
+  options: EmbeddedWordCloudOptions,
+): void {
+  new EmbedWordCloudModal(
+    plugin.app,
+    services,
+    async (embedBlock) => updateEmbeddedCodeBlock(plugin, ctx, hostEl, embedBlock),
+    {
+      title: 'Edit embedded word cloud',
+      description: 'Update options for this embedded cloud without editing markdown manually.',
+      submitButtonText: 'Save',
+      initialState: {
+        mode: options.mode,
+        filePath: options.filePath ?? '',
+        tagsRaw: options.tags.join(', '),
+        match: options.match,
+        height: options.height,
+        interactions: options.interactions,
+      },
+    },
+  ).open();
+}
+
+async function updateEmbeddedCodeBlock(
+  plugin: Plugin,
+  ctx: MarkdownPostProcessorContext,
+  hostEl: HTMLElement,
+  embedBlock: string,
+): Promise<boolean> {
+  const sourceFile = resolveCurrentFile(plugin, ctx);
+  if (!sourceFile) {
+    new Notice('Could not locate the source note for this embedded word cloud.');
+    return false;
+  }
+
+  const section = ctx.getSectionInfo(hostEl);
+  if (!section) {
+    new Notice('Could not locate the embedded word cloud block to update.');
+    return false;
+  }
+
+  await plugin.app.vault.process(sourceFile, (content) => replaceSectionWithBlock(content, section.lineStart, section.lineEnd, embedBlock));
+  return true;
+}
+
+function replaceSectionWithBlock(content: string, lineStart: number, lineEnd: number, embedBlock: string): string {
+  const lines = content.split('\n');
+  if (lineStart < 0 || lineEnd < lineStart || lineStart >= lines.length) {
+    return content;
+  }
+
+  const replacementLines = embedBlock.replace(/\n$/, '').split('\n');
+  const before = lines.slice(0, lineStart);
+  const after = lines.slice(lineEnd + 1);
+  return [...before, ...replacementLines, ...after].join('\n');
 }

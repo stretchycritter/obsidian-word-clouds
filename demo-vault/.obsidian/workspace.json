@@ -29,7 +29,8 @@
               "state": {
                 "file": "00 - Word Clouds Plugin Home.md",
                 "mode": "source",
-                "source": false
+                "source": false,
+                "backlinks": false
               },
               "icon": "lucide-file",
               "title": "00 - Word Clouds Plugin Home"
@@ -55,7 +56,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "\"filters\" path:\"Features/Vault Word Cloud.md\"",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -79,8 +80,7 @@
               "title": "Files"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "horizontal",
@@ -174,13 +174,8 @@
   },
   "left-ribbon": {
     "hiddenItems": {
-      "switcher:Open quick switcher": false,
       "graph:Open graph view": false,
-      "canvas:Create new canvas": false,
-      "daily-notes:Open today's daily note": false,
-      "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "bases:Create new base": false,
       "word-clouds:Open word clouds": false
     }
   },

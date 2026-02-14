@@ -39,6 +39,7 @@ export type WordCloudRenderOptions = {
   ariaLabel: string;
   onWordClick: (word: string) => void;
   onRefresh: () => void | Promise<void>;
+  onEdit?: () => void | Promise<void>;
   onProgress?: (message: string, percent: number) => void;
   exportBaseName?: string;
   enableExport?: boolean;
@@ -46,6 +47,7 @@ export type WordCloudRenderOptions = {
   enableViewportInteraction?: boolean;
   showRefreshControl?: boolean;
   showZoomControls?: boolean;
+  showEditControl?: boolean;
 };
 
 export type SearchOptions = {

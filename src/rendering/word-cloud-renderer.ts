@@ -67,6 +67,7 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
   const enableViewportInteraction = options.enableViewportInteraction ?? true;
   const showRefreshControl = options.showRefreshControl ?? true;
   const showZoomControls = options.showZoomControls ?? true;
+  const showEditControl = options.showEditControl ?? false;
   const width = Math.max(320, containerEl.clientWidth || 700);
   const height = Math.max(320, containerEl.clientHeight || 500);
   const random = renderSettings.deterministicLayout ? buildDeterministicRandom(renderSettings.randomSeed) : Math.random;
@@ -157,9 +158,11 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
             exportBaseName,
             enableExport,
             onRefresh,
+            options.onEdit,
             viewportControls,
             showRefreshControl,
             showZoomControls,
+            showEditControl,
           );
         }
 
@@ -402,9 +405,11 @@ function renderOverlayControls(
   exportBaseName: string,
   enableExport: boolean,
   onRefresh: () => void | Promise<void>,
+  onEdit: (() => void | Promise<void>) | undefined,
   viewportControls: ViewportControls,
   showRefreshControl: boolean,
   showZoomControls: boolean,
+  showEditControl: boolean,
 ): void {
   if (!svgEl) {
     return;
@@ -442,6 +447,38 @@ function renderOverlayControls(
     });
   };
 
+  const makeEditButton = (parentEl: HTMLDivElement): void => {
+    if (!showEditControl || !onEdit) {
+      return;
+    }
+
+    const editButton = parentEl.createEl('button', {
+      cls: 'word-cloud-edit-button',
+    });
+    editButton.type = 'button';
+    setIcon(editButton, 'pencil');
+    editButton.setAttr('aria-label', 'Edit embedded word cloud');
+
+    let isEditing = false;
+    editButton.addEventListener('click', async (event) => {
+      event.preventDefault();
+      if (isEditing) {
+        return;
+      }
+
+      isEditing = true;
+      editButton.disabled = true;
+      try {
+        await onEdit();
+      } finally {
+        if (editButton.isConnected) {
+          editButton.disabled = false;
+        }
+        isEditing = false;
+      }
+    });
+  };
+
   if (showZoomControls) {
     const viewControlsEl = containerEl.createDiv({ cls: 'word-cloud-view-controls' });
     const zoomOutButton = viewControlsEl.createEl('button', {
@@ -473,6 +510,7 @@ function renderOverlayControls(
     if (!showZoomControls) {
       const fallbackControlsEl = containerEl.createDiv({ cls: 'word-cloud-export-controls' });
       makeRefreshButton(fallbackControlsEl);
+      makeEditButton(fallbackControlsEl);
     }
     return;
   }
@@ -485,6 +523,7 @@ function renderOverlayControls(
   menuButton.setAttr('aria-label', 'Word cloud options');
 
   makeRefreshButton(exportControlsEl);
+  makeEditButton(exportControlsEl);
 
   const menuEl = exportControlsEl.createDiv({ cls: 'word-cloud-menu' });
   menuEl.setAttr('hidden', 'true');

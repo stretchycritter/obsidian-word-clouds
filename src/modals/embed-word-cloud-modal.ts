@@ -1,15 +1,22 @@
 import { App, ButtonComponent, Modal, Notice, Setting, type TFile } from 'obsidian';
 import type { TagMatchMode, WordCloudServices } from '../types';
 
-type EmbedMode = 'current-file' | 'specific-file' | 'tag-based';
+export type EmbedMode = 'current-file' | 'specific-file' | 'tag-based';
 
-type EmbedWizardState = {
+export type EmbedWizardState = {
   mode: EmbedMode;
   filePath: string;
   tagsRaw: string;
   match: TagMatchMode;
   height: number;
   interactions: boolean;
+};
+
+type EmbedWordCloudModalOptions = {
+  title?: string;
+  description?: string;
+  submitButtonText?: string;
+  initialState?: Partial<EmbedWizardState>;
 };
 
 const DEFAULT_STATE: EmbedWizardState = {
@@ -23,23 +30,36 @@ const DEFAULT_STATE: EmbedWizardState = {
 
 export class EmbedWordCloudModal extends Modal {
   private readonly services: WordCloudServices;
-  private readonly onInsert: (embedBlock: string) => boolean;
+  private readonly onInsert: (embedBlock: string) => boolean | Promise<boolean>;
   private readonly state: EmbedWizardState;
+  private readonly title: string;
+  private readonly description: string;
+  private readonly submitButtonText: string;
 
   private modeWrapperEl!: HTMLDivElement;
   private fileWrapperEl!: HTMLDivElement;
   private tagsWrapperEl!: HTMLDivElement;
   private matchWrapperEl!: HTMLDivElement;
 
-  constructor(app: App, services: WordCloudServices, onInsert: (embedBlock: string) => boolean) {
+  constructor(
+    app: App,
+    services: WordCloudServices,
+    onInsert: (embedBlock: string) => boolean | Promise<boolean>,
+    options: EmbedWordCloudModalOptions = {},
+  ) {
     super(app);
     this.services = services;
     this.onInsert = onInsert;
+    this.title = options.title ?? 'Embed word cloud in document';
+    this.description = options.description ?? 'Configure options, then insert a word cloud embed at your cursor.';
+    this.submitButtonText = options.submitButtonText ?? 'Insert';
 
     const activeFile = this.services.getActiveFile();
+    const initialState = options.initialState ?? {};
     this.state = {
       ...DEFAULT_STATE,
       filePath: activeFile?.path ?? '',
+      ...initialState,
     };
   }
 
@@ -48,10 +68,10 @@ export class EmbedWordCloudModal extends Modal {
     contentEl.empty();
     contentEl.addClass('word-cloud-embed-wizard');
 
-    contentEl.createEl('h2', { text: 'Embed word cloud in document' });
+    contentEl.createEl('h2', { text: this.title });
     contentEl.createEl('p', {
       cls: 'word-cloud-embed-wizard-description',
-      text: 'Configure options, then insert a word cloud embed at your cursor.',
+      text: this.description,
     });
 
     this.modeWrapperEl = contentEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
@@ -112,17 +132,26 @@ export class EmbedWordCloudModal extends Modal {
     cancelButton.buttonEl.type = 'button';
 
     const insertButton = new ButtonComponent(buttonRowEl)
-      .setButtonText('Insert')
+      .setButtonText(this.submitButtonText)
       .setCta()
-      .onClick(() => {
+      .onClick(async () => {
         if (this.state.mode === 'specific-file' && !this.state.filePath) {
           new Notice('Select an open markdown note before inserting.');
           return;
         }
 
-        const wasInserted = this.onInsert(this.buildEmbedBlock());
-        if (wasInserted) {
-          this.close();
+        insertButton.setDisabled(true);
+        try {
+          const wasInserted = await this.onInsert(this.buildEmbedBlock());
+          if (wasInserted && this.isOpen) {
+            this.close();
+          }
+        } catch (error) {
+          console.error('Word clouds: failed to apply embed changes', error);
+          new Notice('Could not apply word cloud changes.');
+        }
+        if (insertButton.buttonEl.isConnected) {
+          insertButton.setDisabled(false);
         }
       });
     insertButton.buttonEl.type = 'button';

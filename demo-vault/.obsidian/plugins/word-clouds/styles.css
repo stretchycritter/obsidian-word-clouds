@@ -372,6 +372,7 @@
 
 .word-cloud-menu-button,
 .word-cloud-refresh-button,
+.word-cloud-edit-button,
 .word-cloud-view-button {
   min-height: 28px;
   min-width: 28px;
@@ -385,6 +386,7 @@
 
 .word-cloud-menu-button:focus-visible,
 .word-cloud-refresh-button:focus-visible,
+.word-cloud-edit-button:focus-visible,
 .word-cloud-view-button:focus-visible,
 .word-cloud-menu-item:focus-visible {
   outline: 2px solid var(--interactive-accent);
