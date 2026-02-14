@@ -28,7 +28,7 @@ export default class VaultWordCloudPlugin extends Plugin implements WordCloudSer
 
     this.addCommand({
       id: 'open-vault-word-cloud-view',
-      name: 'Open word clouds',
+      name: 'Open vault word cloud',
       callback: () => {
         void this.activateVaultWordCloudView();
       },
@@ -36,7 +36,7 @@ export default class VaultWordCloudPlugin extends Plugin implements WordCloudSer
 
     this.addCommand({
       id: 'open-note-word-cloud-sidebar',
-      name: 'Open note word clouds in sidebar',
+      name: 'Open current note word cloud',
       callback: () => {
         void this.activateNoteWordCloudView();
       },

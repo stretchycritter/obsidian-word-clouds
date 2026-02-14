@@ -18,7 +18,7 @@ export class VaultWordCloudView extends ItemView {
   }
 
   getDisplayText(): string {
-    return 'Word clouds';
+    return 'Vault Word Cloud';
   }
 
   getIcon(): string {
@@ -50,12 +50,6 @@ export class VaultWordCloudView extends ItemView {
     modeSelectEl.value = this.tagMatchMode;
     modeSelectEl.setAttr('aria-label', 'Tag match mode');
 
-    const refreshButton = controlsEl.createEl('button', {
-      text: 'Refresh',
-      cls: 'vault-word-cloud-refresh',
-    });
-    refreshButton.setAttr('aria-label', 'Refresh word cloud');
-
     const appliedTagsEl = topEl.createDiv({ cls: 'vault-word-cloud-applied-tags' });
     const canvasEl = contentEl.createDiv({ cls: 'vault-word-cloud-canvas' });
 
@@ -76,11 +70,6 @@ export class VaultWordCloudView extends ItemView {
 
     this.registerDomEvent(modeSelectEl, 'change', () => {
       this.tagMatchMode = modeSelectEl.value === 'all' ? 'all' : 'any';
-      void this.renderCloud(canvasEl);
-    });
-
-    this.registerDomEvent(refreshButton, 'click', () => {
-      this.updateTagPickerOptions(tagSelectEl);
       void this.renderCloud(canvasEl);
     });
 
@@ -160,7 +149,7 @@ export class VaultWordCloudView extends ItemView {
           cls: 'vault-word-cloud-state',
           text: this.selectedTags.length > 0
             ? 'No words found for the selected tag filters.'
-            : 'No words found. Add more note content and refresh.',
+            : 'No words found.',
         });
         return;
       }

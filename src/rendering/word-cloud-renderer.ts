@@ -63,6 +63,10 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
   const { containerEl, words, ariaLabel, onWordClick, onProgress, onRefresh } = options;
   const exportBaseName = sanitizeFileName(options.exportBaseName ?? 'word-cloud');
   const enableExport = options.enableExport ?? true;
+  const enableOverlayControls = options.enableOverlayControls ?? true;
+  const enableViewportInteraction = options.enableViewportInteraction ?? true;
+  const showRefreshControl = options.showRefreshControl ?? true;
+  const showZoomControls = options.showZoomControls ?? true;
   const width = Math.max(320, containerEl.clientWidth || 700);
   const height = Math.max(320, containerEl.clientHeight || 500);
   const random = renderSettings.deterministicLayout ? buildDeterministicRandom(renderSettings.randomSeed) : Math.random;
@@ -83,7 +87,9 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
 
   const viewportGroup = svg.append('g').attr('class', 'word-cloud-viewport');
   const g = viewportGroup.append('g').attr('transform', `translate(${width / 2},${height / 2})`);
-  const viewportControls = setupViewportControls(svg.node(), viewportGroup.node(), width, height);
+  const viewportControls = enableViewportInteraction
+    ? setupViewportControls(svg.node(), viewportGroup.node(), width, height)
+    : createStaticViewportControls();
 
   const color = scaleOrdinal<string, string>(schemeTableau10);
   const { default: cloud } = await import('d3-cloud');
@@ -141,15 +147,35 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
             }
           })
           .append('title')
-          .text((d) => `${d.baseText}: ${d.count} ${d.count === 1 ? 'occurrence' : 'occurrences'}`);
+          .text((d) => `${d.baseText} (${d.count})`);
 
         reportProgress('Rendering complete.', 100);
-        renderOverlayControls(containerEl, svg.node(), exportBaseName, enableExport, onRefresh, viewportControls);
+        if (enableOverlayControls) {
+          renderOverlayControls(
+            containerEl,
+            svg.node(),
+            exportBaseName,
+            enableExport,
+            onRefresh,
+            viewportControls,
+            showRefreshControl,
+            showZoomControls,
+          );
+        }
 
         resolve();
       })
       .start();
   });
+}
+
+function createStaticViewportControls(): ViewportControls {
+  return {
+    zoomIn: () => undefined,
+    zoomOut: () => undefined,
+    resetView: () => undefined,
+    shouldSuppressWordClick: () => false,
+  };
 }
 
 function setupViewportControls(
@@ -172,11 +198,15 @@ function setupViewportControls(
   let zoom = 1;
   let suppressWordClickUntil = 0;
   let pointerId: number | null = null;
+  let dragStartX = 0;
+  let dragStartY = 0;
   let lastPointerX = 0;
   let lastPointerY = 0;
   let pointerMoved = false;
+  let isDragging = false;
   const minZoom = 0.35;
   const maxZoom = 4.5;
+  const dragStartThresholdPx = 7;
 
   const clampZoom = (value: number): number => {
     if (Number.isNaN(value)) {
@@ -235,13 +265,14 @@ function setupViewportControls(
       return;
     }
 
+    svgEl.focus({ preventScroll: true });
     pointerId = event.pointerId;
+    dragStartX = event.clientX;
+    dragStartY = event.clientY;
     lastPointerX = event.clientX;
     lastPointerY = event.clientY;
     pointerMoved = false;
-    svgEl.classList.add('is-panning');
-    svgEl.setPointerCapture(event.pointerId);
-    event.preventDefault();
+    isDragging = false;
   });
 
   svgEl.addEventListener('pointermove', (event: PointerEvent) => {
@@ -249,14 +280,26 @@ function setupViewportControls(
       return;
     }
 
+    if (!isDragging) {
+      const dragDistance = Math.hypot(event.clientX - dragStartX, event.clientY - dragStartY);
+      if (dragDistance < dragStartThresholdPx) {
+        return;
+      }
+
+      isDragging = true;
+      pointerMoved = true;
+      lastPointerX = event.clientX;
+      lastPointerY = event.clientY;
+      svgEl.setPointerCapture(event.pointerId);
+      svgEl.classList.add('is-panning');
+      event.preventDefault();
+      return;
+    }
+
     const deltaX = event.clientX - lastPointerX;
     const deltaY = event.clientY - lastPointerY;
     lastPointerX = event.clientX;
     lastPointerY = event.clientY;
-
-    if (Math.abs(deltaX) + Math.abs(deltaY) >= 2) {
-      pointerMoved = true;
-    }
 
     nudgePan(deltaX, deltaY);
     event.preventDefault();
@@ -272,6 +315,7 @@ function setupViewportControls(
     }
     pointerId = null;
     pointerMoved = false;
+    isDragging = false;
     svgEl.classList.remove('is-panning');
     if (svgEl.hasPointerCapture(event.pointerId)) {
       svgEl.releasePointerCapture(event.pointerId);
@@ -285,6 +329,7 @@ function setupViewportControls(
 
     pointerId = null;
     pointerMoved = false;
+    isDragging = false;
     svgEl.classList.remove('is-panning');
     if (svgEl.hasPointerCapture(event.pointerId)) {
       svgEl.releasePointerCapture(event.pointerId);
@@ -358,64 +403,77 @@ function renderOverlayControls(
   enableExport: boolean,
   onRefresh: () => void | Promise<void>,
   viewportControls: ViewportControls,
+  showRefreshControl: boolean,
+  showZoomControls: boolean,
 ): void {
   if (!svgEl) {
     return;
   }
 
-  const viewControlsEl = containerEl.createDiv({ cls: 'word-cloud-view-controls' });
-  const zoomOutButton = viewControlsEl.createEl('button', {
-    cls: 'word-cloud-view-button',
-  });
-  zoomOutButton.type = 'button';
-  setIcon(zoomOutButton, 'minus');
-  zoomOutButton.setAttr('aria-label', 'Zoom out');
-  zoomOutButton.addEventListener('click', () => viewportControls.zoomOut());
-
-  const resetViewButton = viewControlsEl.createEl('button', {
-    cls: 'word-cloud-view-button',
-  });
-  resetViewButton.type = 'button';
-  setIcon(resetViewButton, 'locate-fixed');
-  resetViewButton.setAttr('aria-label', 'Reset pan and zoom');
-  resetViewButton.addEventListener('click', () => viewportControls.resetView());
-
-  const zoomInButton = viewControlsEl.createEl('button', {
-    cls: 'word-cloud-view-button',
-  });
-  zoomInButton.type = 'button';
-  setIcon(zoomInButton, 'plus');
-  zoomInButton.setAttr('aria-label', 'Zoom in');
-  zoomInButton.addEventListener('click', () => viewportControls.zoomIn());
-
-  const refreshControlsEl = containerEl.createDiv({ cls: 'word-cloud-refresh-controls' });
-  const refreshButton = refreshControlsEl.createEl('button', {
-    cls: 'word-cloud-refresh-button',
-  });
-  refreshButton.type = 'button';
-  setIcon(refreshButton, 'rotate-cw');
-  refreshButton.setAttr('aria-label', 'Refresh word cloud');
-
-  let isRefreshing = false;
-  refreshButton.addEventListener('click', async (event) => {
-    event.preventDefault();
-    if (isRefreshing) {
+  const makeRefreshButton = (parentEl: HTMLDivElement): void => {
+    if (!showRefreshControl) {
       return;
     }
 
-    isRefreshing = true;
-    refreshButton.disabled = true;
-    try {
-      await onRefresh();
-    } finally {
-      if (refreshButton.isConnected) {
-        refreshButton.disabled = false;
+    const refreshButton = parentEl.createEl('button', {
+      cls: 'word-cloud-refresh-button',
+    });
+    refreshButton.type = 'button';
+    setIcon(refreshButton, 'rotate-cw');
+    refreshButton.setAttr('aria-label', 'Refresh word cloud');
+
+    let isRefreshing = false;
+    refreshButton.addEventListener('click', async (event) => {
+      event.preventDefault();
+      if (isRefreshing) {
+        return;
       }
-      isRefreshing = false;
-    }
-  });
+
+      isRefreshing = true;
+      refreshButton.disabled = true;
+      try {
+        await onRefresh();
+      } finally {
+        if (refreshButton.isConnected) {
+          refreshButton.disabled = false;
+        }
+        isRefreshing = false;
+      }
+    });
+  };
+
+  if (showZoomControls) {
+    const viewControlsEl = containerEl.createDiv({ cls: 'word-cloud-view-controls' });
+    const zoomOutButton = viewControlsEl.createEl('button', {
+      cls: 'word-cloud-view-button',
+    });
+    zoomOutButton.type = 'button';
+    setIcon(zoomOutButton, 'minus');
+    zoomOutButton.setAttr('aria-label', 'Zoom out');
+    zoomOutButton.addEventListener('click', () => viewportControls.zoomOut());
+
+    const resetViewButton = viewControlsEl.createEl('button', {
+      cls: 'word-cloud-view-button',
+    });
+    resetViewButton.type = 'button';
+    setIcon(resetViewButton, 'locate-fixed');
+    resetViewButton.setAttr('aria-label', 'Reset pan and zoom');
+    resetViewButton.addEventListener('click', () => viewportControls.resetView());
+
+    const zoomInButton = viewControlsEl.createEl('button', {
+      cls: 'word-cloud-view-button',
+    });
+    zoomInButton.type = 'button';
+    setIcon(zoomInButton, 'plus');
+    zoomInButton.setAttr('aria-label', 'Zoom in');
+    zoomInButton.addEventListener('click', () => viewportControls.zoomIn());
+  }
 
   if (!enableExport) {
+    if (!showZoomControls) {
+      const fallbackControlsEl = containerEl.createDiv({ cls: 'word-cloud-export-controls' });
+      makeRefreshButton(fallbackControlsEl);
+    }
     return;
   }
 
@@ -425,6 +483,8 @@ function renderOverlayControls(
     text: '⋯',
   });
   menuButton.setAttr('aria-label', 'Word cloud options');
+
+  makeRefreshButton(exportControlsEl);
 
   const menuEl = exportControlsEl.createDiv({ cls: 'word-cloud-menu' });
   menuEl.setAttr('hidden', 'true');

@@ -42,6 +42,10 @@ export type WordCloudRenderOptions = {
   onProgress?: (message: string, percent: number) => void;
   exportBaseName?: string;
   enableExport?: boolean;
+  enableOverlayControls?: boolean;
+  enableViewportInteraction?: boolean;
+  showRefreshControl?: boolean;
+  showZoomControls?: boolean;
 };
 
 export type SearchOptions = {

@@ -117,9 +117,9 @@
 .vault-word-cloud-canvas {
   flex: 1;
   min-height: 300px;
-  border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-m);
-  background: var(--background-primary);
+  background: var(--background-primary-alt);
+  box-shadow: inset 0 0 0 1px var(--background-modifier-border-hover);
   overflow: hidden;
 }
 
@@ -210,36 +210,49 @@
 
 .vault-word-cloud-settings-preview-canvas {
   height: 300px;
-  border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-m);
   overflow: hidden;
-  background: var(--background-primary);
+  background: var(--background-primary-alt);
+  box-shadow: inset 0 0 0 1px var(--background-modifier-border-hover);
 }
 
 .word-cloud-embed {
-  border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-m);
-  background: var(--background-primary);
+  background: var(--background-primary-alt);
+  box-shadow: inset 0 0 0 1px var(--background-modifier-border-hover);
   overflow: hidden;
-  margin: var(--size-4-2) 0;
+  margin: 0;
+  display: block;
+  line-height: 0;
 }
 
 .word-cloud-embed-state {
+  line-height: normal;
   padding: var(--size-4-2);
   color: var(--text-muted);
   font-size: var(--font-ui-small);
-  border-bottom: 1px solid var(--background-modifier-border);
+  border-bottom: 1px solid var(--background-modifier-border-hover);
 }
 
 .word-cloud-embed-canvas {
   min-height: 180px;
+  display: block;
+  line-height: 0;
 }
 
 .word-cloud-render-container {
   position: relative;
+  display: block;
+  line-height: 0;
 }
 
 .word-cloud-panzoom-surface {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  box-shadow: none;
   cursor: grab;
   touch-action: none;
 }
@@ -260,19 +273,38 @@
 .word-cloud-refresh-controls {
   position: absolute;
   top: 8px;
-  left: 8px;
+  right: 8px;
   z-index: 2;
 }
 
 .word-cloud-export-controls {
   position: absolute;
   top: 8px;
-  right: 8px;
+  left: 8px;
   z-index: 2;
   display: inline-flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 4px;
+}
+
+.word-cloud-view-controls,
+.word-cloud-refresh-controls,
+.word-cloud-export-controls {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(2px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.word-cloud-render-container:hover .word-cloud-view-controls,
+.word-cloud-render-container:hover .word-cloud-refresh-controls,
+.word-cloud-render-container:hover .word-cloud-export-controls,
+.word-cloud-render-container:focus-within .word-cloud-view-controls,
+.word-cloud-render-container:focus-within .word-cloud-refresh-controls,
+.word-cloud-render-container:focus-within .word-cloud-export-controls {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 
 .word-cloud-menu-button,
@@ -297,6 +329,9 @@
 }
 
 .word-cloud-menu {
+  position: absolute;
+  top: 32px;
+  left: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
