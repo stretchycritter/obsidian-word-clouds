@@ -1,13 +1,15 @@
 import { MarkdownPostProcessorContext, Plugin, TFile } from 'obsidian';
 import type { TagMatchMode, WordCloudServices } from '../types';
 
+type EmbeddedWordCloudMode = 'current-file' | 'specific-file' | 'tag-based';
+
 type EmbeddedWordCloudOptions = {
-  scope: 'note' | 'vault';
+  mode: EmbeddedWordCloudMode;
   tags: string[];
   match: TagMatchMode;
   height: number;
   interactions: boolean;
-  notePath?: string;
+  filePath?: string;
 };
 
 type EmbeddedRenderState = {
@@ -18,7 +20,7 @@ type EmbeddedRenderState = {
 };
 
 const DEFAULT_OPTIONS: EmbeddedWordCloudOptions = {
-  scope: 'note',
+  mode: 'current-file',
   tags: [],
   match: 'any',
   height: 320,
@@ -50,10 +52,24 @@ export function registerEmbeddedWordCloudProcessor(
       let words;
       let searchScope: { filePath?: string; tags?: string[]; tagMatchMode?: TagMatchMode } = {};
 
-      if (options.scope === 'note') {
-        const file = resolveTargetFile(plugin, ctx, options.notePath);
+      if (options.mode === 'current-file') {
+        const file = resolveCurrentFile(plugin, ctx);
         if (!file) {
-          stateEl.setText('Could not find note for embedded word cloud.');
+          stateEl.setText('Could not resolve the current file for this embedded cloud.');
+          return;
+        }
+
+        words = await services.collectFileWords(file, updateProgress);
+        searchScope = { filePath: file.path };
+      } else if (options.mode === 'specific-file') {
+        if (!options.filePath) {
+          stateEl.setText('Set `file:` when using `mode: specific-file`.');
+          return;
+        }
+
+        const file = resolveSpecificFile(plugin, options.filePath);
+        if (!file) {
+          stateEl.setText('Could not find the file for this embedded cloud.');
           return;
         }
 
@@ -96,19 +112,24 @@ export function registerEmbeddedWordCloudProcessor(
   plugin.registerMarkdownCodeBlockProcessor('word-cloud', render);
 }
 
-function resolveTargetFile(plugin: Plugin, ctx: MarkdownPostProcessorContext, notePath?: string): TFile | null {
-  if (notePath) {
-    const normalizedPath = notePath.trim();
-    const resolved = plugin.app.vault.getAbstractFileByPath(normalizedPath);
-    return resolved instanceof TFile ? resolved : null;
-  }
-
+function resolveCurrentFile(plugin: Plugin, ctx: MarkdownPostProcessorContext): TFile | null {
   const fromContext = plugin.app.vault.getAbstractFileByPath(ctx.sourcePath);
   return fromContext instanceof TFile ? fromContext : null;
 }
 
+function resolveSpecificFile(plugin: Plugin, filePath: string): TFile | null {
+  const normalizedPath = filePath.trim();
+  if (!normalizedPath) {
+    return null;
+  }
+
+  const resolved = plugin.app.vault.getAbstractFileByPath(normalizedPath);
+  return resolved instanceof TFile ? resolved : null;
+}
+
 function parseOptions(source: string): EmbeddedWordCloudOptions {
   const options: EmbeddedWordCloudOptions = { ...DEFAULT_OPTIONS };
+  let modeWasExplicitlySet = false;
   const lines = source.split('\n');
 
   for (const line of lines) {
@@ -125,8 +146,20 @@ function parseOptions(source: string): EmbeddedWordCloudOptions {
     const rawKey = trimmed.slice(0, separatorIndex).trim().toLowerCase();
     const rawValue = trimmed.slice(separatorIndex + 1).trim();
 
-    if (rawKey === 'scope') {
-      options.scope = rawValue.toLowerCase() === 'vault' ? 'vault' : 'note';
+    if (rawKey === 'mode') {
+      const parsedMode = parseModeOption(rawValue);
+      if (parsedMode) {
+        options.mode = parsedMode;
+        modeWasExplicitlySet = true;
+      }
+      continue;
+    }
+
+    if (rawKey === 'scope' && !modeWasExplicitlySet) {
+      const parsedMode = parseLegacyScopeOption(rawValue);
+      if (parsedMode) {
+        options.mode = parsedMode;
+      }
       continue;
     }
 
@@ -156,12 +189,58 @@ function parseOptions(source: string): EmbeddedWordCloudOptions {
       continue;
     }
 
-    if (rawKey === 'note') {
-      options.notePath = rawValue;
+    if (rawKey === 'file' || rawKey === 'note' || rawKey === 'path' || rawKey === 'filename') {
+      options.filePath = rawValue;
+      if (!modeWasExplicitlySet) {
+        options.mode = 'specific-file';
+      }
     }
   }
 
   return options;
+}
+
+function parseModeOption(value: string): EmbeddedWordCloudMode | null {
+  const normalized = value.trim().toLowerCase().replace(/[\s_]+/g, '-');
+  if (
+    normalized === 'current-file'
+    || normalized === 'current'
+    || normalized === 'current-note'
+    || normalized === 'note'
+  ) {
+    return 'current-file';
+  }
+
+  if (
+    normalized === 'specific-file'
+    || normalized === 'specific'
+    || normalized === 'file'
+    || normalized === 'note-file'
+  ) {
+    return 'specific-file';
+  }
+
+  if (
+    normalized === 'tag-based'
+    || normalized === 'tags'
+    || normalized === 'tag'
+    || normalized === 'vault'
+  ) {
+    return 'tag-based';
+  }
+
+  return null;
+}
+
+function parseLegacyScopeOption(value: string): EmbeddedWordCloudMode | null {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'vault') {
+    return 'tag-based';
+  }
+  if (normalized === 'note') {
+    return 'current-file';
+  }
+  return null;
 }
 
 function parseBooleanOption(value: string, fallback: boolean): boolean {

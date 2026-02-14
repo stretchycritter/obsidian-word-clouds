@@ -31,7 +31,39 @@
 
 .vault-word-cloud-controls {
   display: flex;
-  align-items: center;
+  align-items: stretch;
+  flex-direction: column;
+  gap: var(--size-4-2);
+  padding: var(--size-4-2);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-secondary);
+}
+
+.vault-word-cloud-controls-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--size-4-2);
+  flex-wrap: wrap;
+}
+
+.vault-word-cloud-controls-title {
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-medium);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vault-word-cloud-controls-summary {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+}
+
+.vault-word-cloud-controls-form {
+  display: flex;
+  align-items: flex-end;
   gap: var(--size-4-1);
   flex-wrap: wrap;
 }
@@ -39,27 +71,42 @@
 .vault-word-cloud-tag-filter,
 .vault-word-cloud-match-mode {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--size-4-1);
+  flex: 1 1 180px;
 }
 
 .vault-word-cloud-tag-label {
   font-size: var(--font-ui-smaller);
-  color: var(--text-faint);
+  color: var(--text-muted);
+  font-weight: var(--font-medium);
 }
 
 .vault-word-cloud-mode-select,
 .vault-word-cloud-refresh {
-  min-height: 32px;
+  min-height: 34px;
   font-size: var(--font-ui-smaller);
 }
 
 .vault-word-cloud-mode-select {
-  min-width: 150px;
+  width: 100%;
+  min-width: 180px;
 }
 
 .vault-word-cloud-refresh {
   min-width: 72px;
+  align-self: flex-end;
+}
+
+.vault-word-cloud-clear-filters {
+  white-space: nowrap;
+}
+
+.vault-word-cloud-refresh:disabled,
+.vault-word-cloud-mode-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .vault-word-cloud-mode-select:focus-visible,
@@ -72,9 +119,9 @@
 .vault-word-cloud-applied-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
-  min-height: 20px;
+  min-height: 28px;
 }
 
 .vault-word-cloud-chip-empty {
@@ -87,8 +134,8 @@
   align-items: center;
   gap: 6px;
   border: 1px solid var(--background-modifier-border);
-  border-radius: var(--radius-s);
-  padding: 2px 6px;
+  border-radius: var(--radius-m);
+  padding: 3px 8px;
   background: var(--background-secondary);
 }
 
@@ -98,8 +145,8 @@
 }
 
 .vault-word-cloud-chip-remove {
-  min-height: 20px;
-  min-width: 20px;
+  min-height: 22px;
+  min-width: 22px;
   border: none;
   border-radius: 999px;
   background: transparent;
@@ -107,11 +154,27 @@
   cursor: pointer;
   padding: 0;
   line-height: 1;
+  font-size: var(--font-ui-smaller);
 }
 
 .vault-word-cloud-chip-remove:hover {
   background: var(--background-modifier-hover);
   color: var(--text-normal);
+}
+
+@media (max-width: 720px) {
+  .vault-word-cloud-controls-form {
+    align-items: stretch;
+  }
+
+  .vault-word-cloud-tag-filter,
+  .vault-word-cloud-match-mode {
+    flex: 1 1 100%;
+  }
+
+  .vault-word-cloud-refresh {
+    width: 100%;
+  }
 }
 
 .vault-word-cloud-canvas {
@@ -388,4 +451,27 @@
 
 .word-cloud-setting-info-popover[hidden] {
   display: none;
+}
+
+.word-cloud-embed-wizard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-2);
+}
+
+.word-cloud-embed-wizard-description {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.word-cloud-embed-wizard-section.is-hidden {
+  display: none;
+}
+
+.word-cloud-embed-wizard-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--size-4-1);
+  margin-top: var(--size-4-1);
 }

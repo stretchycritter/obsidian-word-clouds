@@ -1,4 +1,4 @@
-import { MarkdownView, Plugin, TFile } from 'obsidian';
+import { MarkdownView, Notice, Plugin, TFile } from 'obsidian';
 import { VIEW_TYPE_NOTE_WORD_CLOUD, VIEW_TYPE_VAULT_WORD_CLOUD } from './constants';
 import { registerEmbeddedWordCloudProcessor } from './block-renderers/wordcloud-block-renderer';
 import { openSearchForWord } from './actions/apply-search';
@@ -8,6 +8,7 @@ import type { RenderSettings, SearchOptions, TagMatchMode, WordCloudRenderOption
 import { drawWordCloud } from './rendering/word-cloud-renderer';
 import { NoteWordCloudView } from './views/note-word-cloud-view';
 import { VaultWordCloudView } from './views/vault-word-cloud-view';
+import { EmbedWordCloudModal } from './modals/embed-word-cloud-modal';
 
 export default class VaultWordCloudPlugin extends Plugin implements WordCloudServices {
   settings: WordCloudSettings = { ...DEFAULT_SETTINGS };
@@ -39,6 +40,14 @@ export default class VaultWordCloudPlugin extends Plugin implements WordCloudSer
       name: 'Open current note word cloud',
       callback: () => {
         void this.activateNoteWordCloudView();
+      },
+    });
+
+    this.addCommand({
+      id: 'embed-word-cloud-in-document',
+      name: 'Embed word cloud in document',
+      callback: () => {
+        this.openEmbedWordCloudWizard();
       },
     });
   }
@@ -131,6 +140,12 @@ export default class VaultWordCloudPlugin extends Plugin implements WordCloudSer
 
   async openSearchForWord(word: string, options: SearchOptions = {}): Promise<void> {
     return openSearchForWord(this.app, word, options);
+  }
+
+  openEmbedWordCloudWizard(): void {
+    new EmbedWordCloudModal(this.app, this, (embedBlock) => {
+      return this.insertEmbedAtCursor(embedBlock);
+    }).open();
   }
 
   async loadSettings(): Promise<void> {
@@ -308,5 +323,27 @@ export default class VaultWordCloudPlugin extends Plugin implements WordCloudSer
       return fallback;
     }
     return Math.min(max, Math.max(min, value));
+  }
+
+  private insertEmbedAtCursor(embedBlock: string): boolean {
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!view) {
+      new Notice('Open a markdown note to insert a word cloud embed.');
+      return false;
+    }
+
+    const { editor } = view;
+    const cursor = editor.getCursor();
+    const currentLine = editor.getLine(cursor.line);
+
+    const hasTextBeforeCursor = currentLine.slice(0, cursor.ch).trim().length > 0;
+    const hasTextAfterCursor = currentLine.slice(cursor.ch).trim().length > 0;
+
+    const prefix = hasTextBeforeCursor ? '\n' : '';
+    const suffix = hasTextAfterCursor ? '\n' : '';
+    const textToInsert = `${prefix}${embedBlock}${suffix}`;
+
+    editor.replaceSelection(textToInsert);
+    return true;
   }
 }
