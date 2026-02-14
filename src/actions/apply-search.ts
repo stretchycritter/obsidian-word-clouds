@@ -1,6 +1,6 @@
 import type { App } from 'obsidian';
-import type { SearchOptions } from './types';
-import { escapeForSearch, normalizeTag } from './utils';
+import type { SearchOptions } from '../types';
+import { escapeForSearch, normalizeTag } from '../utils';
 
 export async function openSearchForWord(app: App, word: string, options: SearchOptions = {}): Promise<void> {
   const parts: string[] = [`"${escapeForSearch(word)}"`];

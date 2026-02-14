@@ -1,7 +1,9 @@
 import type { App, TFile } from 'obsidian';
-import type { RenderSettings, TagMatchMode, WeightedWord } from '../types';
-import { collectWordFrequenciesFromFiles } from './text-processing';
-import { filterFilesByTags, getAvailableTags } from './tag-filter';
+import type { RenderSettings, WeightedWord } from '../types';
+import { readPipelineDocuments } from '../pipeline/adapters/obsidian-source';
+import { runPipeline } from '../pipeline/run-pipeline';
+import type { SourceSelectionRules } from '../pipeline/types';
+import { getAvailableTags } from './tag-filter';
 
 export class WordCloudProcessor {
   private readonly app: App;
@@ -14,16 +16,96 @@ export class WordCloudProcessor {
     return getAvailableTags(this.app);
   }
 
-  filterFilesByTags(files: TFile[], tagFilters: string[], tagMatchMode: TagMatchMode): TFile[] {
-    return filterFilesByTags(this.app, files, tagFilters, tagMatchMode);
-  }
-
   async collectFromFiles(
     files: TFile[],
     stopWords: Set<string>,
     renderSettings: RenderSettings,
     onProgress?: (message: string, percent: number) => void,
+    sourceRules?: SourceSelectionRules,
   ): Promise<WeightedWord[]> {
-    return collectWordFrequenciesFromFiles(this.app, files, stopWords, renderSettings, onProgress);
+    const performance = getPerformanceProfile(renderSettings.progressDetail);
+    const reportProgress = createThrottledProgress(onProgress, performance.progressThrottleMs);
+    const readBatchSize = performance.fullParallelRead
+      ? Math.max(1, files.length)
+      : Math.max(8, Math.round(renderSettings.scanBatchSize));
+
+    const documents = await readPipelineDocuments(
+      this.app,
+      files,
+      readBatchSize,
+      (message, percent) => {
+        reportProgress(message, percent);
+      },
+    );
+
+    reportProgress('Tokenizing and aggregating...', 85);
+
+    const model = runPipeline({
+      documents,
+      stopWords,
+      renderSettings,
+      sourceRules,
+    });
+
+    reportProgress('Preparing layout...', 95);
+
+    return model.wordCloudWords;
   }
+}
+
+function createThrottledProgress(
+  onProgress: ((message: string, percent: number) => void) | undefined,
+  minIntervalMs: number,
+): (message: string, percent: number) => void {
+  if (!onProgress) {
+    return () => undefined;
+  }
+
+  let lastReportedAt = 0;
+  let lastPercent = -1;
+
+  return (message: string, percent: number) => {
+    const now = Date.now();
+    if (percent !== 100 && percent === lastPercent && now - lastReportedAt < minIntervalMs) {
+      return;
+    }
+    if (percent !== 100 && now - lastReportedAt < minIntervalMs) {
+      return;
+    }
+
+    lastReportedAt = now;
+    lastPercent = percent;
+    onProgress(message, percent);
+  };
+}
+
+function getPerformanceProfile(detail: RenderSettings['progressDetail']): {
+  progressThrottleMs: number;
+  fullParallelRead: boolean;
+} {
+  if (detail === 'unhinged') {
+    return {
+      progressThrottleMs: 1_000_000,
+      fullParallelRead: true,
+    };
+  }
+
+  if (detail === 'detailed') {
+    return {
+      progressThrottleMs: 25,
+      fullParallelRead: false,
+    };
+  }
+
+  if (detail === 'minimal') {
+    return {
+      progressThrottleMs: 220,
+      fullParallelRead: false,
+    };
+  }
+
+  return {
+    progressThrottleMs: 80,
+    fullParallelRead: false,
+  };
 }

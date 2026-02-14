@@ -6,7 +6,10 @@
   "scripts": {
     "build": "node esbuild.config.mjs production",
     "dev": "node esbuild.config.mjs",
-    "deploy": "node scripts/deploy.mjs"
+    "deploy:demo": "node scripts/deploy-demo.mjs",
+    "build:demo": "npm run build && npm run deploy:demo",
+    "watch:demo": "node scripts/watch-demo.mjs",
+    "deploy": "npm run build:demo"
   },
   "keywords": [
     "obsidian",

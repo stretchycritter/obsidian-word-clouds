@@ -1,5 +1,5 @@
 import { PluginSettingTab, Setting } from 'obsidian';
-import { DEFAULT_STOP_WORDS } from './constants';
+import { DEFAULT_STOP_WORDS } from '../constants';
 import type {
   CountLabelFormat,
   ProgressDetail,
@@ -8,9 +8,9 @@ import type {
   ScalingMode,
   SpiralType,
   WeightedWord,
-} from './types';
-import type VaultWordCloudPlugin from './main';
-import { mapCountsToWeightedWords } from './processing/scaling';
+} from '../types';
+import type VaultWordCloudPlugin from '../main';
+import { mapCountsToWeightedWords } from '../processing/scaling';
 
 export interface WordCloudSettings {
   blacklistWords: string[];

@@ -1,7 +1,0 @@
-# Set this to either your vault root or plugin directory path.
-# Example vault root:
-# /Users/your-name/Obsidian/MyVault
-# Example plugin directory:
-# /Users/your-name/Obsidian/MyVault/.obsidian/plugins/word-clouds
-
-/absolute/path/to/your/vault-or-plugin-dir

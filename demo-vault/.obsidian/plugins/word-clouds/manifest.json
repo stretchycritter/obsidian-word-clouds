@@ -1,0 +1,9 @@
+{
+  "id": "word-clouds",
+  "name": "Word Clouds",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Generate and explore a word cloud from all markdown notes in your vault.",
+  "author": "Christopher",
+  "isDesktopOnly": false
+}

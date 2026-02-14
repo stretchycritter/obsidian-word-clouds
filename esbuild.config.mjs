@@ -21,14 +21,24 @@ const context = await esbuild.context({
   logLevel: 'info',
   sourcemap: production ? false : 'inline',
   treeShaking: true,
-  outfile: 'dist/main.js'
+  outfile: 'dist/main.js',
+  plugins: [
+    {
+      name: 'copy-static-files',
+      setup(build) {
+        build.onEnd((result) => {
+          if (result.errors.length === 0) {
+            copyStaticFiles();
+          }
+        });
+      },
+    },
+  ],
 });
 
 if (production) {
   await context.rebuild();
-  copyStaticFiles();
   await context.dispose();
 } else {
-  copyStaticFiles();
   await context.watch();
 }

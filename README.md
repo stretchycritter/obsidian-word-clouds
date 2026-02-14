@@ -11,17 +11,6 @@
 npm install
 ```
 
-## Configure local deploy target (one-time)
-
-```bash
-cp .deploy.local.example .deploy.local
-```
-
-Set `.deploy.local` to either:
-
-- vault root (example: `/Users/you/Obsidian/MyVault`)
-- plugin dir (example: `/Users/you/Obsidian/MyVault/.obsidian/plugins/word-clouds`)
-
 ## Run (watch mode)
 
 ```bash
@@ -34,36 +23,33 @@ npm run dev
 npm run build
 ```
 
-## Local deploy
-
-Uses `scripts/deploy.mjs` through `stage.sh`:
+## Build + deploy to demo vault
 
 ```bash
-./stage.sh
+npm run build:demo
 ```
 
-Override target ad-hoc:
+## Deploy to demo vault (without rebuilding)
 
 ```bash
-./stage.sh /absolute/path/to/vault-or-plugin-dir
+npm run deploy:demo
 ```
 
-Direct deploy command:
+## Watch, rebuild, and redeploy
 
 ```bash
-npm run deploy -- /absolute/path/to/vault-or-plugin-dir
+npm run watch:demo
 ```
+
+Watches source changes, rebuilds via esbuild watch mode, and redeploys updated files to `demo-vault/.obsidian/plugins/<plugin-id>/`.
 
 ## Debug in Obsidian
 
-1. Deploy plugin (`./stage.sh`)
+1. Build and deploy plugin (`npm run build:demo`)
 2. Enable/reload plugin in Obsidian
 3. Open dev tools: `View -> Toggle developer tools`
 4. Check console logs/errors while using plugin
 
 ## Files used for local deploy
 
-- `stage.sh`: convenience wrapper for deploy target resolution
-- `scripts/deploy.mjs`: build + copy `dist/manifest.json`, `dist/main.js`, `dist/styles.css`
-- `.deploy.local`: local (git-ignored) default deploy target
-- `.deploy.local.example`: template for `.deploy.local`
+- `scripts/deploy-demo.mjs`: copies `dist/manifest.json`, `dist/main.js`, `dist/styles.css` to `demo-vault/.obsidian/plugins/<plugin-id>/`

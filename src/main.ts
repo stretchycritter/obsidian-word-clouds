@@ -1,8 +1,8 @@
 import { MarkdownView, Plugin, TFile } from 'obsidian';
 import { VIEW_TYPE_NOTE_WORD_CLOUD, VIEW_TYPE_VAULT_WORD_CLOUD } from './constants';
 import { registerEmbeddedWordCloudProcessor } from './block-renderers/wordcloud-block-renderer';
+import { openSearchForWord } from './actions/apply-search';
 import { WordCloudProcessor } from './processing/processor';
-import { openSearchForWord } from './search';
 import { DEFAULT_SETTINGS, VaultWordCloudSettingTab, type WordCloudSettings } from './settings';
 import type { RenderSettings, SearchOptions, TagMatchMode, WordCloudRenderOptions, WordCloudServices, WeightedWord } from './types';
 import { drawWordCloud } from './rendering/word-cloud-renderer';
@@ -109,12 +109,15 @@ export default class VaultWordCloudPlugin extends Plugin implements WordCloudSer
     onProgress?: (message: string, percent: number) => void,
   ): Promise<WeightedWord[]> {
     const allMarkdownFiles = this.app.vault.getMarkdownFiles();
-    const filteredFiles = this.processor.filterFilesByTags(allMarkdownFiles, tagFilters, tagMatchMode);
     return this.processor.collectFromFiles(
-      filteredFiles,
+      allMarkdownFiles,
       this.getBlacklistSet(),
       this.settings.render,
       onProgress,
+      {
+        tagFilters,
+        tagMatchMode,
+      },
     );
   }
 
