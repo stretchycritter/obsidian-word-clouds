@@ -239,6 +239,31 @@
   position: relative;
 }
 
+.word-cloud-panzoom-surface {
+  cursor: grab;
+  touch-action: none;
+}
+
+.word-cloud-panzoom-surface.is-panning {
+  cursor: grabbing;
+}
+
+.word-cloud-view-controls {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 2;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.word-cloud-refresh-controls {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+}
+
 .word-cloud-export-controls {
   position: absolute;
   top: 8px;
@@ -250,7 +275,9 @@
   gap: 4px;
 }
 
-.word-cloud-menu-button {
+.word-cloud-menu-button,
+.word-cloud-refresh-button,
+.word-cloud-view-button {
   min-height: 28px;
   min-width: 28px;
   border: 1px solid var(--background-modifier-border);
@@ -262,6 +289,8 @@
 }
 
 .word-cloud-menu-button:focus-visible,
+.word-cloud-refresh-button:focus-visible,
+.word-cloud-view-button:focus-visible,
 .word-cloud-menu-item:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: 1px;

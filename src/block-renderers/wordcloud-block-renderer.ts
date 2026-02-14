@@ -61,6 +61,7 @@ export function registerEmbeddedWordCloudProcessor(
         words,
         ariaLabel: 'Embedded word cloud',
         onProgress: updateProgress,
+        onRefresh: () => render(source, el, ctx),
         onWordClick: (word) => {
           void services.openSearchForWord(word, searchScope);
         },

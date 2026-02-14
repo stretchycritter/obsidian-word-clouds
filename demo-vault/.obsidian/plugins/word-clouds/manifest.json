@@ -3,7 +3,7 @@
   "name": "Word Clouds",
   "version": "0.1.0",
   "minAppVersion": "1.5.0",
-  "description": "Generate and explore a word cloud from all markdown notes in your vault.",
-  "author": "Christopher",
+  "description": "Explore word clouds of your entire vault, individual notes, and filtered content. Embed them in any document and export them to common formats.",
+  "author": "stretchycritter",
   "isDesktopOnly": false
 }

@@ -136,6 +136,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           containerEl: previewCanvasEl,
           words: sampleWords,
           ariaLabel: 'Word cloud render preview',
+          onRefresh: rerenderPreview,
           onWordClick: () => {
             // no-op in settings preview
           },

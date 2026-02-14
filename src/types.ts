@@ -38,6 +38,7 @@ export type WordCloudRenderOptions = {
   words: WeightedWord[];
   ariaLabel: string;
   onWordClick: (word: string) => void;
+  onRefresh: () => void | Promise<void>;
   onProgress?: (message: string, percent: number) => void;
   exportBaseName?: string;
   enableExport?: boolean;

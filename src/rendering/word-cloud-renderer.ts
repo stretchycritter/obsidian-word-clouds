@@ -1,6 +1,7 @@
 import { scaleOrdinal } from 'd3-scale';
 import { schemeTableau10 } from 'd3-scale-chromatic';
 import { select } from 'd3-selection';
+import { setIcon } from 'obsidian';
 import type { RenderSettings, RotationPreset, WordCloudRenderOptions, WeightedWord } from '../types';
 
 function buildDeterministicRandom(seed: number): () => number {
@@ -51,8 +52,15 @@ type LayoutWord = WeightedWord & {
   layoutText: string;
 };
 
+type ViewportControls = {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetView: () => void;
+  shouldSuppressWordClick: () => boolean;
+};
+
 export async function drawWordCloud(options: WordCloudRenderOptions, renderSettings: RenderSettings): Promise<void> {
-  const { containerEl, words, ariaLabel, onWordClick, onProgress } = options;
+  const { containerEl, words, ariaLabel, onWordClick, onProgress, onRefresh } = options;
   const exportBaseName = sanitizeFileName(options.exportBaseName ?? 'word-cloud');
   const enableExport = options.enableExport ?? true;
   const width = Math.max(320, containerEl.clientWidth || 700);
@@ -73,7 +81,9 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
     .attr('role', 'img')
     .attr('aria-label', ariaLabel);
 
-  const g = svg.append('g').attr('transform', `translate(${width / 2},${height / 2})`);
+  const viewportGroup = svg.append('g').attr('class', 'word-cloud-viewport');
+  const g = viewportGroup.append('g').attr('transform', `translate(${width / 2},${height / 2})`);
+  const viewportControls = setupViewportControls(svg.node(), viewportGroup.node(), width, height);
 
   const color = scaleOrdinal<string, string>(schemeTableau10);
   const { default: cloud } = await import('d3-cloud');
@@ -119,6 +129,9 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
           .attr('transform', (d) => `translate(${d.x},${d.y}) rotate(${d.rotate})`)
           .text((d) => d.layoutText)
           .on('click', (_, d) => {
+            if (viewportControls.shouldSuppressWordClick()) {
+              return;
+            }
             onWordClick(d.baseText);
           })
           .on('keydown', (event: KeyboardEvent, d) => {
@@ -131,9 +144,7 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
           .text((d) => `${d.baseText}: ${d.count} ${d.count === 1 ? 'occurrence' : 'occurrences'}`);
 
         reportProgress('Rendering complete.', 100);
-        if (enableExport) {
-          renderExportControls(containerEl, svg.node(), exportBaseName);
-        }
+        renderOverlayControls(containerEl, svg.node(), exportBaseName, enableExport, onRefresh, viewportControls);
 
         resolve();
       })
@@ -141,19 +152,281 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
   });
 }
 
-function renderExportControls(containerEl: HTMLDivElement, svgEl: SVGSVGElement | null, exportBaseName: string): void {
+function setupViewportControls(
+  svgEl: SVGSVGElement | null,
+  viewportEl: SVGGElement | null,
+  width: number,
+  height: number,
+): ViewportControls {
+  if (!svgEl || !viewportEl) {
+    return {
+      zoomIn: () => undefined,
+      zoomOut: () => undefined,
+      resetView: () => undefined,
+      shouldSuppressWordClick: () => false,
+    };
+  }
+
+  let panX = 0;
+  let panY = 0;
+  let zoom = 1;
+  let suppressWordClickUntil = 0;
+  let pointerId: number | null = null;
+  let lastPointerX = 0;
+  let lastPointerY = 0;
+  let pointerMoved = false;
+  const minZoom = 0.35;
+  const maxZoom = 4.5;
+
+  const clampZoom = (value: number): number => {
+    if (Number.isNaN(value)) {
+      return zoom;
+    }
+    return Math.min(maxZoom, Math.max(minZoom, value));
+  };
+
+  const applyTransform = (): void => {
+    viewportEl.setAttribute('transform', `translate(${panX},${panY}) scale(${zoom})`);
+  };
+
+  const zoomAt = (x: number, y: number, factor: number): void => {
+    if (!Number.isFinite(factor) || factor <= 0) {
+      return;
+    }
+
+    const nextZoom = clampZoom(zoom * factor);
+    if (nextZoom === zoom) {
+      return;
+    }
+
+    const worldX = (x - panX) / zoom;
+    const worldY = (y - panY) / zoom;
+    panX = x - (worldX * nextZoom);
+    panY = y - (worldY * nextZoom);
+    zoom = nextZoom;
+    applyTransform();
+  };
+
+  const nudgePan = (deltaX: number, deltaY: number): void => {
+    panX += deltaX;
+    panY += deltaY;
+    applyTransform();
+  };
+
+  const zoomIn = (): void => zoomAt(width / 2, height / 2, 1.18);
+  const zoomOut = (): void => zoomAt(width / 2, height / 2, 1 / 1.18);
+  const resetView = (): void => {
+    panX = 0;
+    panY = 0;
+    zoom = 1;
+    applyTransform();
+  };
+
+  applyTransform();
+  svgEl.classList.add('word-cloud-panzoom-surface');
+  svgEl.setAttribute('tabindex', '0');
+  svgEl.setAttribute(
+    'aria-keyshortcuts',
+    '+, -, 0, ArrowLeft, ArrowRight, ArrowUp, ArrowDown',
+  );
+
+  svgEl.addEventListener('pointerdown', (event: PointerEvent) => {
+    if (event.pointerType !== 'touch' && event.button !== 0) {
+      return;
+    }
+
+    pointerId = event.pointerId;
+    lastPointerX = event.clientX;
+    lastPointerY = event.clientY;
+    pointerMoved = false;
+    svgEl.classList.add('is-panning');
+    svgEl.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+
+  svgEl.addEventListener('pointermove', (event: PointerEvent) => {
+    if (pointerId !== event.pointerId) {
+      return;
+    }
+
+    const deltaX = event.clientX - lastPointerX;
+    const deltaY = event.clientY - lastPointerY;
+    lastPointerX = event.clientX;
+    lastPointerY = event.clientY;
+
+    if (Math.abs(deltaX) + Math.abs(deltaY) >= 2) {
+      pointerMoved = true;
+    }
+
+    nudgePan(deltaX, deltaY);
+    event.preventDefault();
+  });
+
+  svgEl.addEventListener('pointerup', (event: PointerEvent) => {
+    if (pointerId !== event.pointerId) {
+      return;
+    }
+
+    if (pointerMoved) {
+      suppressWordClickUntil = Date.now() + 240;
+    }
+    pointerId = null;
+    pointerMoved = false;
+    svgEl.classList.remove('is-panning');
+    if (svgEl.hasPointerCapture(event.pointerId)) {
+      svgEl.releasePointerCapture(event.pointerId);
+    }
+  });
+
+  svgEl.addEventListener('pointercancel', (event: PointerEvent) => {
+    if (pointerId !== event.pointerId) {
+      return;
+    }
+
+    pointerId = null;
+    pointerMoved = false;
+    svgEl.classList.remove('is-panning');
+    if (svgEl.hasPointerCapture(event.pointerId)) {
+      svgEl.releasePointerCapture(event.pointerId);
+    }
+  });
+
+  svgEl.addEventListener(
+    'wheel',
+    (event: WheelEvent) => {
+      event.preventDefault();
+      const speed = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 0.04 : 0.0023;
+      const zoomFactor = Math.exp(-event.deltaY * speed);
+      zoomAt(event.offsetX, event.offsetY, zoomFactor);
+    },
+    { passive: false },
+  );
+
+  svgEl.addEventListener('keydown', (event: KeyboardEvent) => {
+    if (event.key === '+' || event.key === '=' || event.key === 'NumpadAdd') {
+      event.preventDefault();
+      zoomIn();
+      return;
+    }
+
+    if (event.key === '-' || event.key === '_' || event.key === 'NumpadSubtract') {
+      event.preventDefault();
+      zoomOut();
+      return;
+    }
+
+    if (event.key === '0') {
+      event.preventDefault();
+      resetView();
+      return;
+    }
+
+    const panStep = 36;
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      nudgePan(panStep, 0);
+      return;
+    }
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      nudgePan(-panStep, 0);
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      nudgePan(0, panStep);
+      return;
+    }
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      nudgePan(0, -panStep);
+    }
+  });
+
+  return {
+    zoomIn,
+    zoomOut,
+    resetView,
+    shouldSuppressWordClick: () => Date.now() < suppressWordClickUntil,
+  };
+}
+
+function renderOverlayControls(
+  containerEl: HTMLDivElement,
+  svgEl: SVGSVGElement | null,
+  exportBaseName: string,
+  enableExport: boolean,
+  onRefresh: () => void | Promise<void>,
+  viewportControls: ViewportControls,
+): void {
   if (!svgEl) {
     return;
   }
 
-  const controlsEl = containerEl.createDiv({ cls: 'word-cloud-export-controls' });
-  const menuButton = controlsEl.createEl('button', {
+  const viewControlsEl = containerEl.createDiv({ cls: 'word-cloud-view-controls' });
+  const zoomOutButton = viewControlsEl.createEl('button', {
+    cls: 'word-cloud-view-button',
+  });
+  zoomOutButton.type = 'button';
+  setIcon(zoomOutButton, 'minus');
+  zoomOutButton.setAttr('aria-label', 'Zoom out');
+  zoomOutButton.addEventListener('click', () => viewportControls.zoomOut());
+
+  const resetViewButton = viewControlsEl.createEl('button', {
+    cls: 'word-cloud-view-button',
+  });
+  resetViewButton.type = 'button';
+  setIcon(resetViewButton, 'locate-fixed');
+  resetViewButton.setAttr('aria-label', 'Reset pan and zoom');
+  resetViewButton.addEventListener('click', () => viewportControls.resetView());
+
+  const zoomInButton = viewControlsEl.createEl('button', {
+    cls: 'word-cloud-view-button',
+  });
+  zoomInButton.type = 'button';
+  setIcon(zoomInButton, 'plus');
+  zoomInButton.setAttr('aria-label', 'Zoom in');
+  zoomInButton.addEventListener('click', () => viewportControls.zoomIn());
+
+  const refreshControlsEl = containerEl.createDiv({ cls: 'word-cloud-refresh-controls' });
+  const refreshButton = refreshControlsEl.createEl('button', {
+    cls: 'word-cloud-refresh-button',
+  });
+  refreshButton.type = 'button';
+  setIcon(refreshButton, 'rotate-cw');
+  refreshButton.setAttr('aria-label', 'Refresh word cloud');
+
+  let isRefreshing = false;
+  refreshButton.addEventListener('click', async (event) => {
+    event.preventDefault();
+    if (isRefreshing) {
+      return;
+    }
+
+    isRefreshing = true;
+    refreshButton.disabled = true;
+    try {
+      await onRefresh();
+    } finally {
+      if (refreshButton.isConnected) {
+        refreshButton.disabled = false;
+      }
+      isRefreshing = false;
+    }
+  });
+
+  if (!enableExport) {
+    return;
+  }
+
+  const exportControlsEl = containerEl.createDiv({ cls: 'word-cloud-export-controls' });
+  const menuButton = exportControlsEl.createEl('button', {
     cls: 'word-cloud-menu-button',
     text: '⋯',
   });
   menuButton.setAttr('aria-label', 'Word cloud options');
 
-  const menuEl = controlsEl.createDiv({ cls: 'word-cloud-menu' });
+  const menuEl = exportControlsEl.createDiv({ cls: 'word-cloud-menu' });
   menuEl.setAttr('hidden', 'true');
   let removeOutsideListener: (() => void) | null = null;
 
@@ -166,7 +439,7 @@ function renderExportControls(containerEl: HTMLDivElement, svgEl: SVGSVGElement 
           toggleMenu(false);
           return;
         }
-        if (!controlsEl.contains(target)) {
+        if (!exportControlsEl.contains(target)) {
           toggleMenu(false);
         }
       };

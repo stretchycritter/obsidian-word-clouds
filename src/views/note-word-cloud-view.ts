@@ -168,6 +168,7 @@ export class NoteWordCloudView extends ItemView {
         words,
         ariaLabel: `Word cloud for ${targetFile.basename}`,
         onProgress: updateProgress,
+        onRefresh: () => this.renderCloud(containerEl),
         onWordClick: (word) => {
           void this.services.openSearchForWord(word, { filePath: targetFile.path });
         },

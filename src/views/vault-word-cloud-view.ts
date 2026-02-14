@@ -170,6 +170,7 @@ export class VaultWordCloudView extends ItemView {
         words,
         ariaLabel: 'Word cloud based on markdown files in the vault',
         onProgress: updateProgress,
+        onRefresh: () => this.renderCloud(containerEl),
         onWordClick: (word) => {
           void this.services.openSearchForWord(word, {
             tags: this.selectedTags,
