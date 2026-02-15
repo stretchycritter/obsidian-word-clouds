@@ -1,4 +1,4 @@
-import { MarkdownPostProcessorContext, Notice, Plugin, TFile } from 'obsidian';
+import { MarkdownPostProcessorContext, MarkdownView, Notice, Plugin, TFile } from 'obsidian';
 import type { TagMatchMode, WordCloudServices } from '../types';
 import { EmbedWordCloudModal } from '../modals/embed-word-cloud-modal';
 
@@ -21,6 +21,11 @@ type EmbeddedRenderState = {
   lastHeight: number;
 };
 
+type EmbeddedCloudInstance = {
+  sourcePath: string;
+  rerender: () => void;
+};
+
 const DEFAULT_OPTIONS: EmbeddedWordCloudOptions = {
   scope: 'file',
   size: 'medium',
@@ -30,12 +35,16 @@ const DEFAULT_OPTIONS: EmbeddedWordCloudOptions = {
 };
 
 const EMBED_RESIZE_DEBOUNCE_MS = 140;
+const EMBED_CONTENT_CHANGE_DEBOUNCE_MS = 5000;
 const EMBED_SIZE_HEIGHT: Record<EmbeddedWordCloudSize, number> = {
   small: 240,
   medium: 320,
   large: 440,
 };
 const embeddedRenderStates = new WeakMap<HTMLElement, EmbeddedRenderState>();
+const embeddedCloudInstances = new WeakMap<HTMLElement, EmbeddedCloudInstance>();
+const embeddedCloudsBySourcePath = new Map<string, Set<HTMLElement>>();
+const sourcePathRefreshTimers = new Map<string, number>();
 
 export function registerEmbeddedWordCloudProcessor(
   plugin: Plugin,
@@ -43,6 +52,9 @@ export function registerEmbeddedWordCloudProcessor(
 ): void {
   const render = async (source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext): Promise<void> => {
     cleanupEmbeddedRenderState(el);
+    registerEmbeddedCloudInstance(el, ctx.sourcePath, () => {
+      void render(source, el, ctx);
+    });
     const options = parseOptions(source);
 
     el.empty();
@@ -130,6 +142,20 @@ export function registerEmbeddedWordCloudProcessor(
 
   plugin.registerMarkdownCodeBlockProcessor('wordcloud', render);
   plugin.registerMarkdownCodeBlockProcessor('word-cloud', render);
+  plugin.registerEvent(plugin.app.workspace.on('editor-change', (_editor, view) => {
+    if (!(view instanceof MarkdownView) || !view.file) {
+      return;
+    }
+
+    scheduleSourcePathRefresh(view.file.path);
+  }));
+  plugin.register(() => {
+    for (const timerId of sourcePathRefreshTimers.values()) {
+      window.clearTimeout(timerId);
+    }
+    sourcePathRefreshTimers.clear();
+    embeddedCloudsBySourcePath.clear();
+  });
 }
 
 function resolveCurrentFile(plugin: Plugin, ctx: MarkdownPostProcessorContext): TFile | null {
@@ -356,6 +382,7 @@ function registerEmbeddedResizeObserver(
 function cleanupEmbeddedRenderState(hostEl: HTMLElement): void {
   const state = embeddedRenderStates.get(hostEl);
   if (!state) {
+    cleanupEmbeddedCloudInstance(hostEl);
     return;
   }
 
@@ -364,6 +391,70 @@ function cleanupEmbeddedRenderState(hostEl: HTMLElement): void {
     window.clearTimeout(state.rerenderTimer);
   }
   embeddedRenderStates.delete(hostEl);
+  cleanupEmbeddedCloudInstance(hostEl);
+}
+
+function registerEmbeddedCloudInstance(hostEl: HTMLElement, sourcePath: string, rerender: () => void): void {
+  cleanupEmbeddedCloudInstance(hostEl);
+
+  embeddedCloudInstances.set(hostEl, { sourcePath, rerender });
+  let hosts = embeddedCloudsBySourcePath.get(sourcePath);
+  if (!hosts) {
+    hosts = new Set<HTMLElement>();
+    embeddedCloudsBySourcePath.set(sourcePath, hosts);
+  }
+  hosts.add(hostEl);
+}
+
+function cleanupEmbeddedCloudInstance(hostEl: HTMLElement): void {
+  const instance = embeddedCloudInstances.get(hostEl);
+  if (!instance) {
+    return;
+  }
+
+  const hosts = embeddedCloudsBySourcePath.get(instance.sourcePath);
+  if (hosts) {
+    hosts.delete(hostEl);
+    if (hosts.size === 0) {
+      embeddedCloudsBySourcePath.delete(instance.sourcePath);
+    }
+  }
+  embeddedCloudInstances.delete(hostEl);
+}
+
+function scheduleSourcePathRefresh(sourcePath: string): void {
+  const existingTimer = sourcePathRefreshTimers.get(sourcePath);
+  if (existingTimer !== undefined) {
+    window.clearTimeout(existingTimer);
+  }
+
+  const timerId = window.setTimeout(() => {
+    sourcePathRefreshTimers.delete(sourcePath);
+    rerenderEmbeddedCloudsForSourcePath(sourcePath);
+  }, EMBED_CONTENT_CHANGE_DEBOUNCE_MS);
+  sourcePathRefreshTimers.set(sourcePath, timerId);
+}
+
+function rerenderEmbeddedCloudsForSourcePath(sourcePath: string): void {
+  const hosts = embeddedCloudsBySourcePath.get(sourcePath);
+  if (!hosts || hosts.size === 0) {
+    return;
+  }
+
+  for (const hostEl of [...hosts]) {
+    if (!hostEl.isConnected) {
+      cleanupEmbeddedCloudInstance(hostEl);
+      continue;
+    }
+
+    const instance = embeddedCloudInstances.get(hostEl);
+    if (!instance) {
+      hosts.delete(hostEl);
+      continue;
+    }
+
+    instance.rerender();
+  }
 }
 
 function openEmbeddedWordCloudEditWizard(

@@ -97,8 +97,8 @@
   },
   "filters": {
     "scope": {
-      "mode": "vault",
-      "activeFilePath": "",
+      "mode": "active-file",
+      "activeFilePath": "00 - Word Clouds Plugin Home.md",
       "folderPaths": []
     },
     "includeTags": [],
