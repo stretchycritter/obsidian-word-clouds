@@ -2,7 +2,7 @@ import type { App, TFile } from 'obsidian';
 import type { RenderSettings, WeightedWord } from '../types';
 import { readPipelineDocuments } from '../pipeline/adapters/obsidian-source';
 import { runPipeline } from '../pipeline/run-pipeline';
-import type { SourceSelectionRules } from '../pipeline/types';
+import type { FrequencyThresholds, SourceSelectionRules } from '../pipeline/types';
 import { getAvailableTags } from './tag-filter';
 
 export class WordCloudProcessor {
@@ -21,7 +21,11 @@ export class WordCloudProcessor {
     stopWords: Set<string>,
     renderSettings: RenderSettings,
     onProgress?: (message: string, percent: number) => void,
-    sourceRules?: SourceSelectionRules,
+    options?: {
+      sourceRules?: SourceSelectionRules;
+      frequency?: FrequencyThresholds;
+      excludeWords?: string[];
+    },
   ): Promise<WeightedWord[]> {
     const performance = getPerformanceProfile(renderSettings.progressDetail);
     const reportProgress = createThrottledProgress(onProgress, performance.progressThrottleMs);
@@ -40,11 +44,20 @@ export class WordCloudProcessor {
 
     reportProgress('Tokenizing and aggregating...', 85);
 
+    const combinedStopWords = new Set(stopWords);
+    for (const word of options?.excludeWords ?? []) {
+      const normalized = word.trim().toLowerCase();
+      if (normalized) {
+        combinedStopWords.add(normalized);
+      }
+    }
+
     const model = runPipeline({
       documents,
-      stopWords,
+      stopWords: combinedStopWords,
       renderSettings,
-      sourceRules,
+      sourceRules: options?.sourceRules,
+      frequency: options?.frequency,
     });
 
     reportProgress('Preparing layout...', 95);

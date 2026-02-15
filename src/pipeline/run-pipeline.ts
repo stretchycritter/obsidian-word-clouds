@@ -1,5 +1,6 @@
 import { DEFAULT_PIPELINE_STRATEGIES } from './strategies';
 import { aggregateTokens } from './stages/aggregate';
+import { applyFrequencyThresholds } from './stages/frequency-threshold';
 import { filterTokens } from './stages/filter';
 import { normalizeDocuments } from './stages/normalize';
 import { createRenderModel } from './stages/render-model';
@@ -22,7 +23,8 @@ export function runPipeline(
   const tokens = tokenizeDocuments(normalizedDocuments, strategies.tokenizer);
   const filteredTokens = filterTokens(tokens, input.stopWords, strategies.filter);
   const aggregateResult = aggregateTokens(filteredTokens, strategies.aggregator);
-  const words = scaleEntries(aggregateResult.entries, input.renderSettings, strategies.scaling);
+  const filteredEntries = applyFrequencyThresholds(aggregateResult.entries, input.frequency);
+  const words = scaleEntries(filteredEntries, input.renderSettings, strategies.scaling);
 
   return createRenderModel(words, aggregateResult, strategies.renderModel);
 }

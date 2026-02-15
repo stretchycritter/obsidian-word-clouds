@@ -9,18 +9,25 @@ export async function openSearchForWord(app: App, word: string, options: SearchO
     parts.push(`path:"${escapeForSearch(options.filePath)}"`);
   }
 
-  const tags = (options.tags ?? [])
+  const includeTags = (options.includeTags ?? [])
+    .map((tag) => normalizeTag(tag))
+    .filter((tag) => tag.length > 0);
+  const excludeTags = (options.excludeTags ?? [])
     .map((tag) => normalizeTag(tag))
     .filter((tag) => tag.length > 0);
 
-  if (tags.length > 0) {
+  if (includeTags.length > 0) {
     if (options.tagMatchMode === 'all') {
-      for (const tag of tags) {
+      for (const tag of includeTags) {
         parts.push(tag);
       }
     } else {
-      parts.push(`(${tags.join(' OR ')})`);
+      parts.push(`(${includeTags.join(' OR ')})`);
     }
+  }
+
+  for (const tag of excludeTags) {
+    parts.push(`-${tag}`);
   }
 
   const query = parts.join(' ');

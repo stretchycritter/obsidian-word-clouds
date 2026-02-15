@@ -44,7 +44,8 @@ Embedded blocks support three modes:
 
 ```wordcloud
 mode: current-file
-height: 260
+height: 780
+interactions: true
 ```
 
 ### Note cloud: architecture note
@@ -58,23 +59,15 @@ height: 280
 ### Note cloud: static (no controls, no pan/zoom)
 
 ```wordcloud
-mode: specific-file
-file: Features/Vault Word Cloud.md
-height: 280
-interactions: false
+scope: file
+size: large
 ```
-
-### Vault cloud: feature notes only (match any)
 
 ```wordcloud
-mode: tag-based
-tags: features, word-clouds
-match: any
-height: 320
+scope: vault
+size: medium
+exclude-words: test
 ```
-
-## Example: static embed
-
 Use this in any note to render a centered static cloud with no controls and no pan/zoom (`interactions` and `interactable` are both supported):
 
 ```wordcloud

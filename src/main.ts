@@ -1,14 +1,25 @@
-import { MarkdownView, Notice, Plugin, TFile } from 'obsidian';
+import { MarkdownView, Notice, Plugin, TFile, TFolder } from 'obsidian';
 import { VIEW_TYPE_NOTE_WORD_CLOUD, VIEW_TYPE_VAULT_WORD_CLOUD } from './constants';
 import { registerEmbeddedWordCloudProcessor } from './block-renderers/wordcloud-block-renderer';
 import { openSearchForWord } from './actions/apply-search';
 import { WordCloudProcessor } from './processing/processor';
 import { DEFAULT_SETTINGS, VaultWordCloudSettingTab, type WordCloudSettings } from './settings';
-import type { RenderSettings, SearchOptions, TagMatchMode, WordCloudRenderOptions, WordCloudServices, WeightedWord } from './types';
+import type {
+  RenderSettings,
+  SearchOptions,
+  TagMatchMode,
+  VaultCollectionOptions,
+  WordCloudFilterSettings,
+  WordCloudRenderOptions,
+  WordCloudServices,
+  WeightedWord,
+} from './types';
 import { drawWordCloud } from './rendering/word-cloud-renderer';
 import { NoteWordCloudView } from './views/note-word-cloud-view';
 import { VaultWordCloudView } from './views/vault-word-cloud-view';
 import { EmbedWordCloudModal } from './modals/embed-word-cloud-modal';
+import type { FrontmatterRule, SourceScope } from './pipeline/types';
+import { normalizeTag } from './utils';
 
 export default class VaultWordCloudPlugin extends Plugin implements WordCloudServices {
   settings: WordCloudSettings = { ...DEFAULT_SETTINGS };
@@ -90,6 +101,14 @@ export default class VaultWordCloudPlugin extends Plugin implements WordCloudSer
     return this.processor.getAvailableTags();
   }
 
+  getAvailableFolders(): string[] {
+    return this.app.vault
+      .getAllLoadedFiles()
+      .filter((file): file is TFolder => file instanceof TFolder)
+      .map((folder) => folder.path)
+      .sort((a, b) => a.localeCompare(b));
+  }
+
   getOpenMarkdownFiles(): TFile[] {
     const files = new Map<string, TFile>();
 
@@ -112,26 +131,80 @@ export default class VaultWordCloudPlugin extends Plugin implements WordCloudSer
     return this.app.workspace.getActiveFile();
   }
 
+  getFilterSettings(): WordCloudFilterSettings {
+    return {
+      scope: {
+        mode: this.settings.filters.scope.mode,
+        activeFilePath: this.settings.filters.scope.activeFilePath,
+        folderPaths: [...this.settings.filters.scope.folderPaths],
+      },
+      includeTags: [...this.settings.filters.includeTags],
+      excludeTags: [...this.settings.filters.excludeTags],
+      tagMatchMode: this.settings.filters.tagMatchMode,
+      frontmatterRules: this.settings.filters.frontmatterRules.map((rule) => ({ ...rule })),
+      frequency: {
+        minCount: this.settings.filters.frequency.minCount,
+        maxCount: this.settings.filters.frequency.maxCount,
+      },
+    };
+  }
+
+  async updateFilterSettings(patch: Partial<WordCloudFilterSettings>): Promise<void> {
+    const merged: WordCloudFilterSettings = {
+      ...this.settings.filters,
+      ...patch,
+      scope: {
+        ...this.settings.filters.scope,
+        ...patch.scope,
+      },
+      frequency: {
+        ...this.settings.filters.frequency,
+        ...patch.frequency,
+      },
+      includeTags: patch.includeTags ?? this.settings.filters.includeTags,
+      excludeTags: patch.excludeTags ?? this.settings.filters.excludeTags,
+      frontmatterRules: patch.frontmatterRules ?? this.settings.filters.frontmatterRules,
+    };
+
+    this.settings.filters = this.normalizeFilterSettings(merged);
+    await this.saveSettings();
+  }
+
   async collectVaultWords(
-    tagFilters: string[],
-    tagMatchMode: TagMatchMode,
+    options: VaultCollectionOptions = {},
     onProgress?: (message: string, percent: number) => void,
   ): Promise<WeightedWord[]> {
     const allMarkdownFiles = this.app.vault.getMarkdownFiles();
+    const sourceRules = options.sourceRules ?? {
+      scope: this.settings.filters.scope,
+      includeTags: this.settings.filters.includeTags,
+      excludeTags: this.settings.filters.excludeTags,
+      tagMatchMode: this.settings.filters.tagMatchMode,
+      frontmatterRules: this.settings.filters.frontmatterRules,
+    };
+    const frequency = options.frequency ?? this.settings.filters.frequency;
+
     return this.processor.collectFromFiles(
       allMarkdownFiles,
       this.getBlacklistSet(),
       this.settings.render,
       onProgress,
       {
-        tagFilters,
-        tagMatchMode,
+        sourceRules,
+        frequency,
+        excludeWords: options.excludeWords,
       },
     );
   }
 
-  async collectFileWords(file: TFile, onProgress?: (message: string, percent: number) => void): Promise<WeightedWord[]> {
-    return this.processor.collectFromFiles([file], this.getBlacklistSet(), this.settings.render, onProgress);
+  async collectFileWords(
+    file: TFile,
+    onProgress?: (message: string, percent: number) => void,
+    options?: { excludeWords?: string[] },
+  ): Promise<WeightedWord[]> {
+    return this.processor.collectFromFiles([file], this.getBlacklistSet(), this.settings.render, onProgress, {
+      excludeWords: options?.excludeWords,
+    });
   }
 
   async drawWordCloud(options: WordCloudRenderOptions): Promise<void> {
@@ -155,6 +228,7 @@ export default class VaultWordCloudPlugin extends Plugin implements WordCloudSer
     this.settings = {
       blacklistWords: this.normalizeBlacklistWords(loadedBlacklist),
       render: this.normalizeRenderSettings(loadedRender),
+      filters: this.normalizeFilterSettings(loaded?.filters),
     };
   }
 
@@ -223,6 +297,52 @@ export default class VaultWordCloudPlugin extends Plugin implements WordCloudSer
 
   private normalizeBlacklistWord(word: string): string {
     return word.trim().toLowerCase();
+  }
+
+  private normalizeFilterSettings(rawValue: unknown): WordCloudFilterSettings {
+    const raw = (rawValue && typeof rawValue === 'object')
+      ? rawValue as Partial<WordCloudFilterSettings>
+      : {};
+
+    const scope = this.normalizeScope(raw.scope);
+    const includeTags = normalizeTagList(raw.includeTags);
+    const excludeTags = normalizeTagList(raw.excludeTags).filter((tag) => !includeTags.includes(tag));
+    const tagMatchMode: TagMatchMode = raw.tagMatchMode === 'all' ? 'all' : 'any';
+    const frontmatterRules = normalizeFrontmatterRules(raw.frontmatterRules);
+    const minCount = this.clampNumber(raw.frequency?.minCount, 1, 9999, DEFAULT_SETTINGS.filters.frequency.minCount);
+    const maxCount = this.clampNumber(raw.frequency?.maxCount, 1, 9999, DEFAULT_SETTINGS.filters.frequency.maxCount);
+
+    return {
+      scope,
+      includeTags,
+      excludeTags,
+      tagMatchMode,
+      frontmatterRules,
+      frequency: {
+        minCount: Math.min(minCount, maxCount),
+        maxCount: Math.max(minCount, maxCount),
+      },
+    };
+  }
+
+  private normalizeScope(rawValue: unknown): SourceScope {
+    const raw = (rawValue && typeof rawValue === 'object') ? rawValue as Partial<SourceScope> : {};
+    const mode = raw.mode === 'active-file' || raw.mode === 'folder' || raw.mode === 'vault'
+      ? raw.mode
+      : DEFAULT_SETTINGS.filters.scope.mode;
+
+    const activeFilePath = typeof raw.activeFilePath === 'string'
+      ? raw.activeFilePath.trim()
+      : '';
+    const folderPaths = Array.isArray(raw.folderPaths)
+      ? [...new Set(raw.folderPaths.filter((path): path is string => typeof path === 'string').map((path) => path.trim()).filter(Boolean))]
+      : [];
+
+    return {
+      mode,
+      activeFilePath,
+      folderPaths,
+    };
   }
 
   private normalizeRenderSettings(rawValue: unknown): RenderSettings {
@@ -346,4 +466,53 @@ export default class VaultWordCloudPlugin extends Plugin implements WordCloudSer
     editor.replaceSelection(textToInsert);
     return true;
   }
+}
+
+function normalizeTagList(rawTags: unknown): string[] {
+  if (!Array.isArray(rawTags)) {
+    return [];
+  }
+
+  const tags = new Set<string>();
+  for (const value of rawTags) {
+    if (typeof value !== 'string') {
+      continue;
+    }
+    const normalized = normalizeTag(value);
+    if (normalized) {
+      tags.add(normalized);
+    }
+  }
+
+  return [...tags];
+}
+
+function normalizeFrontmatterRules(rawRules: unknown): FrontmatterRule[] {
+  if (!Array.isArray(rawRules)) {
+    return [];
+  }
+
+  const allowed = new Set(['equals', 'not-equals', 'contains', 'gt', 'gte', 'lt', 'lte', 'exists', 'not-exists']);
+  const rules: FrontmatterRule[] = [];
+
+  for (const rule of rawRules) {
+    if (!rule || typeof rule !== 'object') {
+      continue;
+    }
+
+    const candidate = rule as Partial<FrontmatterRule>;
+    const key = typeof candidate.key === 'string' ? candidate.key.trim() : '';
+    if (!key) {
+      continue;
+    }
+
+    const operator = typeof candidate.operator === 'string' && allowed.has(candidate.operator)
+      ? candidate.operator as FrontmatterRule['operator']
+      : 'equals';
+    const value = typeof candidate.value === 'string' ? candidate.value : '';
+
+    rules.push({ key, operator, value });
+  }
+
+  return rules;
 }

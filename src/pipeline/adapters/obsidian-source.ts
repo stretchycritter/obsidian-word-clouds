@@ -18,6 +18,7 @@ export async function readPipelineDocuments(
     for (let index = 0; index < batch.length; index += 1) {
       const file = batch[index];
       const rawText = contents[index];
+      const cache = app.metadataCache.getFileCache(file);
       const tags = getFileTags(app, file);
       const fileIndex = batchStart + index;
 
@@ -29,6 +30,9 @@ export async function readPipelineDocuments(
         basename: file.basename,
         rawText,
         tags,
+        frontmatter: cache?.frontmatter && typeof cache.frontmatter === 'object'
+          ? { ...cache.frontmatter }
+          : {},
       });
     }
   }

@@ -1,7 +1,7 @@
 import { scaleOrdinal } from 'd3-scale';
 import { schemeTableau10 } from 'd3-scale-chromatic';
 import { select } from 'd3-selection';
-import { setIcon } from 'obsidian';
+import { Menu, setIcon } from 'obsidian';
 import type { RenderSettings, RotationPreset, WordCloudRenderOptions, WeightedWord } from '../types';
 
 function buildDeterministicRandom(seed: number): () => number {
@@ -60,7 +60,16 @@ type ViewportControls = {
 };
 
 export async function drawWordCloud(options: WordCloudRenderOptions, renderSettings: RenderSettings): Promise<void> {
-  const { containerEl, words, ariaLabel, onWordClick, onProgress, onRefresh } = options;
+  const {
+    containerEl,
+    words,
+    ariaLabel,
+    onWordClick,
+    onExcludeInCloud,
+    onExcludeInVault,
+    onProgress,
+    onRefresh,
+  } = options;
   const exportBaseName = sanitizeFileName(options.exportBaseName ?? 'word-cloud');
   const enableExport = options.enableExport ?? true;
   const enableOverlayControls = options.enableOverlayControls ?? true;
@@ -145,7 +154,22 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
               onWordClick(d.baseText);
+              return;
             }
+
+            if ((onExcludeInCloud || onExcludeInVault) && (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10'))) {
+              event.preventDefault();
+              openExcludeWordMenuAtFocusedWord(event.currentTarget, d.baseText, onExcludeInCloud, onExcludeInVault);
+            }
+          })
+          .on('contextmenu', (event: MouseEvent, d) => {
+            if (!onExcludeInCloud && !onExcludeInVault) {
+              return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            openExcludeWordMenuAtPointer(event, d.baseText, onExcludeInCloud, onExcludeInVault);
           })
           .append('title')
           .text((d) => `${d.baseText} (${d.count})`);
@@ -170,6 +194,74 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
       })
       .start();
   });
+}
+
+function openExcludeWordMenuAtPointer(
+  event: MouseEvent,
+  word: string,
+  onExcludeInCloud: ((word: string) => void | Promise<void>) | undefined,
+  onExcludeInVault: ((word: string) => void | Promise<void>) | undefined,
+): void {
+  const menu = new Menu();
+  addExcludeMenuItems(menu, word, onExcludeInCloud, onExcludeInVault);
+  menu.showAtMouseEvent(event);
+}
+
+function openExcludeWordMenuAtFocusedWord(
+  target: EventTarget | null,
+  word: string,
+  onExcludeInCloud: ((word: string) => void | Promise<void>) | undefined,
+  onExcludeInVault: ((word: string) => void | Promise<void>) | undefined,
+): void {
+  if (!(target instanceof SVGGraphicsElement)) {
+    return;
+  }
+
+  const rect = target.getBoundingClientRect();
+  const menu = new Menu();
+  addExcludeMenuItems(menu, word, onExcludeInCloud, onExcludeInVault);
+  menu.showAtPosition({
+    x: Math.round(rect.left + (rect.width / 2)),
+    y: Math.round(rect.bottom),
+  });
+}
+
+function addExcludeMenuItems(
+  menu: Menu,
+  word: string,
+  onExcludeInCloud: ((word: string) => void | Promise<void>) | undefined,
+  onExcludeInVault: ((word: string) => void | Promise<void>) | undefined,
+): void {
+  if (onExcludeInCloud) {
+    menu.addItem((item) => {
+      item
+        .setTitle('Exclude in cloud')
+        .setIcon('list-x')
+        .onClick(() => {
+          void onExcludeInCloud(word);
+        });
+    });
+  }
+
+  if (onExcludeInVault) {
+    menu.addItem((item) => {
+      item
+        .setTitle('Exclude in vault')
+        .setIcon('cloud-off')
+        .onClick(() => {
+          void onExcludeInVault(word);
+        });
+    });
+  }
+
+  if (!onExcludeInCloud && !onExcludeInVault) {
+    menu.addItem((item) => {
+      item
+        .setTitle('Exclude unavailable')
+        .setIcon('slash')
+        .setDisabled(true);
+    });
+  }
 }
 
 function createStaticViewportControls(): ViewportControls {

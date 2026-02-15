@@ -1,4 +1,5 @@
 import type { TFile } from 'obsidian';
+import type { FrequencyThresholds, FrontmatterRule, SourceSelectionRules, SourceScope } from './pipeline/types';
 
 export type TagMatchMode = 'any' | 'all';
 
@@ -38,6 +39,8 @@ export type WordCloudRenderOptions = {
   words: WeightedWord[];
   ariaLabel: string;
   onWordClick: (word: string) => void;
+  onExcludeInCloud?: (word: string) => void | Promise<void>;
+  onExcludeInVault?: (word: string) => void | Promise<void>;
   onRefresh: () => void | Promise<void>;
   onEdit?: () => void | Promise<void>;
   onProgress?: (message: string, percent: number) => void;
@@ -51,21 +54,44 @@ export type WordCloudRenderOptions = {
 };
 
 export type SearchOptions = {
-  tags?: string[];
+  includeTags?: string[];
+  excludeTags?: string[];
   tagMatchMode?: TagMatchMode;
   filePath?: string;
 };
 
+export type VaultCollectionOptions = {
+  sourceRules?: SourceSelectionRules;
+  frequency?: FrequencyThresholds;
+  excludeWords?: string[];
+};
+
+export type WordCloudFilterSettings = {
+  scope: SourceScope;
+  includeTags: string[];
+  excludeTags: string[];
+  tagMatchMode: TagMatchMode;
+  frontmatterRules: FrontmatterRule[];
+  frequency: Required<FrequencyThresholds>;
+};
+
 export interface WordCloudServices {
   getAvailableTags(): string[];
+  getAvailableFolders(): string[];
   getOpenMarkdownFiles(): TFile[];
   getActiveFile(): TFile | null;
+  getFilterSettings(): WordCloudFilterSettings;
+  updateFilterSettings(patch: Partial<WordCloudFilterSettings>): Promise<void>;
   collectVaultWords(
-    tagFilters: string[],
-    tagMatchMode: TagMatchMode,
+    options?: VaultCollectionOptions,
     onProgress?: (message: string, percent: number) => void,
   ): Promise<WeightedWord[]>;
-  collectFileWords(file: TFile, onProgress?: (message: string, percent: number) => void): Promise<WeightedWord[]>;
+  collectFileWords(
+    file: TFile,
+    onProgress?: (message: string, percent: number) => void,
+    options?: { excludeWords?: string[] },
+  ): Promise<WeightedWord[]>;
   drawWordCloud(options: WordCloudRenderOptions): Promise<void>;
   openSearchForWord(word: string, options?: SearchOptions): Promise<void>;
+  addBlacklistWord(rawWord: string): Promise<boolean>;
 }

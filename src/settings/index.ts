@@ -7,6 +7,7 @@ import type {
   RotationPreset,
   ScalingMode,
   SpiralType,
+  WordCloudFilterSettings,
   WeightedWord,
 } from '../types';
 import type VaultWordCloudPlugin from '../main';
@@ -15,6 +16,7 @@ import { mapCountsToWeightedWords } from '../processing/scaling';
 export interface WordCloudSettings {
   blacklistWords: string[];
   render: RenderSettings;
+  filters: WordCloudFilterSettings;
 }
 
 export const DEFAULT_SETTINGS: WordCloudSettings = {
@@ -36,6 +38,21 @@ export const DEFAULT_SETTINGS: WordCloudSettings = {
     layoutTimeIntervalMs: 16,
     deterministicLayout: false,
     randomSeed: 42,
+  },
+  filters: {
+    scope: {
+      mode: 'vault',
+      activeFilePath: '',
+      folderPaths: [],
+    },
+    includeTags: [],
+    excludeTags: [],
+    tagMatchMode: 'any',
+    frontmatterRules: [],
+    frequency: {
+      minCount: 1,
+      maxCount: 9999,
+    },
   },
 };
 

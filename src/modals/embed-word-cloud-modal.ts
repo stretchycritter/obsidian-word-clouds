@@ -1,15 +1,13 @@
-import { App, ButtonComponent, Modal, Notice, Setting, type TFile } from 'obsidian';
-import type { TagMatchMode, WordCloudServices } from '../types';
+import { App, ButtonComponent, Modal, Notice, Setting } from 'obsidian';
+import type { WordCloudServices } from '../types';
 
-export type EmbedMode = 'current-file' | 'specific-file' | 'tag-based';
+export type EmbedScope = 'file' | 'vault';
+export type EmbedSize = 'small' | 'medium' | 'large';
 
 export type EmbedWizardState = {
-  mode: EmbedMode;
-  filePath: string;
+  scope: EmbedScope;
+  size: EmbedSize;
   tagsRaw: string;
-  match: TagMatchMode;
-  height: number;
-  interactions: boolean;
 };
 
 type EmbedWordCloudModalOptions = {
@@ -20,12 +18,9 @@ type EmbedWordCloudModalOptions = {
 };
 
 const DEFAULT_STATE: EmbedWizardState = {
-  mode: 'current-file',
-  filePath: '',
+  scope: 'file',
+  size: 'medium',
   tagsRaw: '',
-  match: 'any',
-  height: 320,
-  interactions: true,
 };
 
 export class EmbedWordCloudModal extends Modal {
@@ -36,10 +31,9 @@ export class EmbedWordCloudModal extends Modal {
   private readonly description: string;
   private readonly submitButtonText: string;
 
-  private modeWrapperEl!: HTMLDivElement;
-  private fileWrapperEl!: HTMLDivElement;
+  private scopeWrapperEl!: HTMLDivElement;
+  private sizeWrapperEl!: HTMLDivElement;
   private tagsWrapperEl!: HTMLDivElement;
-  private matchWrapperEl!: HTMLDivElement;
 
   constructor(
     app: App,
@@ -54,11 +48,9 @@ export class EmbedWordCloudModal extends Modal {
     this.description = options.description ?? 'Configure options, then insert a word cloud embed at your cursor.';
     this.submitButtonText = options.submitButtonText ?? 'Insert';
 
-    const activeFile = this.services.getActiveFile();
     const initialState = options.initialState ?? {};
     this.state = {
       ...DEFAULT_STATE,
-      filePath: activeFile?.path ?? '',
       ...initialState,
     };
   }
@@ -74,53 +66,39 @@ export class EmbedWordCloudModal extends Modal {
       text: this.description,
     });
 
-    this.modeWrapperEl = contentEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
-    this.fileWrapperEl = contentEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
+    this.scopeWrapperEl = contentEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
+    this.sizeWrapperEl = contentEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
     this.tagsWrapperEl = contentEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
-    this.matchWrapperEl = contentEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
 
-    new Setting(this.modeWrapperEl)
-      .setName('Source')
-      .setDesc('Choose where this embedded cloud pulls words from.')
+    new Setting(this.scopeWrapperEl)
+      .setName('Scope')
+      .setDesc('Choose whether this cloud uses the current file or the entire vault.')
       .addDropdown((dropdown) => {
         dropdown
-          .addOption('current-file', 'Current note')
-          .addOption('specific-file', 'Specific note')
-          .addOption('tag-based', 'Vault filtered by tags')
-          .setValue(this.state.mode)
+          .addOption('file', 'File')
+          .addOption('vault', 'Vault')
+          .setValue(this.state.scope)
           .onChange((value) => {
-            this.state.mode = value === 'specific-file' || value === 'tag-based' ? value : 'current-file';
+            this.state.scope = value === 'vault' ? 'vault' : 'file';
             this.refreshConditionalSections();
           });
       });
 
-    this.renderFileSetting();
+    new Setting(this.sizeWrapperEl)
+      .setName('Size')
+      .setDesc('Select the embedded cloud size preset.')
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption('small', 'Small')
+          .addOption('medium', 'Medium')
+          .addOption('large', 'Large')
+          .setValue(this.state.size)
+          .onChange((value) => {
+            this.state.size = value === 'small' || value === 'large' ? value : 'medium';
+          });
+      });
+
     this.renderTagSetting();
-    this.renderMatchSetting();
-
-    new Setting(contentEl)
-      .setName('Height')
-      .setDesc('Height of the embedded cloud in pixels.')
-      .addSlider((slider) => {
-        slider
-          .setLimits(180, 900, 10)
-          .setValue(this.state.height)
-          .setDynamicTooltip()
-          .onChange((value) => {
-            this.state.height = value;
-          });
-      });
-
-    new Setting(contentEl)
-      .setName('Enable interactions')
-      .setDesc('Allow zoom, pan, and click-to-search interactions.')
-      .addToggle((toggle) => {
-        toggle
-          .setValue(this.state.interactions)
-          .onChange((value) => {
-            this.state.interactions = value;
-          });
-      });
 
     const buttonRowEl = contentEl.createDiv({ cls: 'word-cloud-embed-wizard-actions' });
 
@@ -135,11 +113,6 @@ export class EmbedWordCloudModal extends Modal {
       .setButtonText(this.submitButtonText)
       .setCta()
       .onClick(async () => {
-        if (this.state.mode === 'specific-file' && !this.state.filePath) {
-          new Notice('Select an open markdown note before inserting.');
-          return;
-        }
-
         insertButton.setDisabled(true);
         try {
           const wasInserted = await this.onInsert(this.buildEmbedBlock());
@@ -163,36 +136,6 @@ export class EmbedWordCloudModal extends Modal {
     this.contentEl.empty();
   }
 
-  private renderFileSetting(): void {
-    this.fileWrapperEl.empty();
-
-    new Setting(this.fileWrapperEl)
-      .setName('Specific note')
-      .setDesc('Use one open note as the source for this embedded cloud.')
-      .addDropdown((dropdown) => {
-        const openFiles = this.services.getOpenMarkdownFiles();
-        const selectedPath = this.resolveSelectedPath(openFiles, this.state.filePath);
-
-        for (const file of openFiles) {
-          dropdown.addOption(file.path, file.path);
-        }
-
-        if (openFiles.length === 0) {
-          dropdown.addOption('', 'No open markdown notes');
-          dropdown.setDisabled(true);
-          this.state.filePath = '';
-          return;
-        }
-
-        this.state.filePath = selectedPath;
-        dropdown
-          .setValue(selectedPath)
-          .onChange((value) => {
-            this.state.filePath = value;
-          });
-      });
-  }
-
   private renderTagSetting(): void {
     this.tagsWrapperEl.empty();
 
@@ -202,8 +145,8 @@ export class EmbedWordCloudModal extends Modal {
       : 'No tags detected yet.';
 
     new Setting(this.tagsWrapperEl)
-      .setName('Tags')
-      .setDesc(`Optional comma-separated tags. ${tagHint}`)
+      .setName('Tag filter include list')
+      .setDesc(`Optional comma-separated tags to include. ${tagHint}`)
       .addText((text) => {
         text
           .setPlaceholder('#project, #meeting')
@@ -214,53 +157,14 @@ export class EmbedWordCloudModal extends Modal {
       });
   }
 
-  private renderMatchSetting(): void {
-    this.matchWrapperEl.empty();
-
-    new Setting(this.matchWrapperEl)
-      .setName('Tag match mode')
-      .setDesc('When multiple tags are set, match any or all of them.')
-      .addDropdown((dropdown) => {
-        dropdown
-          .addOption('any', 'Any tag')
-          .addOption('all', 'All tags')
-          .setValue(this.state.match)
-          .onChange((value) => {
-            this.state.match = value === 'all' ? 'all' : 'any';
-          });
-      });
-  }
-
-  private resolveSelectedPath(files: TFile[], preferredPath: string): string {
-    if (preferredPath && files.some((file) => file.path === preferredPath)) {
-      return preferredPath;
-    }
-
-    const activeFile = this.services.getActiveFile();
-    if (activeFile && files.some((file) => file.path === activeFile.path)) {
-      return activeFile.path;
-    }
-
-    return files[0]?.path ?? '';
-  }
-
   private refreshConditionalSections(): void {
-    const isSpecific = this.state.mode === 'specific-file';
-    const isTagBased = this.state.mode === 'tag-based';
-
-    this.fileWrapperEl.toggleClass('is-hidden', !isSpecific);
-    this.tagsWrapperEl.toggleClass('is-hidden', !isTagBased);
-    this.matchWrapperEl.toggleClass('is-hidden', !isTagBased);
+    this.tagsWrapperEl.toggleClass('is-hidden', this.state.scope !== 'vault');
   }
 
   private buildEmbedBlock(): string {
-    const lines = ['```wordcloud', `mode: ${this.state.mode}`];
+    const lines = ['```wordcloud', `scope: ${this.state.scope}`, `size: ${this.state.size}`];
 
-    if (this.state.mode === 'specific-file' && this.state.filePath) {
-      lines.push(`file: ${this.state.filePath}`);
-    }
-
-    if (this.state.mode === 'tag-based') {
+    if (this.state.scope === 'vault') {
       const normalizedTags = this.state.tagsRaw
         .split(',')
         .map((tag) => tag.trim())
@@ -268,11 +172,8 @@ export class EmbedWordCloudModal extends Modal {
       if (normalizedTags.length > 0) {
         lines.push(`tags: ${normalizedTags.join(', ')}`);
       }
-      lines.push(`match: ${this.state.match}`);
     }
 
-    lines.push(`height: ${this.state.height}`);
-    lines.push(`interactions: ${this.state.interactions ? 'true' : 'false'}`);
     lines.push('```');
 
     return lines.join('\n');
