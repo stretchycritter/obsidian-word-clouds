@@ -4,3 +4,4 @@ dist/
 .DS_Store
 
 .deploy.local
+demo-vault/.obsidian/plugins/word-clouds/
