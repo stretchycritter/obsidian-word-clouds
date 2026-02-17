@@ -1,6 +1,8 @@
 import { moment } from "obsidian";
 import en from "./en.json";
-import { SUPPORTED_TRANSLATIONS, type SupportedTranslation } from "./supported-translations";
+
+export const SUPPORTED_TRANSLATIONS = ["en"] as const;
+export type SupportedTranslation = (typeof SUPPORTED_TRANSLATIONS)[number];
 
 type Dictionary = Record<string, string>;
 

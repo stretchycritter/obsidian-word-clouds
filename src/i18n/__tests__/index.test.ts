@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+
 jest.mock(
   "obsidian",
   () => ({
@@ -9,7 +12,7 @@ jest.mock(
 );
 
 import { moment } from "obsidian";
-import { getActiveLocale, initI18n, setLocale, t } from "../index";
+import { getActiveLocale, initI18n, setLocale, SUPPORTED_TRANSLATIONS, t } from "../index";
 
 const mockedLocale = moment.locale as jest.MockedFunction<typeof moment.locale>;
 
@@ -52,5 +55,12 @@ describe("i18n index", () => {
   test("t accepts locale override and resolves unsupported values to english", () => {
     expect(t("commands.openVaultWordCloud", "en-US")).toBe("Open vault word cloud");
     expect(t("commands.openVaultWordCloud", "de-DE")).toBe("Open vault word cloud");
+  });
+
+  test("each supported translation has a matching i18n json file", () => {
+    for (const locale of SUPPORTED_TRANSLATIONS) {
+      const localeFile = resolve(__dirname, "..", `${locale}.json`);
+      expect(existsSync(localeFile)).toBe(true);
+    }
   });
 });
