@@ -4,17 +4,22 @@
     "type": "split",
     "children": [
       {
-        "id": "ae42a8c464efb3b7",
+        "id": "9f2dc42f806c20dc",
         "type": "tabs",
         "children": [
           {
-            "id": "1d14805674d5fb86",
+            "id": "56afcf96ec2410e2",
             "type": "leaf",
             "state": {
-              "type": "vault-word-cloud-view",
-              "state": {},
-              "icon": "cloud",
-              "title": "Vault Word Cloud"
+              "type": "markdown",
+              "state": {
+                "file": "00 - Word Clouds Plugin Home.md",
+                "mode": "source",
+                "source": false,
+                "backlinks": false
+              },
+              "icon": "lucide-file",
+              "title": "00 - Word Clouds Plugin Home"
             }
           }
         ]
@@ -36,7 +41,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "\"set\" path:\"00 - Word Clouds Plugin Home.md\"",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -149,8 +154,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 564.5,
-    "collapsed": true
+    "width": 458.5
   },
   "left-ribbon": {
     "hiddenItems": {

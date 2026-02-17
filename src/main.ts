@@ -382,6 +382,14 @@ export default class VaultWordCloudPlugin extends Plugin implements WordCloudSer
       ? raw.showCountInWordText
       : DEFAULT_SETTINGS.render.showCountInWordText;
 
+    const wordTextMetric = raw.wordTextMetric === 'count' || raw.wordTextMetric === 'frequency'
+      ? raw.wordTextMetric
+      : DEFAULT_SETTINGS.render.wordTextMetric;
+
+    const showWordTextMetricToggle = typeof raw.showWordTextMetricToggle === 'boolean'
+      ? raw.showWordTextMetricToggle
+      : DEFAULT_SETTINGS.render.showWordTextMetricToggle;
+
     const countLabelFormat = raw.countLabelFormat === 'paren'
       || raw.countLabelFormat === 'dot'
       || raw.countLabelFormat === 'colon'
@@ -421,6 +429,8 @@ export default class VaultWordCloudPlugin extends Plugin implements WordCloudSer
       scalingMode,
       emphasis,
       showCountInWordText,
+      wordTextMetric,
+      showWordTextMetricToggle,
       countLabelFormat,
       countLabelMinCount,
       progressDetail,

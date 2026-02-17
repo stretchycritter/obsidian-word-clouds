@@ -15,6 +15,14 @@ This vault is the living documentation and test bed for the **Word Clouds** plug
 - [[Testing/Test Plan]]
 - [[Development/Release Checklist]]
 
+```wordcloud
+id: 704353d6-e687-4d68-9a0e-b293f9f6c069
+scope: file
+size: medium
+min-count: 1
+max-count: 9999
+```
+
 ## Why this vault exists
 
 - Document decisions and behavior of the plugin
@@ -60,20 +68,42 @@ height: 280
 
 ```wordcloud
 scope: file
-size: large
+size: medium
+min-count: 1
+max-count: 9999
 ```
 
 ```wordcloud
-scope: vault
-size: medium
-exclude-words: test
+scope: file
+size: large
+file: Features/Tag Filters.md
+min-count: 1
+max-count: 9999
 ```
 Use this in any note to render a centered static cloud with no controls and no pan/zoom (`interactions` and `interactable` are both supported):
 
 ```wordcloud
-mode: specific-file
+scope: file
+size: medium
 file: Features/Vault Word Cloud.md
-height: 300
-interactions: false
+min-count: 1
+max-count: 9999
 ```
 
+### Example: frequency labels with count/frequency toggle
+
+1. Open plugin settings and enable:
+   - `Show value in word text`
+   - `Word value mode: Frequency (%)`
+   - `Show count/frequency toggle button`
+2. Use this embed block:
+
+```wordcloud
+scope: vault
+size: medium
+min-count: 2
+max-count: 9999
+interactions: true
+```
+
+This renders inline frequencies (for example `word (4.3%)`) and adds a `123`/`%` button in the cloud controls to switch between count and frequency.

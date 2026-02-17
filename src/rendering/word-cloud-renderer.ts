@@ -2,7 +2,7 @@ import { scaleOrdinal } from 'd3-scale';
 import { schemeTableau10 } from 'd3-scale-chromatic';
 import { select } from 'd3-selection';
 import { Menu, setIcon } from 'obsidian';
-import type { RenderSettings, RotationPreset, WordCloudRenderOptions, WeightedWord } from '../types';
+import type { RenderSettings, RotationPreset, WordCloudRenderOptions, WordTextMetric, WeightedWord } from '../types';
 
 function buildDeterministicRandom(seed: number): () => number {
   let state = seed >>> 0;
@@ -31,20 +31,39 @@ function pickRotation(random: () => number, preset: RotationPreset): number {
   return angles[Math.floor(random() * angles.length)];
 }
 
-function getWordLabel(word: WeightedWord, renderSettings: RenderSettings): string {
+function formatWordMetricValue(
+  word: WeightedWord,
+  totalCount: number,
+  metric: WordTextMetric,
+): string {
+  if (metric === 'frequency') {
+    const percent = (word.count / Math.max(1, totalCount)) * 100;
+    return `${percent.toFixed(percent >= 10 ? 1 : 2).replace(/\.?0+$/, '')}%`;
+  }
+
+  return String(word.count);
+}
+
+function formatWordTitle(word: WeightedWord, totalCount: number): string {
+  return `${word.text} (${word.count}, ${formatWordMetricValue(word, totalCount, 'frequency')})`;
+}
+
+function getWordLabel(word: WeightedWord, renderSettings: RenderSettings, totalCount: number, metric: WordTextMetric): string {
   if (!renderSettings.showCountInWordText || word.count < renderSettings.countLabelMinCount) {
     return word.text;
   }
 
+  const formattedValue = formatWordMetricValue(word, totalCount, metric);
+
   if (renderSettings.countLabelFormat === 'dot') {
-    return `${word.text} · ${word.count}`;
+    return `${word.text} · ${formattedValue}`;
   }
 
   if (renderSettings.countLabelFormat === 'colon') {
-    return `${word.text}: ${word.count}`;
+    return `${word.text}: ${formattedValue}`;
   }
 
-  return `${word.text} (${word.count})`;
+  return `${word.text} (${formattedValue})`;
 }
 
 type LayoutWord = WeightedWord & {
@@ -80,10 +99,12 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
   const width = Math.max(320, containerEl.clientWidth || 700);
   const height = Math.max(320, containerEl.clientHeight || 500);
   const random = renderSettings.deterministicLayout ? buildDeterministicRandom(renderSettings.randomSeed) : Math.random;
+  const totalWordCount = words.reduce((total, word) => total + word.count, 0);
+  let activeWordTextMetric: WordTextMetric = renderSettings.wordTextMetric;
   const layoutWords: LayoutWord[] = words.map((word) => ({
     ...word,
     baseText: word.text,
-    layoutText: getWordLabel(word, renderSettings),
+    layoutText: getWordLabel(word, renderSettings, totalWordCount, activeWordTextMetric),
   }));
 
   containerEl.classList.add('word-cloud-render-container');
@@ -132,7 +153,7 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
         }
       })
       .on('end', (layoutWords) => {
-        g.selectAll('text')
+        const textSelection = g.selectAll('text')
           .data(layoutWords)
           .enter()
           .append('text')
@@ -170,9 +191,17 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
             event.preventDefault();
             event.stopPropagation();
             openExcludeWordMenuAtPointer(event, d.baseText, onExcludeInCloud, onExcludeInVault);
-          })
+          });
+
+        textSelection
           .append('title')
-          .text((d) => `${d.baseText} (${d.count})`);
+          .text((d) => formatWordTitle(d, totalWordCount));
+
+        const applyWordTextMetric = (metric: WordTextMetric): void => {
+          activeWordTextMetric = metric;
+          textSelection.text((d) => getWordLabel(d, renderSettings, totalWordCount, metric));
+          textSelection.select('title').text((d) => formatWordTitle(d, totalWordCount));
+        };
 
         reportProgress('Rendering complete.', 100);
         if (enableOverlayControls) {
@@ -187,6 +216,11 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
             showRefreshControl,
             showZoomControls,
             showEditControl,
+            renderSettings.showCountInWordText && renderSettings.showWordTextMetricToggle,
+            () => activeWordTextMetric,
+            () => {
+              applyWordTextMetric(activeWordTextMetric === 'count' ? 'frequency' : 'count');
+            },
           );
         }
 
@@ -502,6 +536,9 @@ function renderOverlayControls(
   showRefreshControl: boolean,
   showZoomControls: boolean,
   showEditControl: boolean,
+  showWordMetricToggleControl: boolean,
+  getCurrentWordMetric: () => WordTextMetric,
+  onToggleWordMetric: () => void,
 ): void {
   if (!svgEl) {
     return;
@@ -571,6 +608,32 @@ function renderOverlayControls(
     });
   };
 
+  const makeWordMetricToggleButton = (parentEl: HTMLDivElement): void => {
+    if (!showWordMetricToggleControl) {
+      return;
+    }
+
+    const metricButton = parentEl.createEl('button', {
+      cls: 'word-cloud-metric-button',
+    });
+    metricButton.type = 'button';
+
+    const updateMetricButtonText = (): void => {
+      const currentMetric = getCurrentWordMetric();
+      const nextMetric = currentMetric === 'count' ? 'frequency' : 'count';
+      metricButton.setText(currentMetric === 'count' ? '123' : '%');
+      metricButton.setAttr('aria-label', `Switch inline labels to ${nextMetric}`);
+      metricButton.setAttr('data-tooltip-position', 'top');
+      metricButton.setAttr('data-tooltip', `Showing ${currentMetric}; click for ${nextMetric}`);
+    };
+
+    updateMetricButtonText();
+    metricButton.addEventListener('click', () => {
+      onToggleWordMetric();
+      updateMetricButtonText();
+    });
+  };
+
   if (showZoomControls) {
     const viewControlsEl = containerEl.createDiv({ cls: 'word-cloud-view-controls' });
     const zoomOutButton = viewControlsEl.createEl('button', {
@@ -601,6 +664,7 @@ function renderOverlayControls(
   if (!enableExport) {
     if (!showZoomControls) {
       const fallbackControlsEl = containerEl.createDiv({ cls: 'word-cloud-export-controls' });
+      makeWordMetricToggleButton(fallbackControlsEl);
       makeRefreshButton(fallbackControlsEl);
       makeEditButton(fallbackControlsEl);
     }
@@ -614,6 +678,7 @@ function renderOverlayControls(
   });
   menuButton.setAttr('aria-label', 'Word cloud options');
 
+  makeWordMetricToggleButton(exportControlsEl);
   makeRefreshButton(exportControlsEl);
   makeEditButton(exportControlsEl);
 

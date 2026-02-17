@@ -78,27 +78,29 @@
     "vault"
   ],
   "render": {
-    "rotationPreset": "mostly-horizontal",
+    "rotationPreset": "mixed",
     "spiral": "archimedean",
     "wordPadding": 2,
-    "minFontSize": 14,
-    "maxFontSize": 72,
+    "minFontSize": 8,
+    "maxFontSize": 140,
     "fontFamily": "sans-serif",
-    "scalingMode": "power",
+    "scalingMode": "linear",
     "emphasis": 1,
     "showCountInWordText": false,
+    "wordTextMetric": "count",
+    "showWordTextMetricToggle": false,
     "countLabelFormat": "paren",
     "countLabelMinCount": 1,
     "progressDetail": "balanced",
     "scanBatchSize": 24,
-    "layoutTimeIntervalMs": 16,
+    "layoutTimeIntervalMs": 8,
     "deterministicLayout": false,
     "randomSeed": 42
   },
   "filters": {
     "scope": {
-      "mode": "active-file",
-      "activeFilePath": "00 - Word Clouds Plugin Home.md",
+      "mode": "vault",
+      "activeFilePath": "",
       "folderPaths": []
     },
     "includeTags": [],

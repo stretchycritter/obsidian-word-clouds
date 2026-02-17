@@ -3,6 +3,7 @@ export const VIEW_TYPE_NOTE_WORD_CLOUD = 'note-word-cloud-view';
 export const MAX_WORDS = 140;
 export const MIN_WORD_LENGTH = 3;
 export const FRONTMATTER_PATTERN = /^---\s*\n[\s\S]*?\n---\s*(?:\n|$)/;
+export const WORD_CLOUD_BLOCK_PATTERN = /```(?:wordcloud|word-cloud)\s*\n[\s\S]*?\n```/gi;
 
 export const DEFAULT_STOP_WORDS: string[] = [
   'the', 'and', 'for', 'that', 'this', 'with', 'from', 'are', 'was', 'were', 'have', 'has', 'had',

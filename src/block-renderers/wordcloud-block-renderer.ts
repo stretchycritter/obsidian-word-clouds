@@ -1,14 +1,23 @@
 import { MarkdownPostProcessorContext, MarkdownView, Notice, Plugin, TFile } from 'obsidian';
 import type { TagMatchMode, WordCloudServices } from '../types';
 import { EmbedWordCloudModal } from '../modals/embed-word-cloud-modal';
+import type { FrontmatterOperator, FrontmatterRule, SourceScope } from '../pipeline/types';
+import { normalizeTag } from '../utils';
 
-type EmbeddedWordCloudScope = 'file' | 'vault';
+type EmbeddedWordCloudScope = 'file' | 'vault' | 'folder';
 type EmbeddedWordCloudSize = 'small' | 'medium' | 'large';
 
 type EmbeddedWordCloudOptions = {
+  cloudId: string;
   scope: EmbeddedWordCloudScope;
   size: EmbeddedWordCloudSize;
   includeTags: string[];
+  excludeTags: string[];
+  tagMatchMode: TagMatchMode;
+  folderPaths: string[];
+  frontmatterRules: FrontmatterRule[];
+  minCount: number;
+  maxCount: number;
   excludeWords: string[];
   interactions: boolean;
   specificFilePath?: string;
@@ -27,12 +36,31 @@ type EmbeddedCloudInstance = {
 };
 
 const DEFAULT_OPTIONS: EmbeddedWordCloudOptions = {
+  cloudId: '',
   scope: 'file',
   size: 'medium',
   includeTags: [],
+  excludeTags: [],
+  tagMatchMode: 'any',
+  folderPaths: [],
+  frontmatterRules: [],
+  minCount: 1,
+  maxCount: 9999,
   excludeWords: [],
   interactions: true,
 };
+
+const FRONTMATTER_OPERATORS = new Set<FrontmatterOperator>([
+  'equals',
+  'not-equals',
+  'contains',
+  'gt',
+  'gte',
+  'lt',
+  'lte',
+  'exists',
+  'not-exists',
+]);
 
 const EMBED_RESIZE_DEBOUNCE_MS = 140;
 const EMBED_CONTENT_CHANGE_DEBOUNCE_MS = 5000;
@@ -68,32 +96,40 @@ export function registerEmbeddedWordCloudProcessor(
     };
 
     try {
-      let words;
-      let searchScope: { filePath?: string; includeTags?: string[]; tagMatchMode?: TagMatchMode } = {};
+      const sourceScope = resolveSourceScope(plugin, ctx, options);
+      if (options.scope === 'file' && !sourceScope.activeFilePath) {
+        stateEl.setText('Could not resolve the file for this embedded cloud.');
+        return;
+      }
+      if (options.scope === 'folder' && sourceScope.folderPaths.length === 0) {
+        stateEl.setText('Add at least one folder path for folder scope.');
+        return;
+      }
 
-      if (options.scope === 'file') {
-        const file = options.specificFilePath
-          ? resolveSpecificFile(plugin, options.specificFilePath)
-          : resolveCurrentFile(plugin, ctx);
-        if (!file) {
-          stateEl.setText('Could not resolve the file for this embedded cloud.');
-          return;
-        }
+      const words = await services.collectVaultWords({
+        sourceRules: {
+          scope: sourceScope,
+          includeTags: options.includeTags,
+          excludeTags: options.excludeTags,
+          tagMatchMode: options.tagMatchMode,
+          frontmatterRules: options.frontmatterRules,
+        },
+        frequency: {
+          minCount: options.minCount,
+          maxCount: options.maxCount,
+        },
+        excludeWords: options.excludeWords,
+      }, updateProgress);
 
-        words = await services.collectFileWords(file, updateProgress, {
-          excludeWords: options.excludeWords,
-        });
-        searchScope = { filePath: file.path };
+      let searchScope: { filePath?: string; includeTags?: string[]; excludeTags?: string[]; tagMatchMode?: TagMatchMode } = {};
+      if (options.scope === 'file' && sourceScope.activeFilePath) {
+        searchScope = { filePath: sourceScope.activeFilePath };
       } else {
-        words = await services.collectVaultWords({
-          sourceRules: {
-            scope: { mode: 'vault' },
-            includeTags: options.includeTags,
-            tagMatchMode: 'any',
-          },
-          excludeWords: options.excludeWords,
-        }, updateProgress);
-        searchScope = { includeTags: options.includeTags, tagMatchMode: 'any' };
+        searchScope = {
+          includeTags: options.includeTags,
+          excludeTags: options.excludeTags,
+          tagMatchMode: options.tagMatchMode,
+        };
       }
 
       if (words.length === 0) {
@@ -173,6 +209,37 @@ function resolveSpecificFile(plugin: Plugin, filePath: string): TFile | null {
   return resolved instanceof TFile ? resolved : null;
 }
 
+function resolveSourceScope(
+  plugin: Plugin,
+  ctx: MarkdownPostProcessorContext,
+  options: EmbeddedWordCloudOptions,
+): SourceScope {
+  if (options.scope === 'file') {
+    const file = options.specificFilePath
+      ? resolveSpecificFile(plugin, options.specificFilePath)
+      : resolveCurrentFile(plugin, ctx);
+    return {
+      mode: 'active-file',
+      activeFilePath: file?.path ?? '',
+      folderPaths: [],
+    };
+  }
+
+  if (options.scope === 'folder') {
+    return {
+      mode: 'folder',
+      activeFilePath: '',
+      folderPaths: [...options.folderPaths],
+    };
+  }
+
+  return {
+    mode: 'vault',
+    activeFilePath: '',
+    folderPaths: [],
+  };
+}
+
 function parseOptions(source: string): EmbeddedWordCloudOptions {
   const options: EmbeddedWordCloudOptions = { ...DEFAULT_OPTIONS };
   let scopeWasExplicitlySet = false;
@@ -201,6 +268,11 @@ function parseOptions(source: string): EmbeddedWordCloudOptions {
       continue;
     }
 
+    if (rawKey === 'id' || rawKey === 'cloud-id' || rawKey === 'cloud_id' || rawKey === 'guid') {
+      options.cloudId = rawValue.trim();
+      continue;
+    }
+
     if (rawKey === 'size') {
       const parsedSize = parseSizeOption(rawValue);
       if (parsedSize) {
@@ -218,11 +290,41 @@ function parseOptions(source: string): EmbeddedWordCloudOptions {
       continue;
     }
 
-    if (rawKey === 'tags') {
-      options.includeTags = rawValue
-        .split(',')
-        .map((value) => value.trim())
-        .filter((value) => value.length > 0);
+    if (rawKey === 'tags' || rawKey === 'include-tags' || rawKey === 'include_tags') {
+      options.includeTags = parseTagList(rawValue);
+      continue;
+    }
+
+    if (rawKey === 'exclude-tags' || rawKey === 'exclude_tags') {
+      options.excludeTags = parseTagList(rawValue);
+      continue;
+    }
+
+    if (rawKey === 'match' || rawKey === 'tag-match' || rawKey === 'tag_match') {
+      options.tagMatchMode = rawValue.trim().toLowerCase() === 'all' ? 'all' : 'any';
+      continue;
+    }
+
+    if (rawKey === 'folder-paths' || rawKey === 'folder_paths' || rawKey === 'folders') {
+      options.folderPaths = parseList(rawValue);
+      if (!scopeWasExplicitlySet) {
+        options.scope = 'folder';
+      }
+      continue;
+    }
+
+    if (rawKey === 'frontmatter-rules' || rawKey === 'frontmatter_rules') {
+      options.frontmatterRules = parseFrontmatterRules(rawValue);
+      continue;
+    }
+
+    if (rawKey === 'min-count' || rawKey === 'min_count') {
+      options.minCount = parseFrequencyCount(rawValue, options.minCount);
+      continue;
+    }
+
+    if (rawKey === 'max-count' || rawKey === 'max_count') {
+      options.maxCount = parseFrequencyCount(rawValue, options.maxCount);
       continue;
     }
 
@@ -260,6 +362,10 @@ function parseOptions(source: string): EmbeddedWordCloudOptions {
     }
   }
 
+  options.excludeTags = options.excludeTags.filter((tag) => !options.includeTags.includes(tag));
+  options.minCount = Math.min(options.minCount, options.maxCount);
+  options.maxCount = Math.max(options.minCount, options.maxCount);
+
   return options;
 }
 
@@ -267,6 +373,10 @@ function parseScopeOption(value: string): EmbeddedWordCloudScope | null {
   const normalized = value.trim().toLowerCase().replace(/[\s_]+/g, '-');
   if (normalized === 'vault') {
     return 'vault';
+  }
+
+  if (normalized === 'folder' || normalized === 'folders') {
+    return 'folder';
   }
 
   if (normalized === 'file' || normalized === 'note' || normalized === 'current-note' || normalized === 'current-file') {
@@ -309,7 +419,67 @@ function parseLegacyModeOption(value: string): EmbeddedWordCloudScope | null {
     return 'vault';
   }
 
+  if (normalized === 'folder' || normalized === 'folders') {
+    return 'folder';
+  }
+
   return null;
+}
+
+function parseTagList(rawValue: string): string[] {
+  const tags = new Set<string>();
+  for (const value of parseList(rawValue)) {
+    const normalized = normalizeTag(value);
+    if (normalized) {
+      tags.add(normalized);
+    }
+  }
+  return [...tags];
+}
+
+function parseList(rawValue: string): string[] {
+  const values = rawValue
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+  return [...new Set(values)];
+}
+
+function parseFrequencyCount(rawValue: string, fallback: number): number {
+  const parsed = Number.parseInt(rawValue.trim(), 10);
+  if (Number.isNaN(parsed)) {
+    return fallback;
+  }
+  return Math.min(9999, Math.max(1, parsed));
+}
+
+function parseFrontmatterRules(rawValue: string): FrontmatterRule[] {
+  const rules: FrontmatterRule[] = [];
+  const entries = rawValue
+    .split(';')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+
+  for (const entry of entries) {
+    const parts = entry.split('|').map((part) => part.trim());
+    const key = parts[0] ?? '';
+    if (!key) {
+      continue;
+    }
+
+    const operator = FRONTMATTER_OPERATORS.has(parts[1] as FrontmatterOperator)
+      ? parts[1] as FrontmatterOperator
+      : 'equals';
+    const value = parts.slice(2).join('|').trim();
+
+    if (operator === 'exists' || operator === 'not-exists') {
+      rules.push({ key, operator });
+    } else {
+      rules.push({ key, operator, value });
+    }
+  }
+
+  return rules;
 }
 
 function sizeFromHeight(height: number): EmbeddedWordCloudSize {
@@ -467,15 +637,25 @@ function openEmbeddedWordCloudEditWizard(
   new EmbedWordCloudModal(
     plugin.app,
     services,
-    async (embedBlock) => updateEmbeddedCodeBlock(plugin, ctx, hostEl, embedBlock),
+    async (embedBlock) => updateEmbeddedCodeBlock(plugin, ctx, hostEl, embedBlock, options.cloudId),
     {
       title: 'Edit embedded word cloud',
       description: 'Update options for this embedded cloud without editing markdown manually.',
-      submitButtonText: 'Save',
+      submitButtonText: 'Apply',
       initialState: {
+        cloudId: options.cloudId,
         scope: options.scope,
         size: options.size,
-        tagsRaw: options.includeTags.join(', '),
+        specificFilePath: options.specificFilePath ?? '',
+        includeTagsRaw: options.includeTags.join(', '),
+        excludeTagsRaw: options.excludeTags.join(', '),
+        tagMatchMode: options.tagMatchMode,
+        folderPathsRaw: options.folderPaths.join(', '),
+        frontmatterRulesRaw: options.frontmatterRules
+          .map((rule) => `${rule.key}|${rule.operator}|${rule.value ?? ''}`)
+          .join('; '),
+        minCountRaw: `${options.minCount}`,
+        maxCountRaw: `${options.maxCount}`,
       },
     },
   ).open();
@@ -486,6 +666,7 @@ async function updateEmbeddedCodeBlock(
   ctx: MarkdownPostProcessorContext,
   hostEl: HTMLElement,
   embedBlock: string,
+  cloudId?: string,
 ): Promise<boolean> {
   const sourceFile = resolveCurrentFile(plugin, ctx);
   if (!sourceFile) {
@@ -493,14 +674,28 @@ async function updateEmbeddedCodeBlock(
     return false;
   }
 
-  const section = ctx.getSectionInfo(hostEl);
-  if (!section) {
-    new Notice('Could not locate the embedded word cloud block to update.');
-    return false;
-  }
+  let updated = false;
+  await plugin.app.vault.process(sourceFile, (content) => {
+    const byId = cloudId
+      ? replaceWordCloudBlockById(content, cloudId, embedBlock)
+      : null;
+    if (byId !== null) {
+      updated = true;
+      return byId;
+    }
 
-  await plugin.app.vault.process(sourceFile, (content) => replaceSectionWithBlock(content, section.lineStart, section.lineEnd, embedBlock));
-  return true;
+    const section = ctx.getSectionInfo(hostEl);
+    if (!section) {
+      return content;
+    }
+
+    updated = true;
+    return replaceSectionWithBlock(content, section.lineStart, section.lineEnd, embedBlock);
+  });
+  if (!updated) {
+    new Notice('Could not locate the embedded word cloud block to update.');
+  }
+  return updated;
 }
 
 async function updateEmbeddedCloudExcludedWords(
@@ -521,7 +716,7 @@ async function updateEmbeddedCloudExcludedWords(
   }
 
   const embedBlock = buildWordCloudCodeBlock(updatedSource);
-  return updateEmbeddedCodeBlock(plugin, ctx, hostEl, embedBlock);
+  return updateEmbeddedCodeBlock(plugin, ctx, hostEl, embedBlock, extractCloudIdFromSource(updatedSource));
 }
 
 function replaceSectionWithBlock(content: string, lineStart: number, lineEnd: number, embedBlock: string): string {
@@ -534,6 +729,62 @@ function replaceSectionWithBlock(content: string, lineStart: number, lineEnd: nu
   const before = lines.slice(0, lineStart);
   const after = lines.slice(lineEnd + 1);
   return [...before, ...replacementLines, ...after].join('\n');
+}
+
+function replaceWordCloudBlockById(content: string, cloudId: string, embedBlock: string): string | null {
+  const targetId = cloudId.trim();
+  if (!targetId) {
+    return null;
+  }
+
+  const lines = content.split('\n');
+  for (let i = 0; i < lines.length; i += 1) {
+    const fence = lines[i]?.trim().toLowerCase();
+    if (fence !== '```wordcloud' && fence !== '```word-cloud') {
+      continue;
+    }
+
+    let end = i + 1;
+    while (end < lines.length && lines[end]?.trim() !== '```') {
+      end += 1;
+    }
+    if (end >= lines.length) {
+      continue;
+    }
+
+    const source = lines.slice(i + 1, end).join('\n');
+    const blockId = extractCloudIdFromSource(source);
+    if (blockId !== targetId) {
+      i = end;
+      continue;
+    }
+
+    const replacementLines = embedBlock.replace(/\n$/, '').split('\n');
+    const before = lines.slice(0, i);
+    const after = lines.slice(end + 1);
+    return [...before, ...replacementLines, ...after].join('\n');
+  }
+
+  return null;
+}
+
+function extractCloudIdFromSource(source: string): string {
+  const lines = source.split('\n');
+  for (const line of lines) {
+    const separatorIndex = line.indexOf(':');
+    if (separatorIndex === -1) {
+      continue;
+    }
+
+    const key = line.slice(0, separatorIndex).trim().toLowerCase();
+    if (key !== 'id' && key !== 'cloud-id' && key !== 'cloud_id' && key !== 'guid') {
+      continue;
+    }
+
+    return line.slice(separatorIndex + 1).trim();
+  }
+
+  return '';
 }
 
 function addExcludedWordToEmbeddedSource(source: string, word: string): string {

@@ -7,6 +7,7 @@ import type {
   RotationPreset,
   ScalingMode,
   SpiralType,
+  WordTextMetric,
   WordCloudFilterSettings,
   WeightedWord,
 } from '../types';
@@ -31,6 +32,8 @@ export const DEFAULT_SETTINGS: WordCloudSettings = {
     scalingMode: 'power',
     emphasis: 1,
     showCountInWordText: false,
+    wordTextMetric: 'count',
+    showWordTextMetricToggle: false,
     countLabelFormat: 'paren',
     countLabelMinCount: 1,
     progressDetail: 'balanced',
@@ -267,8 +270,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
     this.attachInfoIcon(fontFamily, 'Wider fonts take more space and can increase overlap pressure.');
 
     const showCountInWordText = new Setting(containerEl)
-      .setName('Show count in word text')
-      .setDesc('Append the occurrence count directly to rendered words.')
+      .setName('Show value in word text')
+      .setDesc('Append count or frequency directly to rendered words.')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.render.showCountInWordText)
@@ -277,11 +280,39 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
             this.display();
           });
       });
-    this.attachInfoIcon(showCountInWordText, 'Shows exact counts inline (e.g., word (12)). Improves precision, increases text length.');
+    this.attachInfoIcon(showCountInWordText, 'Shows the selected metric inline (for example, word (12) or word (4.3%)). Improves precision, increases text length.');
+
+    const wordTextMetric = new Setting(containerEl)
+      .setName('Word value mode')
+      .setDesc('Choose whether inline values show count or frequency.')
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption('count', 'Count')
+          .addOption('frequency', 'Frequency (%)')
+          .setValue(this.plugin.settings.render.wordTextMetric)
+          .setDisabled(!this.plugin.settings.render.showCountInWordText)
+          .onChange(async (value) => {
+            await updateRenderAndPreview({ wordTextMetric: value as WordTextMetric });
+          });
+      });
+    this.attachInfoIcon(wordTextMetric, 'Count shows raw occurrences. Frequency shows each word as a percent of visible word occurrences.');
+
+    const showWordTextMetricToggle = new Setting(containerEl)
+      .setName('Show count/frequency toggle button')
+      .setDesc('Add a rendered-view button to switch inline labels between count and frequency.')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(this.plugin.settings.render.showWordTextMetricToggle)
+          .setDisabled(!this.plugin.settings.render.showCountInWordText)
+          .onChange(async (value) => {
+            await updateRenderAndPreview({ showWordTextMetricToggle: value });
+          });
+      });
+    this.attachInfoIcon(showWordTextMetricToggle, 'When enabled, each cloud shows a quick toggle in the corner controls.');
 
     const countLabelFormat = new Setting(containerEl)
       .setName('Count label format')
-      .setDesc('How counts are shown when count labels are enabled.')
+      .setDesc('How inline values are shown when word text values are enabled.')
       .addDropdown((dropdown) => {
         dropdown
           .addOption('paren', 'word (12)')

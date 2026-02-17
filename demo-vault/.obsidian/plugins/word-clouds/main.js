@@ -536,11 +536,44 @@ var import_obsidian2 = require("obsidian");
 
 // src/modals/embed-word-cloud-modal.ts
 var import_obsidian = require("obsidian");
+
+// src/utils.ts
+function normalizeTag(tag) {
+  const trimmed = tag.trim().toLowerCase();
+  if (!trimmed) {
+    return "";
+  }
+  return trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
+}
+function escapeForSearch(value) {
+  return value.replace(/"/g, '\\"');
+}
+
+// src/modals/embed-word-cloud-modal.ts
 var DEFAULT_STATE = {
+  cloudId: "",
   scope: "file",
   size: "medium",
-  tagsRaw: ""
+  specificFilePath: "",
+  includeTagsRaw: "",
+  excludeTagsRaw: "",
+  tagMatchMode: "any",
+  folderPathsRaw: "",
+  frontmatterRulesRaw: "",
+  minCountRaw: "",
+  maxCountRaw: ""
 };
+var FRONTMATTER_OPERATORS = [
+  "equals",
+  "not-equals",
+  "contains",
+  "gt",
+  "gte",
+  "lt",
+  "lte",
+  "exists",
+  "not-exists"
+];
 var EmbedWordCloudModal = class extends import_obsidian.Modal {
   constructor(app, services, onInsert, options = {}) {
     super(app);
@@ -548,12 +581,18 @@ var EmbedWordCloudModal = class extends import_obsidian.Modal {
     this.onInsert = onInsert;
     this.title = options.title ?? "Embed word cloud in document";
     this.description = options.description ?? "Configure options, then insert a word cloud embed at your cursor.";
-    this.submitButtonText = options.submitButtonText ?? "Insert";
+    this.submitButtonText = options.submitButtonText ?? "Apply";
     const initialState = options.initialState ?? {};
     this.state = {
       ...DEFAULT_STATE,
       ...initialState
     };
+    if (!this.state.cloudId) {
+      this.state.cloudId = createEmbedCloudId();
+    }
+    if (this.state.scope === "folder") {
+      this.state.scope = "vault";
+    }
   }
   onOpen() {
     const { contentEl } = this;
@@ -565,27 +604,55 @@ var EmbedWordCloudModal = class extends import_obsidian.Modal {
       text: this.description
     });
     this.scopeWrapperEl = contentEl.createDiv({ cls: "word-cloud-embed-wizard-section" });
-    this.sizeWrapperEl = contentEl.createDiv({ cls: "word-cloud-embed-wizard-section" });
-    this.tagsWrapperEl = contentEl.createDiv({ cls: "word-cloud-embed-wizard-section" });
-    new import_obsidian.Setting(this.scopeWrapperEl).setName("Scope").setDesc("Choose whether this cloud uses the current file or the entire vault.").addDropdown((dropdown) => {
-      dropdown.addOption("file", "File").addOption("vault", "Vault").setValue(this.state.scope).onChange((value) => {
-        this.state.scope = value === "vault" ? "vault" : "file";
+    this.specificFileWrapperEl = contentEl.createDiv({ cls: "word-cloud-embed-wizard-section" });
+    new import_obsidian.Setting(this.scopeWrapperEl).setName("Scope").setDesc("Choose whether this cloud uses the note file or the entire vault.").addDropdown((dropdown) => {
+      dropdown.addOption("file", "File").addOption("vault", "Vault").setValue(this.state.scope === "file" ? "file" : "vault").onChange((value) => {
+        this.state.scope = value === "file" ? "file" : "vault";
         this.refreshConditionalSections();
       });
     });
+    const settingsShellEl = contentEl.createDiv({ cls: "word-cloud-embed-wizard-settings" });
+    this.tabsEl = settingsShellEl.createDiv({ cls: "word-cloud-embed-wizard-tabs" });
+    this.tabsEl.setAttr("role", "tablist");
+    this.tabsEl.setAttr("aria-label", "Embedded word cloud settings tabs");
+    this.filtersTabButtonEl = this.buildTabButton("filters", "Filters", true);
+    this.appearanceTabButtonEl = this.buildTabButton("appearance", "Appearance", false);
+    this.advancedTabButtonEl = this.buildTabButton("advanced", "Advanced", false);
+    const panelsEl = settingsShellEl.createDiv({ cls: "word-cloud-embed-wizard-panels" });
+    this.filtersPanelEl = panelsEl.createDiv({ cls: "word-cloud-embed-wizard-panel is-active" });
+    this.filtersPanelEl.id = "word-cloud-embed-wizard-panel-filters";
+    this.filtersPanelEl.setAttr("role", "tabpanel");
+    this.filtersPanelEl.setAttr("aria-labelledby", this.filtersTabButtonEl.id);
+    this.appearancePanelEl = panelsEl.createDiv({ cls: "word-cloud-embed-wizard-panel" });
+    this.appearancePanelEl.id = "word-cloud-embed-wizard-panel-appearance";
+    this.appearancePanelEl.setAttr("role", "tabpanel");
+    this.appearancePanelEl.setAttr("aria-labelledby", this.appearanceTabButtonEl.id);
+    this.advancedPanelEl = panelsEl.createDiv({ cls: "word-cloud-embed-wizard-panel" });
+    this.advancedPanelEl.id = "word-cloud-embed-wizard-panel-advanced";
+    this.advancedPanelEl.setAttr("role", "tabpanel");
+    this.advancedPanelEl.setAttr("aria-labelledby", this.advancedTabButtonEl.id);
+    this.advancedPanelEl.createEl("p", {
+      cls: "word-cloud-embed-wizard-description",
+      text: "No additional advanced settings are available."
+    });
+    this.includeTagsWrapperEl = this.filtersPanelEl.createDiv({ cls: "word-cloud-embed-wizard-section" });
+    this.matchModeWrapperEl = this.filtersPanelEl.createDiv({ cls: "word-cloud-embed-wizard-section" });
+    this.sizeWrapperEl = this.appearancePanelEl.createDiv({ cls: "word-cloud-embed-wizard-section" });
     new import_obsidian.Setting(this.sizeWrapperEl).setName("Size").setDesc("Select the embedded cloud size preset.").addDropdown((dropdown) => {
       dropdown.addOption("small", "Small").addOption("medium", "Medium").addOption("large", "Large").setValue(this.state.size).onChange((value) => {
         this.state.size = value === "small" || value === "large" ? value : "medium";
       });
     });
-    this.renderTagSetting();
+    this.renderSpecificFileSetting();
+    this.renderIncludeTagSetting();
+    this.renderTagMatchModeSetting();
     const buttonRowEl = contentEl.createDiv({ cls: "word-cloud-embed-wizard-actions" });
     const cancelButton = new import_obsidian.ButtonComponent(buttonRowEl).setButtonText("Cancel").onClick(() => {
       this.close();
     });
     cancelButton.buttonEl.type = "button";
-    const insertButton = new import_obsidian.ButtonComponent(buttonRowEl).setButtonText(this.submitButtonText).setCta().onClick(async () => {
-      insertButton.setDisabled(true);
+    const applyButton = new import_obsidian.ButtonComponent(buttonRowEl).setButtonText(this.submitButtonText).setCta().onClick(async () => {
+      applyButton.setDisabled(true);
       try {
         const wasInserted = await this.onInsert(this.buildEmbedBlock());
         if (wasInserted && this.isOpen) {
@@ -595,50 +662,241 @@ var EmbedWordCloudModal = class extends import_obsidian.Modal {
         console.error("Word clouds: failed to apply embed changes", error);
         new import_obsidian.Notice("Could not apply word cloud changes.");
       }
-      if (insertButton.buttonEl.isConnected) {
-        insertButton.setDisabled(false);
+      if (applyButton.buttonEl.isConnected) {
+        applyButton.setDisabled(false);
       }
     });
-    insertButton.buttonEl.type = "button";
+    applyButton.buttonEl.type = "button";
     this.refreshConditionalSections();
+    this.switchTab("filters");
   }
   onClose() {
     this.contentEl.empty();
   }
-  renderTagSetting() {
-    this.tagsWrapperEl.empty();
+  renderSpecificFileSetting() {
+    this.specificFileWrapperEl.empty();
+    const filePaths = this.app.vault.getMarkdownFiles().map((file) => file.path).sort((a, b) => a.localeCompare(b));
+    const hasCurrent = filePaths.includes(this.state.specificFilePath);
+    new import_obsidian.Setting(this.specificFileWrapperEl).setName("File").setDesc("Select the file used when scope is set to file. Choose Current note to use the note containing this embed.").addDropdown((dropdown) => {
+      dropdown.addOption("", "Current note");
+      for (const filePath of filePaths) {
+        dropdown.addOption(filePath, filePath);
+      }
+      if (this.state.specificFilePath && !hasCurrent) {
+        dropdown.addOption(this.state.specificFilePath, this.state.specificFilePath);
+      }
+      dropdown.setValue(this.state.specificFilePath).onChange((value) => {
+        this.state.specificFilePath = value;
+      });
+    });
+  }
+  renderIncludeTagSetting() {
+    this.includeTagsWrapperEl.empty();
     const availableTags = this.services.getAvailableTags();
     const tagHint = availableTags.length > 0 ? `Available: ${availableTags.slice(0, 12).join(", ")}${availableTags.length > 12 ? "\u2026" : ""}` : "No tags detected yet.";
-    new import_obsidian.Setting(this.tagsWrapperEl).setName("Tag filter include list").setDesc(`Optional comma-separated tags to include. ${tagHint}`).addText((text) => {
-      text.setPlaceholder("#project, #meeting").setValue(this.state.tagsRaw).onChange((value) => {
-        this.state.tagsRaw = value;
+    new import_obsidian.Setting(this.includeTagsWrapperEl).setName("Include tags").setDesc(`Optional comma-separated tags to include. ${tagHint}`).addText((text) => {
+      text.setPlaceholder("#project, #meeting").setValue(this.state.includeTagsRaw).onChange((value) => {
+        this.state.includeTagsRaw = value;
+      });
+    });
+  }
+  renderTagMatchModeSetting() {
+    this.matchModeWrapperEl.empty();
+    new import_obsidian.Setting(this.matchModeWrapperEl).setName("Include match mode").setDesc("How include tags should match when multiple tags are set.").addDropdown((dropdown) => {
+      dropdown.addOption("any", "Any include tag").addOption("all", "All include tags").setValue(this.state.tagMatchMode).onChange((value) => {
+        this.state.tagMatchMode = value === "all" ? "all" : "any";
       });
     });
   }
   refreshConditionalSections() {
-    this.tagsWrapperEl.toggleClass("is-hidden", this.state.scope !== "vault");
+    this.specificFileWrapperEl.toggleClass("is-hidden", this.state.scope !== "file");
+  }
+  buildTabButton(tab, label, isActive) {
+    const buttonEl = this.tabsEl.createEl("button", {
+      cls: `word-cloud-embed-wizard-tab${isActive ? " is-active" : ""}`,
+      text: label
+    });
+    buttonEl.id = `word-cloud-embed-wizard-tab-${tab}`;
+    buttonEl.type = "button";
+    buttonEl.setAttr("role", "tab");
+    buttonEl.setAttr("aria-controls", `word-cloud-embed-wizard-panel-${tab}`);
+    buttonEl.setAttr("aria-selected", isActive ? "true" : "false");
+    buttonEl.setAttr("tabindex", isActive ? "0" : "-1");
+    buttonEl.addEventListener("click", () => {
+      this.switchTab(tab);
+    });
+    buttonEl.addEventListener("keydown", (event) => {
+      this.handleTabKeydown(event, tab);
+    });
+    return buttonEl;
+  }
+  handleTabKeydown(event, currentTab) {
+    const tabs = ["filters", "appearance", "advanced"];
+    const currentIndex = tabs.indexOf(currentTab);
+    if (currentIndex === -1) {
+      return;
+    }
+    if (event.key === "ArrowRight") {
+      const nextTab = tabs[(currentIndex + 1) % tabs.length];
+      this.switchTab(nextTab);
+      event.preventDefault();
+      return;
+    }
+    if (event.key === "ArrowLeft") {
+      const nextTab = tabs[(currentIndex - 1 + tabs.length) % tabs.length];
+      this.switchTab(nextTab);
+      event.preventDefault();
+      return;
+    }
+    if (event.key === "Home") {
+      this.switchTab(tabs[0]);
+      event.preventDefault();
+      return;
+    }
+    if (event.key === "End") {
+      this.switchTab(tabs[tabs.length - 1]);
+      event.preventDefault();
+    }
+  }
+  switchTab(tab) {
+    const showFilters = tab === "filters";
+    const showAppearance = tab === "appearance";
+    const showAdvanced = tab === "advanced";
+    this.filtersTabButtonEl.toggleClass("is-active", showFilters);
+    this.filtersTabButtonEl.setAttr("aria-selected", showFilters ? "true" : "false");
+    this.filtersTabButtonEl.setAttr("tabindex", showFilters ? "0" : "-1");
+    this.appearanceTabButtonEl.toggleClass("is-active", showAppearance);
+    this.appearanceTabButtonEl.setAttr("aria-selected", showAppearance ? "true" : "false");
+    this.appearanceTabButtonEl.setAttr("tabindex", showAppearance ? "0" : "-1");
+    this.advancedTabButtonEl.toggleClass("is-active", showAdvanced);
+    this.advancedTabButtonEl.setAttr("aria-selected", showAdvanced ? "true" : "false");
+    this.advancedTabButtonEl.setAttr("tabindex", showAdvanced ? "0" : "-1");
+    this.filtersPanelEl.toggleClass("is-active", showFilters);
+    this.appearancePanelEl.toggleClass("is-active", showAppearance);
+    this.advancedPanelEl.toggleClass("is-active", showAdvanced);
+    const targetButton = showFilters ? this.filtersTabButtonEl : showAppearance ? this.appearanceTabButtonEl : this.advancedTabButtonEl;
+    if (document.activeElement && this.tabsEl.contains(document.activeElement)) {
+      targetButton.focus();
+    }
   }
   buildEmbedBlock() {
-    const lines = ["```wordcloud", `scope: ${this.state.scope}`, `size: ${this.state.size}`];
-    if (this.state.scope === "vault") {
-      const normalizedTags = this.state.tagsRaw.split(",").map((tag) => tag.trim()).filter((tag) => tag.length > 0);
-      if (normalizedTags.length > 0) {
-        lines.push(`tags: ${normalizedTags.join(", ")}`);
-      }
+    const lines = ["```wordcloud", `id: ${this.state.cloudId}`, `scope: ${this.state.scope}`, `size: ${this.state.size}`];
+    const includeTags = parseTagList(this.state.includeTagsRaw);
+    const excludeTags = parseTagList(this.state.excludeTagsRaw).filter((tag) => !includeTags.includes(tag));
+    const folderPaths = parseList(this.state.folderPathsRaw);
+    const frontmatterRules = parseFrontmatterRules(this.state.frontmatterRulesRaw);
+    const minCount = parseCount(this.state.minCountRaw);
+    const maxCount = parseCount(this.state.maxCountRaw);
+    const specificFilePath = this.state.specificFilePath.trim();
+    if (specificFilePath && this.state.scope === "file") {
+      lines.push(`file: ${specificFilePath}`);
+    }
+    if (includeTags.length > 0) {
+      lines.push(`include-tags: ${includeTags.join(", ")}`);
+    }
+    if (excludeTags.length > 0) {
+      lines.push(`exclude-tags: ${excludeTags.join(", ")}`);
+    }
+    if (includeTags.length > 1 || this.state.tagMatchMode === "all") {
+      lines.push(`tag-match: ${this.state.tagMatchMode}`);
+    }
+    if (folderPaths.length > 0 && this.state.scope === "folder") {
+      lines.push(`folder-paths: ${folderPaths.join(", ")}`);
+    }
+    if (frontmatterRules.length > 0) {
+      lines.push(`frontmatter-rules: ${frontmatterRules.map(serializeFrontmatterRule).join("; ")}`);
+    }
+    if (minCount !== null) {
+      lines.push(`min-count: ${minCount}`);
+    }
+    if (maxCount !== null) {
+      lines.push(`max-count: ${maxCount}`);
     }
     lines.push("```");
     return lines.join("\n");
   }
 };
+function parseList(rawValue) {
+  return [...new Set(rawValue.split(",").map((entry) => entry.trim()).filter((entry) => entry.length > 0))];
+}
+function parseTagList(rawValue) {
+  const tags = /* @__PURE__ */ new Set();
+  for (const entry of parseList(rawValue)) {
+    const normalized = normalizeTag(entry);
+    if (normalized) {
+      tags.add(normalized);
+    }
+  }
+  return [...tags];
+}
+function parseCount(rawValue) {
+  const parsed = Number.parseInt(rawValue.trim(), 10);
+  if (Number.isNaN(parsed)) {
+    return null;
+  }
+  return Math.min(9999, Math.max(1, parsed));
+}
+function parseFrontmatterRules(rawValue) {
+  const rules = [];
+  const entries = rawValue.split(";").map((entry) => entry.trim()).filter((entry) => entry.length > 0);
+  for (const entry of entries) {
+    const parts = entry.split("|").map((part) => part.trim());
+    const key = parts[0] ?? "";
+    if (!key) {
+      continue;
+    }
+    const rawOperator = parts[1] ?? "";
+    const operator = FRONTMATTER_OPERATORS.includes(rawOperator) ? rawOperator : "equals";
+    const value = parts.slice(2).join("|").trim();
+    if (operator === "exists" || operator === "not-exists") {
+      rules.push({ key, operator });
+      continue;
+    }
+    rules.push({ key, operator, value });
+  }
+  return rules;
+}
+function serializeFrontmatterRule(rule) {
+  if (rule.operator === "exists" || rule.operator === "not-exists") {
+    return `${rule.key}|${rule.operator}|`;
+  }
+  return `${rule.key}|${rule.operator}|${rule.value ?? ""}`;
+}
+function createEmbedCloudId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  const randomPart = Math.random().toString(36).slice(2, 10);
+  const timePart = Date.now().toString(36);
+  return `wc-${timePart}-${randomPart}`;
+}
 
 // src/block-renderers/wordcloud-block-renderer.ts
 var DEFAULT_OPTIONS = {
+  cloudId: "",
   scope: "file",
   size: "medium",
   includeTags: [],
+  excludeTags: [],
+  tagMatchMode: "any",
+  folderPaths: [],
+  frontmatterRules: [],
+  minCount: 1,
+  maxCount: 9999,
   excludeWords: [],
   interactions: true
 };
+var FRONTMATTER_OPERATORS2 = /* @__PURE__ */ new Set([
+  "equals",
+  "not-equals",
+  "contains",
+  "gt",
+  "gte",
+  "lt",
+  "lte",
+  "exists",
+  "not-exists"
+]);
 var EMBED_RESIZE_DEBOUNCE_MS = 140;
 var EMBED_CONTENT_CHANGE_DEBOUNCE_MS = 5e3;
 var EMBED_SIZE_HEIGHT = {
@@ -666,28 +924,38 @@ function registerEmbeddedWordCloudProcessor(plugin, services) {
       stateEl.setText(`${message} (${percent}%)`);
     };
     try {
-      let words;
+      const sourceScope = resolveSourceScope(plugin, ctx, options);
+      if (options.scope === "file" && !sourceScope.activeFilePath) {
+        stateEl.setText("Could not resolve the file for this embedded cloud.");
+        return;
+      }
+      if (options.scope === "folder" && sourceScope.folderPaths.length === 0) {
+        stateEl.setText("Add at least one folder path for folder scope.");
+        return;
+      }
+      const words = await services.collectVaultWords({
+        sourceRules: {
+          scope: sourceScope,
+          includeTags: options.includeTags,
+          excludeTags: options.excludeTags,
+          tagMatchMode: options.tagMatchMode,
+          frontmatterRules: options.frontmatterRules
+        },
+        frequency: {
+          minCount: options.minCount,
+          maxCount: options.maxCount
+        },
+        excludeWords: options.excludeWords
+      }, updateProgress);
       let searchScope = {};
-      if (options.scope === "file") {
-        const file = options.specificFilePath ? resolveSpecificFile(plugin, options.specificFilePath) : resolveCurrentFile(plugin, ctx);
-        if (!file) {
-          stateEl.setText("Could not resolve the file for this embedded cloud.");
-          return;
-        }
-        words = await services.collectFileWords(file, updateProgress, {
-          excludeWords: options.excludeWords
-        });
-        searchScope = { filePath: file.path };
+      if (options.scope === "file" && sourceScope.activeFilePath) {
+        searchScope = { filePath: sourceScope.activeFilePath };
       } else {
-        words = await services.collectVaultWords({
-          sourceRules: {
-            scope: { mode: "vault" },
-            includeTags: options.includeTags,
-            tagMatchMode: "any"
-          },
-          excludeWords: options.excludeWords
-        }, updateProgress);
-        searchScope = { includeTags: options.includeTags, tagMatchMode: "any" };
+        searchScope = {
+          includeTags: options.includeTags,
+          excludeTags: options.excludeTags,
+          tagMatchMode: options.tagMatchMode
+        };
       }
       if (words.length === 0) {
         stateEl.setText("No words found for this embedded cloud.");
@@ -758,6 +1026,28 @@ function resolveSpecificFile(plugin, filePath) {
   const resolved = plugin.app.vault.getAbstractFileByPath(normalizedPath);
   return resolved instanceof import_obsidian2.TFile ? resolved : null;
 }
+function resolveSourceScope(plugin, ctx, options) {
+  if (options.scope === "file") {
+    const file = options.specificFilePath ? resolveSpecificFile(plugin, options.specificFilePath) : resolveCurrentFile(plugin, ctx);
+    return {
+      mode: "active-file",
+      activeFilePath: file?.path ?? "",
+      folderPaths: []
+    };
+  }
+  if (options.scope === "folder") {
+    return {
+      mode: "folder",
+      activeFilePath: "",
+      folderPaths: [...options.folderPaths]
+    };
+  }
+  return {
+    mode: "vault",
+    activeFilePath: "",
+    folderPaths: []
+  };
+}
 function parseOptions(source) {
   const options = { ...DEFAULT_OPTIONS };
   let scopeWasExplicitlySet = false;
@@ -781,6 +1071,10 @@ function parseOptions(source) {
       }
       continue;
     }
+    if (rawKey === "id" || rawKey === "cloud-id" || rawKey === "cloud_id" || rawKey === "guid") {
+      options.cloudId = rawValue.trim();
+      continue;
+    }
     if (rawKey === "size") {
       const parsedSize = parseSizeOption(rawValue);
       if (parsedSize) {
@@ -796,8 +1090,35 @@ function parseOptions(source) {
       }
       continue;
     }
-    if (rawKey === "tags") {
-      options.includeTags = rawValue.split(",").map((value) => value.trim()).filter((value) => value.length > 0);
+    if (rawKey === "tags" || rawKey === "include-tags" || rawKey === "include_tags") {
+      options.includeTags = parseTagList2(rawValue);
+      continue;
+    }
+    if (rawKey === "exclude-tags" || rawKey === "exclude_tags") {
+      options.excludeTags = parseTagList2(rawValue);
+      continue;
+    }
+    if (rawKey === "match" || rawKey === "tag-match" || rawKey === "tag_match") {
+      options.tagMatchMode = rawValue.trim().toLowerCase() === "all" ? "all" : "any";
+      continue;
+    }
+    if (rawKey === "folder-paths" || rawKey === "folder_paths" || rawKey === "folders") {
+      options.folderPaths = parseList2(rawValue);
+      if (!scopeWasExplicitlySet) {
+        options.scope = "folder";
+      }
+      continue;
+    }
+    if (rawKey === "frontmatter-rules" || rawKey === "frontmatter_rules") {
+      options.frontmatterRules = parseFrontmatterRules2(rawValue);
+      continue;
+    }
+    if (rawKey === "min-count" || rawKey === "min_count") {
+      options.minCount = parseFrequencyCount(rawValue, options.minCount);
+      continue;
+    }
+    if (rawKey === "max-count" || rawKey === "max_count") {
+      options.maxCount = parseFrequencyCount(rawValue, options.maxCount);
       continue;
     }
     if (rawKey === "exclude" || rawKey === "exclude-words" || rawKey === "exclude_words" || rawKey === "excluded-words") {
@@ -822,12 +1143,18 @@ function parseOptions(source) {
       }
     }
   }
+  options.excludeTags = options.excludeTags.filter((tag) => !options.includeTags.includes(tag));
+  options.minCount = Math.min(options.minCount, options.maxCount);
+  options.maxCount = Math.max(options.minCount, options.maxCount);
   return options;
 }
 function parseScopeOption(value) {
   const normalized = value.trim().toLowerCase().replace(/[\s_]+/g, "-");
   if (normalized === "vault") {
     return "vault";
+  }
+  if (normalized === "folder" || normalized === "folders") {
+    return "folder";
   }
   if (normalized === "file" || normalized === "note" || normalized === "current-note" || normalized === "current-file") {
     return "file";
@@ -849,7 +1176,50 @@ function parseLegacyModeOption(value) {
   if (normalized === "tag-based" || normalized === "tags" || normalized === "tag" || normalized === "vault") {
     return "vault";
   }
+  if (normalized === "folder" || normalized === "folders") {
+    return "folder";
+  }
   return null;
+}
+function parseTagList2(rawValue) {
+  const tags = /* @__PURE__ */ new Set();
+  for (const value of parseList2(rawValue)) {
+    const normalized = normalizeTag(value);
+    if (normalized) {
+      tags.add(normalized);
+    }
+  }
+  return [...tags];
+}
+function parseList2(rawValue) {
+  const values = rawValue.split(",").map((entry) => entry.trim()).filter((entry) => entry.length > 0);
+  return [...new Set(values)];
+}
+function parseFrequencyCount(rawValue, fallback) {
+  const parsed = Number.parseInt(rawValue.trim(), 10);
+  if (Number.isNaN(parsed)) {
+    return fallback;
+  }
+  return Math.min(9999, Math.max(1, parsed));
+}
+function parseFrontmatterRules2(rawValue) {
+  const rules = [];
+  const entries = rawValue.split(";").map((entry) => entry.trim()).filter((entry) => entry.length > 0);
+  for (const entry of entries) {
+    const parts = entry.split("|").map((part) => part.trim());
+    const key = parts[0] ?? "";
+    if (!key) {
+      continue;
+    }
+    const operator = FRONTMATTER_OPERATORS2.has(parts[1]) ? parts[1] : "equals";
+    const value = parts.slice(2).join("|").trim();
+    if (operator === "exists" || operator === "not-exists") {
+      rules.push({ key, operator });
+    } else {
+      rules.push({ key, operator, value });
+    }
+  }
+  return rules;
 }
 function sizeFromHeight(height) {
   const normalized = Math.min(900, Math.max(180, height));
@@ -976,32 +1346,51 @@ function openEmbeddedWordCloudEditWizard(plugin, services, ctx, hostEl, options)
   new EmbedWordCloudModal(
     plugin.app,
     services,
-    async (embedBlock) => updateEmbeddedCodeBlock(plugin, ctx, hostEl, embedBlock),
+    async (embedBlock) => updateEmbeddedCodeBlock(plugin, ctx, hostEl, embedBlock, options.cloudId),
     {
       title: "Edit embedded word cloud",
       description: "Update options for this embedded cloud without editing markdown manually.",
-      submitButtonText: "Save",
+      submitButtonText: "Apply",
       initialState: {
+        cloudId: options.cloudId,
         scope: options.scope,
         size: options.size,
-        tagsRaw: options.includeTags.join(", ")
+        specificFilePath: options.specificFilePath ?? "",
+        includeTagsRaw: options.includeTags.join(", "),
+        excludeTagsRaw: options.excludeTags.join(", "),
+        tagMatchMode: options.tagMatchMode,
+        folderPathsRaw: options.folderPaths.join(", "),
+        frontmatterRulesRaw: options.frontmatterRules.map((rule) => `${rule.key}|${rule.operator}|${rule.value ?? ""}`).join("; "),
+        minCountRaw: `${options.minCount}`,
+        maxCountRaw: `${options.maxCount}`
       }
     }
   ).open();
 }
-async function updateEmbeddedCodeBlock(plugin, ctx, hostEl, embedBlock) {
+async function updateEmbeddedCodeBlock(plugin, ctx, hostEl, embedBlock, cloudId) {
   const sourceFile = resolveCurrentFile(plugin, ctx);
   if (!sourceFile) {
     new import_obsidian2.Notice("Could not locate the source note for this embedded word cloud.");
     return false;
   }
-  const section = ctx.getSectionInfo(hostEl);
-  if (!section) {
+  let updated = false;
+  await plugin.app.vault.process(sourceFile, (content) => {
+    const byId = cloudId ? replaceWordCloudBlockById(content, cloudId, embedBlock) : null;
+    if (byId !== null) {
+      updated = true;
+      return byId;
+    }
+    const section = ctx.getSectionInfo(hostEl);
+    if (!section) {
+      return content;
+    }
+    updated = true;
+    return replaceSectionWithBlock(content, section.lineStart, section.lineEnd, embedBlock);
+  });
+  if (!updated) {
     new import_obsidian2.Notice("Could not locate the embedded word cloud block to update.");
-    return false;
   }
-  await plugin.app.vault.process(sourceFile, (content) => replaceSectionWithBlock(content, section.lineStart, section.lineEnd, embedBlock));
-  return true;
+  return updated;
 }
 async function updateEmbeddedCloudExcludedWords(plugin, ctx, hostEl, source, word) {
   const normalizedWord = normalizeWord(word);
@@ -1013,7 +1402,7 @@ async function updateEmbeddedCloudExcludedWords(plugin, ctx, hostEl, source, wor
     return false;
   }
   const embedBlock = buildWordCloudCodeBlock(updatedSource);
-  return updateEmbeddedCodeBlock(plugin, ctx, hostEl, embedBlock);
+  return updateEmbeddedCodeBlock(plugin, ctx, hostEl, embedBlock, extractCloudIdFromSource(updatedSource));
 }
 function replaceSectionWithBlock(content, lineStart, lineEnd, embedBlock) {
   const lines = content.split("\n");
@@ -1024,6 +1413,52 @@ function replaceSectionWithBlock(content, lineStart, lineEnd, embedBlock) {
   const before = lines.slice(0, lineStart);
   const after = lines.slice(lineEnd + 1);
   return [...before, ...replacementLines, ...after].join("\n");
+}
+function replaceWordCloudBlockById(content, cloudId, embedBlock) {
+  const targetId = cloudId.trim();
+  if (!targetId) {
+    return null;
+  }
+  const lines = content.split("\n");
+  for (let i = 0; i < lines.length; i += 1) {
+    const fence = lines[i]?.trim().toLowerCase();
+    if (fence !== "```wordcloud" && fence !== "```word-cloud") {
+      continue;
+    }
+    let end = i + 1;
+    while (end < lines.length && lines[end]?.trim() !== "```") {
+      end += 1;
+    }
+    if (end >= lines.length) {
+      continue;
+    }
+    const source = lines.slice(i + 1, end).join("\n");
+    const blockId = extractCloudIdFromSource(source);
+    if (blockId !== targetId) {
+      i = end;
+      continue;
+    }
+    const replacementLines = embedBlock.replace(/\n$/, "").split("\n");
+    const before = lines.slice(0, i);
+    const after = lines.slice(end + 1);
+    return [...before, ...replacementLines, ...after].join("\n");
+  }
+  return null;
+}
+function extractCloudIdFromSource(source) {
+  const lines = source.split("\n");
+  for (const line of lines) {
+    const separatorIndex = line.indexOf(":");
+    if (separatorIndex === -1) {
+      continue;
+    }
+    const key = line.slice(0, separatorIndex).trim().toLowerCase();
+    if (key !== "id" && key !== "cloud-id" && key !== "cloud_id" && key !== "guid") {
+      continue;
+    }
+    return line.slice(separatorIndex + 1).trim();
+  }
+  return "";
 }
 function addExcludedWordToEmbeddedSource(source, word) {
   const lines = source.replace(/\n$/, "").split("\n");
@@ -1081,18 +1516,6 @@ function getOptionKey(line) {
 }
 function normalizeWord(value) {
   return value.trim().toLowerCase();
-}
-
-// src/utils.ts
-function normalizeTag(tag) {
-  const trimmed = tag.trim().toLowerCase();
-  if (!trimmed) {
-    return "";
-  }
-  return trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
-}
-function escapeForSearch(value) {
-  return value.replace(/"/g, '\\"');
 }
 
 // src/actions/apply-search.ts
@@ -1705,6 +2128,8 @@ var DEFAULT_SETTINGS = {
     scalingMode: "power",
     emphasis: 1,
     showCountInWordText: false,
+    wordTextMetric: "count",
+    showWordTextMetricToggle: false,
     countLabelFormat: "paren",
     countLabelMinCount: 1,
     progressDetail: "balanced",
@@ -1860,14 +2285,26 @@ var VaultWordCloudSettingTab = class extends import_obsidian3.PluginSettingTab {
       });
     });
     this.attachInfoIcon(fontFamily, "Wider fonts take more space and can increase overlap pressure.");
-    const showCountInWordText = new import_obsidian3.Setting(containerEl).setName("Show count in word text").setDesc("Append the occurrence count directly to rendered words.").addToggle((toggle) => {
+    const showCountInWordText = new import_obsidian3.Setting(containerEl).setName("Show value in word text").setDesc("Append count or frequency directly to rendered words.").addToggle((toggle) => {
       toggle.setValue(this.plugin.settings.render.showCountInWordText).onChange(async (value) => {
         await updateRenderAndPreview({ showCountInWordText: value });
         this.display();
       });
     });
-    this.attachInfoIcon(showCountInWordText, "Shows exact counts inline (e.g., word (12)). Improves precision, increases text length.");
-    const countLabelFormat = new import_obsidian3.Setting(containerEl).setName("Count label format").setDesc("How counts are shown when count labels are enabled.").addDropdown((dropdown) => {
+    this.attachInfoIcon(showCountInWordText, "Shows the selected metric inline (for example, word (12) or word (4.3%)). Improves precision, increases text length.");
+    const wordTextMetric = new import_obsidian3.Setting(containerEl).setName("Word value mode").setDesc("Choose whether inline values show count or frequency.").addDropdown((dropdown) => {
+      dropdown.addOption("count", "Count").addOption("frequency", "Frequency (%)").setValue(this.plugin.settings.render.wordTextMetric).setDisabled(!this.plugin.settings.render.showCountInWordText).onChange(async (value) => {
+        await updateRenderAndPreview({ wordTextMetric: value });
+      });
+    });
+    this.attachInfoIcon(wordTextMetric, "Count shows raw occurrences. Frequency shows each word as a percent of visible word occurrences.");
+    const showWordTextMetricToggle = new import_obsidian3.Setting(containerEl).setName("Show count/frequency toggle button").setDesc("Add a rendered-view button to switch inline labels between count and frequency.").addToggle((toggle) => {
+      toggle.setValue(this.plugin.settings.render.showWordTextMetricToggle).setDisabled(!this.plugin.settings.render.showCountInWordText).onChange(async (value) => {
+        await updateRenderAndPreview({ showWordTextMetricToggle: value });
+      });
+    });
+    this.attachInfoIcon(showWordTextMetricToggle, "When enabled, each cloud shows a quick toggle in the corner controls.");
+    const countLabelFormat = new import_obsidian3.Setting(containerEl).setName("Count label format").setDesc("How inline values are shown when word text values are enabled.").addDropdown((dropdown) => {
       dropdown.addOption("paren", "word (12)").addOption("dot", "word \xB7 12").addOption("colon", "word: 12").setValue(this.plugin.settings.render.countLabelFormat).setDisabled(!this.plugin.settings.render.showCountInWordText).onChange(async (value) => {
         await updateRenderAndPreview({ countLabelFormat: value });
       });
@@ -4191,17 +4628,28 @@ function pickRotation(random, preset) {
   const angles = [-90, -45, 0, 45, 90];
   return angles[Math.floor(random() * angles.length)];
 }
-function getWordLabel(word, renderSettings) {
+function formatWordMetricValue(word, totalCount, metric) {
+  if (metric === "frequency") {
+    const percent = word.count / Math.max(1, totalCount) * 100;
+    return `${percent.toFixed(percent >= 10 ? 1 : 2).replace(/\.?0+$/, "")}%`;
+  }
+  return String(word.count);
+}
+function formatWordTitle(word, totalCount) {
+  return `${word.text} (${word.count}, ${formatWordMetricValue(word, totalCount, "frequency")})`;
+}
+function getWordLabel(word, renderSettings, totalCount, metric) {
   if (!renderSettings.showCountInWordText || word.count < renderSettings.countLabelMinCount) {
     return word.text;
   }
+  const formattedValue = formatWordMetricValue(word, totalCount, metric);
   if (renderSettings.countLabelFormat === "dot") {
-    return `${word.text} \xB7 ${word.count}`;
+    return `${word.text} \xB7 ${formattedValue}`;
   }
   if (renderSettings.countLabelFormat === "colon") {
-    return `${word.text}: ${word.count}`;
+    return `${word.text}: ${formattedValue}`;
   }
-  return `${word.text} (${word.count})`;
+  return `${word.text} (${formattedValue})`;
 }
 async function drawWordCloud(options, renderSettings) {
   const {
@@ -4224,10 +4672,12 @@ async function drawWordCloud(options, renderSettings) {
   const width = Math.max(320, containerEl.clientWidth || 700);
   const height = Math.max(320, containerEl.clientHeight || 500);
   const random = renderSettings.deterministicLayout ? buildDeterministicRandom(renderSettings.randomSeed) : Math.random;
+  const totalWordCount = words.reduce((total, word) => total + word.count, 0);
+  let activeWordTextMetric = renderSettings.wordTextMetric;
   const layoutWords = words.map((word) => ({
     ...word,
     baseText: word.text,
-    layoutText: getWordLabel(word, renderSettings)
+    layoutText: getWordLabel(word, renderSettings, totalWordCount, activeWordTextMetric)
   }));
   containerEl.classList.add("word-cloud-render-container");
   const svg = select_default2(containerEl).append("svg").attr("width", width).attr("height", height).attr("role", "img").attr("aria-label", ariaLabel);
@@ -4249,7 +4699,7 @@ async function drawWordCloud(options, renderSettings) {
         reportProgress(`Laying out words... ${laidOutWords}/${layoutWords.length}`, layoutPercent);
       }
     }).on("end", (layoutWords2) => {
-      g.selectAll("text").data(layoutWords2).enter().append("text").style("font-size", (d) => `${d.size}px`).style("font-family", renderSettings.fontFamily || "sans-serif").style("fill", (_, i) => color2(String(i))).style("cursor", "pointer").attr("tabindex", 0).attr("text-anchor", "middle").attr("transform", (d) => `translate(${d.x},${d.y}) rotate(${d.rotate})`).text((d) => d.layoutText).on("click", (_, d) => {
+      const textSelection = g.selectAll("text").data(layoutWords2).enter().append("text").style("font-size", (d) => `${d.size}px`).style("font-family", renderSettings.fontFamily || "sans-serif").style("fill", (_, i) => color2(String(i))).style("cursor", "pointer").attr("tabindex", 0).attr("text-anchor", "middle").attr("transform", (d) => `translate(${d.x},${d.y}) rotate(${d.rotate})`).text((d) => d.layoutText).on("click", (_, d) => {
         if (viewportControls.shouldSuppressWordClick()) {
           return;
         }
@@ -4271,7 +4721,13 @@ async function drawWordCloud(options, renderSettings) {
         event.preventDefault();
         event.stopPropagation();
         openExcludeWordMenuAtPointer(event, d.baseText, onExcludeInCloud, onExcludeInVault);
-      }).append("title").text((d) => `${d.baseText} (${d.count})`);
+      });
+      textSelection.append("title").text((d) => formatWordTitle(d, totalWordCount));
+      const applyWordTextMetric = (metric) => {
+        activeWordTextMetric = metric;
+        textSelection.text((d) => getWordLabel(d, renderSettings, totalWordCount, metric));
+        textSelection.select("title").text((d) => formatWordTitle(d, totalWordCount));
+      };
       reportProgress("Rendering complete.", 100);
       if (enableOverlayControls) {
         renderOverlayControls(
@@ -4284,7 +4740,12 @@ async function drawWordCloud(options, renderSettings) {
           viewportControls,
           showRefreshControl,
           showZoomControls,
-          showEditControl
+          showEditControl,
+          renderSettings.showCountInWordText && renderSettings.showWordTextMetricToggle,
+          () => activeWordTextMetric,
+          () => {
+            applyWordTextMetric(activeWordTextMetric === "count" ? "frequency" : "count");
+          }
         );
       }
       resolve();
@@ -4523,7 +4984,7 @@ function setupViewportControls(svgEl, viewportEl, width, height) {
     shouldSuppressWordClick: () => Date.now() < suppressWordClickUntil
   };
 }
-function renderOverlayControls(containerEl, svgEl, exportBaseName, enableExport, onRefresh, onEdit, viewportControls, showRefreshControl, showZoomControls, showEditControl) {
+function renderOverlayControls(containerEl, svgEl, exportBaseName, enableExport, onRefresh, onEdit, viewportControls, showRefreshControl, showZoomControls, showEditControl, showWordMetricToggleControl, getCurrentWordMetric, onToggleWordMetric) {
   if (!svgEl) {
     return;
   }
@@ -4583,6 +5044,28 @@ function renderOverlayControls(containerEl, svgEl, exportBaseName, enableExport,
       }
     });
   };
+  const makeWordMetricToggleButton = (parentEl) => {
+    if (!showWordMetricToggleControl) {
+      return;
+    }
+    const metricButton = parentEl.createEl("button", {
+      cls: "word-cloud-metric-button"
+    });
+    metricButton.type = "button";
+    const updateMetricButtonText = () => {
+      const currentMetric = getCurrentWordMetric();
+      const nextMetric = currentMetric === "count" ? "frequency" : "count";
+      metricButton.setText(currentMetric === "count" ? "123" : "%");
+      metricButton.setAttr("aria-label", `Switch inline labels to ${nextMetric}`);
+      metricButton.setAttr("data-tooltip-position", "top");
+      metricButton.setAttr("data-tooltip", `Showing ${currentMetric}; click for ${nextMetric}`);
+    };
+    updateMetricButtonText();
+    metricButton.addEventListener("click", () => {
+      onToggleWordMetric();
+      updateMetricButtonText();
+    });
+  };
   if (showZoomControls) {
     const viewControlsEl = containerEl.createDiv({ cls: "word-cloud-view-controls" });
     const zoomOutButton = viewControlsEl.createEl("button", {
@@ -4610,6 +5093,7 @@ function renderOverlayControls(containerEl, svgEl, exportBaseName, enableExport,
   if (!enableExport) {
     if (!showZoomControls) {
       const fallbackControlsEl = containerEl.createDiv({ cls: "word-cloud-export-controls" });
+      makeWordMetricToggleButton(fallbackControlsEl);
       makeRefreshButton(fallbackControlsEl);
       makeEditButton(fallbackControlsEl);
     }
@@ -4621,6 +5105,7 @@ function renderOverlayControls(containerEl, svgEl, exportBaseName, enableExport,
     text: "\u22EF"
   });
   menuButton.setAttr("aria-label", "Word cloud options");
+  makeWordMetricToggleButton(exportControlsEl);
   makeRefreshButton(exportControlsEl);
   makeEditButton(exportControlsEl);
   const menuEl = exportControlsEl.createDiv({ cls: "word-cloud-menu" });
@@ -5790,6 +6275,8 @@ var VaultWordCloudPlugin = class extends import_obsidian8.Plugin {
     const scalingMode = raw.scalingMode === "linear" || raw.scalingMode === "power" || raw.scalingMode === "log" || raw.scalingMode === "rank" ? raw.scalingMode : DEFAULT_SETTINGS.render.scalingMode;
     const emphasis = this.clampFloat(raw.emphasis, 0.5, 3, DEFAULT_SETTINGS.render.emphasis);
     const showCountInWordText = typeof raw.showCountInWordText === "boolean" ? raw.showCountInWordText : DEFAULT_SETTINGS.render.showCountInWordText;
+    const wordTextMetric = raw.wordTextMetric === "count" || raw.wordTextMetric === "frequency" ? raw.wordTextMetric : DEFAULT_SETTINGS.render.wordTextMetric;
+    const showWordTextMetricToggle = typeof raw.showWordTextMetricToggle === "boolean" ? raw.showWordTextMetricToggle : DEFAULT_SETTINGS.render.showWordTextMetricToggle;
     const countLabelFormat = raw.countLabelFormat === "paren" || raw.countLabelFormat === "dot" || raw.countLabelFormat === "colon" ? raw.countLabelFormat : DEFAULT_SETTINGS.render.countLabelFormat;
     const countLabelMinCount = this.clampNumber(raw.countLabelMinCount, 1, 100, DEFAULT_SETTINGS.render.countLabelMinCount);
     const progressDetail = raw.progressDetail === "minimal" || raw.progressDetail === "balanced" || raw.progressDetail === "detailed" || raw.progressDetail === "unhinged" ? raw.progressDetail : DEFAULT_SETTINGS.render.progressDetail;
@@ -5812,6 +6299,8 @@ var VaultWordCloudPlugin = class extends import_obsidian8.Plugin {
       scalingMode,
       emphasis,
       showCountInWordText,
+      wordTextMetric,
+      showWordTextMetricToggle,
       countLabelFormat,
       countLabelMinCount,
       progressDetail,

@@ -13,6 +13,7 @@ export type RotationPreset = 'horizontal' | 'mostly-horizontal' | 'mixed' | 'ver
 export type SpiralType = 'archimedean' | 'rectangular';
 export type ScalingMode = 'linear' | 'power' | 'log' | 'rank';
 export type CountLabelFormat = 'paren' | 'dot' | 'colon';
+export type WordTextMetric = 'count' | 'frequency';
 export type ProgressDetail = 'minimal' | 'balanced' | 'detailed' | 'unhinged';
 
 export type RenderSettings = {
@@ -25,6 +26,8 @@ export type RenderSettings = {
   scalingMode: ScalingMode;
   emphasis: number;
   showCountInWordText: boolean;
+  wordTextMetric: WordTextMetric;
+  showWordTextMetricToggle: boolean;
   countLabelFormat: CountLabelFormat;
   countLabelMinCount: number;
   progressDetail: ProgressDetail;

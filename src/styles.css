@@ -596,7 +596,8 @@
 .word-cloud-menu-button,
 .word-cloud-refresh-button,
 .word-cloud-edit-button,
-.word-cloud-view-button {
+.word-cloud-view-button,
+.word-cloud-metric-button {
   width: 28px;
   height: 28px;
   min-height: 28px;
@@ -617,10 +618,19 @@
 .word-cloud-menu-button:focus-visible,
 .word-cloud-refresh-button:focus-visible,
 .word-cloud-edit-button:focus-visible,
+.word-cloud-metric-button:focus-visible,
 .word-cloud-view-button:focus-visible,
 .word-cloud-menu-item:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: 1px;
+}
+
+.word-cloud-metric-button {
+  width: 38px;
+  min-width: 38px;
+  flex-basis: 38px;
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
 }
 
 .word-cloud-menu {
@@ -696,6 +706,65 @@
   display: flex;
   flex-direction: column;
   gap: var(--size-4-2);
+  min-height: min(72vh, 640px);
+}
+
+.word-cloud-embed-wizard-settings {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  gap: var(--size-4-2);
+}
+
+.word-cloud-embed-wizard-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  padding-bottom: 6px;
+}
+
+.word-cloud-embed-wizard-tab {
+  min-height: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.word-cloud-embed-wizard-tab.is-active {
+  border-color: var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-normal);
+}
+
+.word-cloud-embed-wizard-tab:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
+.word-cloud-embed-wizard-panels {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: var(--size-4-2);
+  min-height: 0;
+}
+
+.word-cloud-embed-wizard-panel {
+  display: none;
+  min-height: 0;
+}
+
+.word-cloud-embed-wizard-panel.is-active {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: var(--size-4-2);
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .word-cloud-embed-wizard-description {
@@ -712,5 +781,7 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--size-4-1);
-  margin-top: var(--size-4-1);
+  margin-top: auto;
+  padding-top: var(--size-4-1);
+  border-top: 1px solid var(--background-modifier-border);
 }

@@ -6,6 +6,7 @@
   "scripts": {
     "build": "node esbuild.config.mjs production",
     "dev": "node esbuild.config.mjs",
+    "test": "jest --runInBand",
     "deploy:demo": "node scripts/deploy-demo.mjs",
     "build:demo": "npm run build && npm run deploy:demo",
     "watch:demo": "node scripts/watch-demo.mjs",
@@ -20,9 +21,12 @@
   "devDependencies": {
     "@types/d3": "^7.4.3",
     "@types/d3-cloud": "^1.2.9",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.11.30",
     "esbuild": "^0.20.2",
+    "jest": "^30.2.0",
     "obsidian": "latest",
+    "ts-jest": "^29.4.6",
     "tslib": "^2.6.2",
     "typescript": "^5.4.2"
   },
