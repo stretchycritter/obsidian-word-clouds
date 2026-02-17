@@ -7,7 +7,6 @@ import { initI18n } from '@/i18n';
 import { Disposer } from '@/lifecycle/disposer';
 import { registerSettings } from '@/settings/register';
 import { registerUI } from '@/ui/register';
-import { registerViews } from '@/views/register';
 
 export default class VaultWordCloudPlugin extends Plugin {
   private readonly disposer = new Disposer();
@@ -33,10 +32,9 @@ export default class VaultWordCloudPlugin extends Plugin {
   }
 
   private registerIntegrationPoints(deps: Deps): void {
-    registerViews(this, deps);
     registerCommands(this, deps);
     registerEvents(this, deps);
-    registerUI(this);
+    registerUI(this, deps);
     registerSettings(this, deps);
   }
 

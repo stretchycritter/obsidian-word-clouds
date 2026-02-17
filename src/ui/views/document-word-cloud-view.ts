@@ -1,7 +1,7 @@
 import { ItemView, Notice, WorkspaceLeaf } from 'obsidian';
-import { VIEW_TYPE_VAULT_WORD_CLOUD } from '../constants';
-import type { WordCloudFilterSettings, WordCloudServices } from '../types';
-import { WordCloudFilterPanel } from '../views/components/filter-panel';
+import { VIEW_TYPE_VAULT_WORD_CLOUD } from '@/constants';
+import type { WordCloudFilterSettings, WordCloudServices } from '@/types';
+import { WordCloudFilterPanel } from '../components/filter-panel';
 
 export class VaultWordCloudView extends ItemView {
   private readonly services: WordCloudServices;

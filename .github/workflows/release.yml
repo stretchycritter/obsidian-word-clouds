@@ -8,13 +8,14 @@ on:
         required: true
         default: minor
         type: choice
-        options:
-          - patch
-          - minor
-          - major
+        options: [patch, minor, major]
 
 permissions:
   contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -61,13 +62,24 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add manifest.json package.json package-lock.json versions.json
-          git commit -m "chore(release): ${{ steps.bump.outputs.tag }}"
-          git push origin "HEAD:main"
 
-      - name: Create and push tag
+          if git diff --cached --quiet; then
+            echo "No version changes to commit."
+          else
+            git commit -m "chore(release): ${{ steps.bump.outputs.tag }}"
+            git push origin "HEAD:main"
+          fi
+
+      - name: Create and push tag (idempotent)
         run: |
-          git tag "${{ steps.bump.outputs.tag }}"
-          git push origin "refs/tags/${{ steps.bump.outputs.tag }}"
+          git fetch --tags
+
+          if git rev-parse "${{ steps.bump.outputs.tag }}" >/dev/null 2>&1; then
+            echo "Tag already exists: ${{ steps.bump.outputs.tag }}"
+          else
+            git tag "${{ steps.bump.outputs.tag }}"
+            git push origin "refs/tags/${{ steps.bump.outputs.tag }}"
+          fi
 
       - name: Build release assets
         run: npm run build:release
@@ -75,13 +87,105 @@ jobs:
       - name: Validate release metadata and artifacts
         run: npm run release:validate -- "${{ steps.bump.outputs.tag }}"
 
-      - name: Publish GitHub release assets
-        uses: softprops/action-gh-release@v2
+      - name: Create (or fetch) GitHub Release and upload assets
+        uses: actions/github-script@v7
+        env:
+          TAG: ${{ steps.bump.outputs.tag }}
         with:
-          tag_name: ${{ steps.bump.outputs.tag }}
-          generate_release_notes: true
-          target_commitish: ${{ steps.bump.outputs.tag }}
-          files: |
-            dist/manifest.json
-            dist/main.js
-            dist/styles.css
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require("fs");
+            const path = require("path");
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const tag = process.env.TAG;
+
+            // Files to upload (adjust as needed)
+            const files = [
+              "dist/manifest.json",
+              "dist/main.js",
+              "dist/styles.css",
+            ];
+
+            function contentTypeFor(file) {
+              if (file.endsWith(".json")) return "application/json";
+              if (file.endsWith(".js")) return "application/javascript";
+              if (file.endsWith(".css")) return "text/css";
+              return "application/octet-stream";
+            }
+
+            // 1) Find or create the release
+            let release;
+            try {
+              release = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+              core.info(`Release already exists for ${tag}: id=${release.data.id}`);
+            } catch (e) {
+              if (e.status !== 404) throw e;
+
+              // Generate release notes (official API)
+              const notes = await github.rest.repos.generateReleaseNotes({
+                owner,
+                repo,
+                tag_name: tag,
+              });
+
+              release = await github.rest.repos.createRelease({
+                owner,
+                repo,
+                tag_name: tag,
+                name: tag,
+                body: notes.data.body || "",
+                draft: false,
+                prerelease: false,
+              });
+
+              core.info(`Created release for ${tag}: id=${release.data.id}`);
+            }
+
+            const releaseId = release.data.id;
+
+            // 2) Upload assets (skip missing files)
+            for (const file of files) {
+              if (!fs.existsSync(file)) {
+                core.warning(`File not found, skipping: ${file}`);
+                continue;
+              }
+
+              const name = path.basename(file);
+              const data = fs.readFileSync(file);
+
+              // If rerun: delete existing asset with same name first
+              const existingAssets = await github.rest.repos.listReleaseAssets({
+                owner,
+                repo,
+                release_id: releaseId,
+                per_page: 100,
+              });
+
+              const existing = existingAssets.data.find(a => a.name === name);
+              if (existing) {
+                core.info(`Deleting existing asset: ${name}`);
+                await github.rest.repos.deleteReleaseAsset({
+                  owner,
+                  repo,
+                  asset_id: existing.id,
+                });
+              }
+
+              core.info(`Uploading asset: ${name}`);
+              await github.rest.repos.uploadReleaseAsset({
+                owner,
+                repo,
+                release_id: releaseId,
+                name,
+                data,
+                headers: {
+                  "content-type": contentTypeFor(file),
+                  "content-length": data.length,
+                },
+              });
+            }
+
+            core.info("Release publishing complete.");
+

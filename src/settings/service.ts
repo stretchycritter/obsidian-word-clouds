@@ -5,7 +5,7 @@ import type {
   WordCloudFilterSettings,
 } from '../types';
 import type { FrontmatterRule, SourceScope } from '../wordcloud/pipeline/types';
-import { normalizeTag } from '../utils';
+import { normalizeTag } from '../utils/utils';
 import { migrateSettingsData } from './migrations';
 import { DEFAULT_SETTINGS, type WordCloudSettings } from './types';
 

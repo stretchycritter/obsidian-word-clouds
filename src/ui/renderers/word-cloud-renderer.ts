@@ -2,7 +2,7 @@ import { scaleOrdinal } from 'd3-scale';
 import { schemeTableau10 } from 'd3-scale-chromatic';
 import { select } from 'd3-selection';
 import { Menu, setIcon } from 'obsidian';
-import type { RenderSettings, RotationPreset, WordCloudRenderOptions, WordTextMetric, WeightedWord } from '../types';
+import type { RenderSettings, RotationPreset, WordCloudRenderOptions, WordTextMetric, WeightedWord } from '@/types';
 
 function buildDeterministicRandom(seed: number): () => number {
   let state = seed >>> 0;

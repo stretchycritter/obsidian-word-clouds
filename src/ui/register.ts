@@ -1,8 +1,17 @@
 import type { Plugin } from 'obsidian';
+import { VIEW_TYPE_NOTE_WORD_CLOUD, VIEW_TYPE_VAULT_WORD_CLOUD } from '@/constants';
+import type { Deps } from '@/deps';
 import { t } from '../i18n';
-import { activateVaultWordCloudView } from '../views/activate';
+import { registerEmbeddedWordCloudProcessor } from './blocks/wordcloud-block';
+import { activateVaultWordCloudView } from './views/activate';
+import { VaultWordCloudView } from './views/document-word-cloud-view';
+import { NoteWordCloudView } from './views/sidebar-word-cloud-view';
 
-export function registerUI(plugin: Plugin): void {
+export function registerUI(plugin: Plugin, deps: Deps): void {
+  plugin.registerView(VIEW_TYPE_VAULT_WORD_CLOUD, (leaf) => new VaultWordCloudView(leaf, deps.services.wordCloud));
+  plugin.registerView(VIEW_TYPE_NOTE_WORD_CLOUD, (leaf) => new NoteWordCloudView(leaf, deps.services.wordCloud));
+  registerEmbeddedWordCloudProcessor(plugin, deps.services.wordCloud);
+
   plugin.addRibbonIcon('cloud', t('ui.ribbon.openWordClouds'), () => {
     void activateVaultWordCloudView(plugin.app);
   });

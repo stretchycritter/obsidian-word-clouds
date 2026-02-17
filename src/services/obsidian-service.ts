@@ -1,6 +1,6 @@
 import { MarkdownView, type App, TFile, TFolder } from 'obsidian';
 
-export class ObsidianAdapter {
+export class ObsidianService {
   constructor(private readonly app: App) {}
 
   getAvailableFolders(): string[] {

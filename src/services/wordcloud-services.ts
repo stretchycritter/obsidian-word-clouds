@@ -1,5 +1,5 @@
 import type { App, TFile } from 'obsidian';
-import { drawWordCloud } from '../renderers/word-cloud-renderer';
+import { drawWordCloud } from '../ui/renderers/word-cloud-renderer';
 import { openSearchForWord } from '../utils/apply-search';
 import type {
   RenderSettings,
@@ -10,7 +10,7 @@ import type {
   WordCloudServices,
   WeightedWord,
 } from '../types';
-import type { ObsidianAdapter } from '../integration/obsidian-adapter';
+import type { ObsidianService } from './obsidian-service';
 import type { SettingsService } from '../settings/service';
 import type { WordCloudSettings } from '../settings/types';
 import type { WordCloudService } from '../wordcloud/application/wordcloud-service';
@@ -26,7 +26,7 @@ export interface WordCloudSettingsControls {
 export class WordCloudAppService implements WordCloudServices, WordCloudSettingsControls {
   constructor(
     private readonly app: App,
-    private readonly adapter: ObsidianAdapter,
+    private readonly obsidian: ObsidianService,
     private readonly processor: WordCloudService,
     private readonly settingsService: SettingsService,
   ) {}
@@ -40,15 +40,15 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
   }
 
   getAvailableFolders(): string[] {
-    return this.adapter.getAvailableFolders();
+    return this.obsidian.getAvailableFolders();
   }
 
   getOpenMarkdownFiles(): TFile[] {
-    return this.adapter.getOpenMarkdownFiles();
+    return this.obsidian.getOpenMarkdownFiles();
   }
 
   getActiveFile(): TFile | null {
-    return this.adapter.getActiveFile();
+    return this.obsidian.getActiveFile();
   }
 
   getFilterSettings(): WordCloudFilterSettings {
@@ -74,7 +74,7 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
     const frequency = options.frequency ?? settings.filters.frequency;
 
     return this.processor.collectFromFiles(
-      this.adapter.getMarkdownFiles(),
+      this.obsidian.getMarkdownFiles(),
       this.settingsService.getBlacklistSet(),
       settings.render,
       onProgress,

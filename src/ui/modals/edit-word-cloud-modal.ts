@@ -1,7 +1,7 @@
 import { App, ButtonComponent, Modal, Notice, Setting } from 'obsidian';
-import type { WordCloudServices } from '../types';
-import type { FrontmatterRule, FrontmatterOperator } from '../wordcloud/pipeline/types';
-import { normalizeTag } from '../utils';
+import type { WordCloudServices } from '@/types';
+import type { FrontmatterRule, FrontmatterOperator } from '@/wordcloud/pipeline/types';
+import { normalizeTag } from '@/utils/utils';
 
 export type EmbedScope = 'file' | 'vault' | 'folder';
 export type EmbedSize = 'small' | 'medium' | 'large';

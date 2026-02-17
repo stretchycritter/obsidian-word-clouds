@@ -1,12 +1,12 @@
 import type { EventCoordinator } from './events/coordinator';
-import type { ObsidianAdapter } from './integration/obsidian-adapter';
+import type { ObsidianService } from './services/obsidian-service';
 import type { SettingsService } from './settings/service';
 import type { WordCloudAppService } from './services/wordcloud-services';
 
 export type Deps = {
   settingsService: SettingsService;
-  adapter: ObsidianAdapter;
   services: {
+    obsidian: ObsidianService;
     wordCloud: WordCloudAppService;
   };
   coordinator: EventCoordinator;

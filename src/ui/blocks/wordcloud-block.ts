@@ -1,8 +1,8 @@
 import { MarkdownPostProcessorContext, MarkdownView, Notice, Plugin, TFile } from 'obsidian';
 import type { TagMatchMode, WordCloudServices } from '../../types';
-import { EmbedWordCloudModal } from '../../modals/edit-word-cloud-modal';
+import { EmbedWordCloudModal } from '../modals/edit-word-cloud-modal';
 import type { FrontmatterOperator, FrontmatterRule, SourceScope } from '../../wordcloud/pipeline/types';
-import { normalizeTag } from '../../utils';
+import { normalizeTag } from '../../utils/utils';
 
 type EmbeddedWordCloudScope = 'file' | 'vault' | 'folder';
 type EmbeddedWordCloudSize = 'small' | 'medium' | 'large';

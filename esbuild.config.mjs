@@ -28,7 +28,7 @@ function copyStaticFiles() {
     }
   }
 
-  const stylesPath = path.join(process.cwd(), 'src', 'styles.css');
+  const stylesPath = path.join(process.cwd(), 'src', 'ui', 'styles.css');
   const stylesOutput = isRelease
     ? esbuild.transformSync(readFileSync(stylesPath, 'utf8'), {
         loader: 'css',
