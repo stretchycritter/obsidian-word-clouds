@@ -6,7 +6,7 @@ on:
       bump:
         description: "Version bump level"
         required: true
-        default: patch
+        default: minor
         type: choice
         options:
           - patch
@@ -18,6 +18,7 @@ permissions:
 
 jobs:
   release:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
@@ -51,8 +52,8 @@ jobs:
 
       - name: Commit version bump
         run: |
-          if [[ "${GITHUB_REF}" != refs/heads/* ]]; then
-            echo "workflow_dispatch must run on a branch ref, got ${GITHUB_REF}"
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "release workflow must run on main, got ${GITHUB_REF}"
             exit 1
           fi
 
@@ -61,7 +62,7 @@ jobs:
 
           git add manifest.json package.json package-lock.json versions.json
           git commit -m "chore(release): ${{ steps.bump.outputs.tag }}"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "HEAD:main"
 
       - name: Create and push tag
         run: |
