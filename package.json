@@ -1,6 +1,6 @@
 {
   "name": "word-clouds",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Obsidian plugin that generates a word cloud from an entire vault.",
   "main": "main.js",
   "scripts": {
