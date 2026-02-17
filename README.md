@@ -25,6 +25,25 @@ npm run build:dev
 npm run build:release
 ```
 
+## Community release process
+
+1. Run the GitHub Action manually: `Actions -> Release -> Run workflow`.
+2. Select `bump` as `patch`, `minor`, or `major`.
+3. The workflow automatically:
+   - builds the plugin
+   - runs unit tests
+   - bumps `manifest.json`, `package.json`, `package-lock.json`, and `versions.json`
+   - commits and pushes the bump commit to the selected branch
+   - creates and pushes the corresponding tag (`vX.Y.Z`)
+   - packages and validates release artifacts
+   - publishes the GitHub Release
+
+The release workflow validates the version/tag match and publishes:
+
+- `manifest.json`
+- `main.js`
+- `styles.css`
+
 ## Watch (auto rebuild + deploy to demo vault)
 
 ```bash

@@ -8,6 +8,8 @@
     "build:dev": "node esbuild.config.mjs dev",
     "dev": "node esbuild.config.mjs watch",
     "build:release": "npm run typecheck && node esbuild.config.mjs release",
+    "version:bump": "node scripts/version-bump.mjs",
+    "release:validate": "node scripts/release-validate.mjs",
     "release": "npm run build:release",
     "test": "jest --runInBand",
     "typecheck": "tsc --noEmit --project tsconfig.jest.json",
