@@ -2,7 +2,7 @@ import { ItemView, Notice, type TFile, WorkspaceLeaf } from 'obsidian';
 import { drawFrequencyChart } from '../renderers/frequency-chart-renderer';
 import { VIEW_TYPE_NOTE_WORD_CLOUD } from '../constants';
 import type { WeightedWord, WordCloudFilterSettings, WordCloudServices } from '../types';
-import { WordCloudFilterPanel } from '../components/filter-panel';
+import { WordCloudFilterPanel } from '../views/components/filter-panel';
 
 type NoteViewTab = 'cloud' | 'frequency';
 

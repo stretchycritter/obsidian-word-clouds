@@ -1,5 +1,5 @@
 import type { Plugin } from 'obsidian';
-import { registerEmbeddedWordCloudProcessor } from '../blocks/wordcloud-block';
+import { registerEmbeddedWordCloudProcessor } from './blocks/wordcloud-block';
 import { VIEW_TYPE_NOTE_WORD_CLOUD, VIEW_TYPE_VAULT_WORD_CLOUD } from '../constants';
 import type { Deps } from '../deps';
 import { VaultWordCloudView } from './document-word-cloud-view';
