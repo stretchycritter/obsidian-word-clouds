@@ -5,3 +5,5 @@ dist/
 
 .deploy.local
 demo-vault/.obsidian/plugins/word-clouds/
+
+/coverage

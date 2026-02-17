@@ -15,8 +15,8 @@ export default class VaultWordCloudPlugin extends Plugin {
     try {
       initI18n();
       const deps = await this.initializeDependencies();
-      this.registerIntegrationPoints(deps);
       this.registerTeardown(deps);
+      this.registerIntegrationPoints(deps);
     } catch (error) {
       this.disposer.disposeAll();
       throw error;
