@@ -9,13 +9,16 @@
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "types": [
       "node",
-      "obsidian"
+      "obsidian",
+      "jest"
     ]
   },
   "include": [

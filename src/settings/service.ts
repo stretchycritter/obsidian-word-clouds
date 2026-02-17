@@ -367,7 +367,7 @@ function cloneSettings(settings: WordCloudSettings): WordCloudSettings {
     filters: {
       scope: {
         ...settings.filters.scope,
-        folderPaths: [...settings.filters.scope.folderPaths],
+        folderPaths: [...(settings.filters.scope.folderPaths ?? [])],
       },
       includeTags: [...settings.filters.includeTags],
       excludeTags: [...settings.filters.excludeTags],

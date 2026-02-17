@@ -83,6 +83,13 @@ export class NoteWordCloudView extends ItemView {
     });
     refreshButton.type = 'button';
     refreshButton.setAttr('aria-label', 'Refresh note insights');
+    const registerElementEvent = (
+      element: HTMLElement,
+      type: keyof HTMLElementEventMap,
+      callback: (event: Event) => void,
+    ): void => {
+      this.registerDomEvent(element, type, callback as EventListener);
+    };
 
     let filterPanel: WordCloudFilterPanel;
     const persistFiltersAndRender = async (nextFilters: WordCloudFilterSettings): Promise<void> => {
@@ -96,7 +103,7 @@ export class NoteWordCloudView extends ItemView {
     filterPanel = new WordCloudFilterPanel({
       services: this.services,
       containerEl: controlsEl,
-      registerDomEvent: (element, type, callback) => this.registerDomEvent(element, type, callback),
+      registerDomEvent: registerElementEvent,
       filters: this.filters,
       onChange: persistFiltersAndRender,
     });
@@ -254,7 +261,7 @@ export class NoteWordCloudView extends ItemView {
     await this.renderCloud(cloudCanvasEl);
   }
 
-  onClose(): void {
+  async onClose(): Promise<void> {
     this.cloudCanvasEl = null;
     this.frequencyCanvasEl = null;
     this.cloudTabButtonEl = null;

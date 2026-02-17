@@ -39,11 +39,18 @@ export class VaultWordCloudView extends ItemView {
 
     const controlsEl = topEl.createDiv({ cls: 'vault-word-cloud-controls' });
     const canvasEl = contentEl.createDiv({ cls: 'vault-word-cloud-canvas' });
+    const registerElementEvent = (
+      element: HTMLElement,
+      type: keyof HTMLElementEventMap,
+      callback: (event: Event) => void,
+    ): void => {
+      this.registerDomEvent(element, type, callback as EventListener);
+    };
 
     const filterPanel = new WordCloudFilterPanel({
       services: this.services,
       containerEl: controlsEl,
-      registerDomEvent: (element, type, callback) => this.registerDomEvent(element, type, callback),
+      registerDomEvent: registerElementEvent,
       filters: this.filters,
       onChange: async (nextFilters) => {
         this.filters = nextFilters;

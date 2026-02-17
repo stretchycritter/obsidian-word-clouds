@@ -1,13 +1,13 @@
 import { setIcon } from 'obsidian';
-import type { SourceScopeMode } from '../wordcloud/pipeline/types';
-import type { WordCloudFilterSettings, WordCloudServices } from '../types';
+import type { SourceScopeMode } from '../../wordcloud/pipeline/types';
+import type { WordCloudFilterSettings, WordCloudServices } from '../../types';
 
 const ALL_FREQUENCIES_MIN = 1;
 const ALL_FREQUENCIES_MAX = 9999;
 
 type RegisterDomEvent = (
-  element: HTMLElement | Document | Window,
-  type: string,
+  element: HTMLElement,
+  type: keyof HTMLElementEventMap,
   callback: (event: Event) => void,
 ) => void;
 
@@ -250,7 +250,7 @@ function cloneFilters(filters: WordCloudFilterSettings): WordCloudFilterSettings
     scope: {
       mode: filters.scope.mode,
       activeFilePath: filters.scope.activeFilePath,
-      folderPaths: [...filters.scope.folderPaths],
+      folderPaths: [...(filters.scope.folderPaths ?? [])],
     },
     includeTags: [...filters.includeTags],
     excludeTags: [...filters.excludeTags],

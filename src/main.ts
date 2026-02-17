@@ -10,7 +10,6 @@ import { registerUI } from './ui/register';
 import { registerViews } from './views/register';
 
 export default class VaultWordCloudPlugin extends Plugin {
-  private deps: Deps | null = null;
   private readonly disposer = new Disposer();
 
   async onload(): Promise<void> {
@@ -21,20 +20,16 @@ export default class VaultWordCloudPlugin extends Plugin {
       this.registerTeardown(deps);
     } catch (error) {
       this.disposer.disposeAll();
-      this.deps = null;
       throw error;
     }
   }
 
   onunload(): void {
     this.disposer.disposeAll();
-    this.deps = null;
   }
 
   private async initializeDependencies(): Promise<Deps> {
-    const deps = await createDeps(this);
-    this.deps = deps;
-    return deps;
+    return createDeps(this);
   }
 
   private registerIntegrationPoints(deps: Deps): void {

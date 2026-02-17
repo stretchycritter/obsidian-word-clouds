@@ -200,7 +200,7 @@ export class EmbedWordCloudModal extends Modal {
         applyButton.setDisabled(true);
         try {
           const wasInserted = await this.onInsert(this.buildEmbedBlock());
-          if (wasInserted && this.isOpen) {
+          if (wasInserted && this.contentEl.isConnected) {
             this.close();
           }
         } catch (error) {

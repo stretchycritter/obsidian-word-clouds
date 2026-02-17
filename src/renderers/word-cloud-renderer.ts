@@ -69,6 +69,9 @@ function getWordLabel(word: WeightedWord, renderSettings: RenderSettings, totalC
 type LayoutWord = WeightedWord & {
   baseText: string;
   layoutText: string;
+  x?: number;
+  y?: number;
+  rotate?: number;
 };
 
 type ViewportControls = {
@@ -163,7 +166,7 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
           .style('cursor', 'pointer')
           .attr('tabindex', 0)
           .attr('text-anchor', 'middle')
-          .attr('transform', (d) => `translate(${d.x},${d.y}) rotate(${d.rotate})`)
+          .attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0}) rotate(${d.rotate ?? 0})`)
           .text((d) => d.layoutText)
           .on('click', (_, d) => {
             if (viewportControls.shouldSuppressWordClick()) {

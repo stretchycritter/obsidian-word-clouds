@@ -101,7 +101,7 @@ export function registerEmbeddedWordCloudProcessor(
         stateEl.setText('Could not resolve the file for this embedded cloud.');
         return;
       }
-      if (options.scope === 'folder' && sourceScope.folderPaths.length === 0) {
+      if (options.scope === 'folder' && (sourceScope.folderPaths?.length ?? 0) === 0) {
         stateEl.setText('Add at least one folder path for folder scope.');
         return;
       }

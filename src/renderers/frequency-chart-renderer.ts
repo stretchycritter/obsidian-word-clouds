@@ -8,11 +8,6 @@ type FrequencyChartRenderOptions = {
   ariaLabel: string;
 };
 
-type SortedWord = {
-  text: string;
-  count: number;
-};
-
 export function drawFrequencyChart(options: FrequencyChartRenderOptions): void {
   const { containerEl, words, ariaLabel } = options;
 
