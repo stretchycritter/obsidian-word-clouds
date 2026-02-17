@@ -1,5 +1,6 @@
 import type { Plugin } from 'obsidian';
 import type { Deps } from '../deps';
+import { t } from '../i18n';
 import { EmbedWordCloudModal } from '../modals/edit-word-cloud-modal';
 import { insertEmbedAtCursor } from '../services/editor-insertion';
 import { activateNoteWordCloudView, activateVaultWordCloudView } from '../views/activate';
@@ -7,7 +8,7 @@ import { activateNoteWordCloudView, activateVaultWordCloudView } from '../views/
 export function registerCommands(plugin: Plugin, deps: Deps): void {
   plugin.addCommand({
     id: 'open-vault-word-cloud-view',
-    name: 'Open vault word cloud',
+    name: t('commands.openVaultWordCloud'),
     callback: () => {
       void activateVaultWordCloudView(plugin.app);
     },
@@ -15,7 +16,7 @@ export function registerCommands(plugin: Plugin, deps: Deps): void {
 
   plugin.addCommand({
     id: 'open-note-word-cloud-sidebar',
-    name: 'Open current note word cloud',
+    name: t('commands.openCurrentNoteWordCloud'),
     callback: () => {
       void activateNoteWordCloudView(plugin.app);
     },
@@ -23,7 +24,7 @@ export function registerCommands(plugin: Plugin, deps: Deps): void {
 
   plugin.addCommand({
     id: 'embed-word-cloud-in-document',
-    name: 'Embed word cloud in document',
+    name: t('commands.embedWordCloudInDocument'),
     callback: () => {
       new EmbedWordCloudModal(
         plugin.app,

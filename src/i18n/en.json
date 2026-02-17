@@ -1,0 +1,7 @@
+{
+  "test": "this is a test translation",
+  "commands.openVaultWordCloud": "Open vault word cloud",
+  "commands.openCurrentNoteWordCloud": "Open current note word cloud",
+  "commands.embedWordCloudInDocument": "Embed word cloud in document",
+  "ui.ribbon.openWordClouds": "Open word clouds"
+}

@@ -7,6 +7,7 @@
     "build": "node esbuild.config.mjs production",
     "dev": "node esbuild.config.mjs",
     "test": "jest --runInBand",
+    "typecheck": "tsc --noEmit --project tsconfig.jest.json",
     "deploy:demo": "node scripts/deploy-demo.mjs",
     "build:demo": "npm run build && npm run deploy:demo",
     "watch:demo": "node scripts/watch-demo.mjs",
