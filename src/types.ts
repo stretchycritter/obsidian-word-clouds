@@ -12,9 +12,8 @@ export type WeightedWord = {
 export type RotationPreset = 'horizontal' | 'mostly-horizontal' | 'mixed' | 'vertical';
 export type SpiralType = 'archimedean' | 'rectangular';
 export type ScalingMode = 'linear' | 'power' | 'log' | 'rank';
-export type CountLabelFormat = 'paren' | 'dot' | 'colon';
 export type WordTextMetric = 'count' | 'frequency';
-export type ProgressDetail = 'minimal' | 'balanced' | 'detailed' | 'unhinged';
+export type PerformanceMode = 'full-speed' | 'balanced' | 'throttled';
 
 export type RenderSettings = {
   rotationPreset: RotationPreset;
@@ -28,9 +27,8 @@ export type RenderSettings = {
   showCountInWordText: boolean;
   wordTextMetric: WordTextMetric;
   showWordTextMetricToggle: boolean;
-  countLabelFormat: CountLabelFormat;
   countLabelMinCount: number;
-  progressDetail: ProgressDetail;
+  performanceMode: PerformanceMode;
   scanBatchSize: number;
   layoutTimeIntervalMs: number;
   deterministicLayout: boolean;
@@ -96,5 +94,5 @@ export interface WordCloudServices {
   ): Promise<WeightedWord[]>;
   drawWordCloud(options: WordCloudRenderOptions): Promise<void>;
   openSearchForWord(word: string, options?: SearchOptions): Promise<void>;
-  addBlacklistWord(rawWord: string): Promise<boolean>;
+  addExclusionListWord(rawWord: string): Promise<boolean>;
 }

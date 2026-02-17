@@ -55,14 +55,6 @@ function getWordLabel(word: WeightedWord, renderSettings: RenderSettings, totalC
 
   const formattedValue = formatWordMetricValue(word, totalCount, metric);
 
-  if (renderSettings.countLabelFormat === 'dot') {
-    return `${word.text} · ${formattedValue}`;
-  }
-
-  if (renderSettings.countLabelFormat === 'colon') {
-    return `${word.text}: ${formattedValue}`;
-  }
-
   return `${word.text} (${formattedValue})`;
 }
 
@@ -127,11 +119,9 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
 
   const color = scaleOrdinal<string, string>(schemeTableau10);
   const { default: cloud } = await import('d3-cloud');
-  const performance = getLayoutPerformanceProfile(renderSettings.progressDetail);
+  const performance = getLayoutPerformanceProfile(renderSettings.performanceMode);
   const reportProgress = createThrottledProgress(onProgress, performance.progressThrottleMs);
-  const layoutTimeInterval = renderSettings.progressDetail === 'unhinged'
-    ? Infinity
-    : Math.max(8, Math.round(renderSettings.layoutTimeIntervalMs));
+  const layoutTimeInterval = performance.layoutTimeIntervalMs ?? Math.max(8, Math.round(renderSettings.layoutTimeIntervalMs));
 
   await new Promise<void>((resolve) => {
     let laidOutWords = 0;
@@ -832,34 +822,31 @@ function sanitizeFileName(value: string): string {
   return value.trim().replace(/[^a-z0-9-_]+/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'word-cloud';
 }
 
-function getLayoutPerformanceProfile(detail: RenderSettings['progressDetail']): {
+function getLayoutPerformanceProfile(mode: RenderSettings['performanceMode']): {
   progressThrottleMs: number;
   wordProgressStride: number;
+  layoutTimeIntervalMs: number | null;
 } {
-  if (detail === 'unhinged') {
+  if (mode === 'full-speed') {
     return {
       progressThrottleMs: 1_000_000,
       wordProgressStride: Number.MAX_SAFE_INTEGER,
+      layoutTimeIntervalMs: Infinity,
     };
   }
 
-  if (detail === 'detailed') {
+  if (mode === 'throttled') {
     return {
-      progressThrottleMs: 30,
-      wordProgressStride: 1,
-    };
-  }
-
-  if (detail === 'minimal') {
-    return {
-      progressThrottleMs: 220,
-      wordProgressStride: 12,
+      progressThrottleMs: 350,
+      wordProgressStride: 16,
+      layoutTimeIntervalMs: 8,
     };
   }
 
   return {
     progressThrottleMs: 80,
     wordProgressStride: 4,
+    layoutTimeIntervalMs: null,
   };
 }
 

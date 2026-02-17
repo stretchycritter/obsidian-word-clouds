@@ -6,7 +6,6 @@ import type {
 } from '../types';
 import type { FrontmatterRule, SourceScope } from '../wordcloud/pipeline/types';
 import { normalizeTag } from '../utils/utils';
-import { migrateSettingsData } from './migrations';
 import { DEFAULT_SETTINGS, type WordCloudSettings } from './types';
 
 export type SettingsChangeListener = (settings: Readonly<WordCloudSettings>) => void;
@@ -19,11 +18,11 @@ export class SettingsService {
 
   async load(): Promise<void> {
     const loaded = await this.plugin.loadData();
-    const migrated = migrateSettingsData(loaded);
+    const raw = (loaded && typeof loaded === 'object') ? loaded as { exclusionListWords?: unknown; render?: unknown; filters?: unknown } : {};
     this.settings = {
-      blacklistWords: this.normalizeBlacklistWords((migrated as { blacklistWords?: unknown } | null)?.blacklistWords),
-      render: this.normalizeRenderSettings((migrated as { render?: unknown } | null)?.render),
-      filters: this.normalizeFilterSettings((migrated as { filters?: unknown } | null)?.filters),
+      exclusionListWords: this.normalizeExclusionListWords(raw.exclusionListWords),
+      render: this.normalizeRenderSettings(raw.render),
+      filters: this.normalizeFilterSettings(raw.filters),
     };
   }
 
@@ -42,8 +41,8 @@ export class SettingsService {
     this.listeners.clear();
   }
 
-  getBlacklistSet(): Set<string> {
-    return new Set(this.settings.blacklistWords.map((word) => this.normalizeBlacklistWord(word)).filter(Boolean));
+  getExclusionListSet(): Set<string> {
+    return new Set(this.settings.exclusionListWords.map((word) => this.normalizeExclusionListWord(word)).filter(Boolean));
   }
 
   async updateFilters(patch: Partial<WordCloudFilterSettings>): Promise<void> {
@@ -91,33 +90,33 @@ export class SettingsService {
     await this.persist();
   }
 
-  async addBlacklistWord(rawWord: string): Promise<boolean> {
-    const normalizedWord = this.normalizeBlacklistWord(rawWord);
-    if (!normalizedWord || this.settings.blacklistWords.includes(normalizedWord)) {
+  async addExclusionListWord(rawWord: string): Promise<boolean> {
+    const normalizedWord = this.normalizeExclusionListWord(rawWord);
+    if (!normalizedWord || this.settings.exclusionListWords.includes(normalizedWord)) {
       return false;
     }
 
     this.settings = {
       ...this.settings,
-      blacklistWords: [...this.settings.blacklistWords, normalizedWord],
+      exclusionListWords: this.sortExclusionListWords([...this.settings.exclusionListWords, normalizedWord]),
     };
     await this.persist();
     return true;
   }
 
-  async removeBlacklistWord(rawWord: string): Promise<void> {
-    const normalizedWord = this.normalizeBlacklistWord(rawWord);
+  async removeExclusionListWord(rawWord: string): Promise<void> {
+    const normalizedWord = this.normalizeExclusionListWord(rawWord);
     this.settings = {
       ...this.settings,
-      blacklistWords: this.settings.blacklistWords.filter((word) => word !== normalizedWord),
+      exclusionListWords: this.settings.exclusionListWords.filter((word) => word !== normalizedWord),
     };
     await this.persist();
   }
 
-  async resetBlacklistWords(): Promise<void> {
+  async resetExclusionListWords(): Promise<void> {
     this.settings = {
       ...this.settings,
-      blacklistWords: [...DEFAULT_SETTINGS.blacklistWords],
+      exclusionListWords: this.sortExclusionListWords([...DEFAULT_SETTINGS.exclusionListWords]),
     };
     await this.persist();
   }
@@ -134,9 +133,9 @@ export class SettingsService {
     }
   }
 
-  private normalizeBlacklistWords(rawValue: unknown): string[] {
+  private normalizeExclusionListWords(rawValue: unknown): string[] {
     if (!Array.isArray(rawValue)) {
-      return [...DEFAULT_SETTINGS.blacklistWords];
+      return [...DEFAULT_SETTINGS.exclusionListWords];
     }
 
     const seen = new Set<string>();
@@ -144,17 +143,23 @@ export class SettingsService {
       if (typeof entry !== 'string') {
         continue;
       }
-      const normalized = this.normalizeBlacklistWord(entry);
+      const normalized = this.normalizeExclusionListWord(entry);
       if (normalized) {
         seen.add(normalized);
       }
     }
 
-    return seen.size > 0 ? [...seen] : [...DEFAULT_SETTINGS.blacklistWords];
+    return seen.size > 0
+      ? this.sortExclusionListWords([...seen])
+      : this.sortExclusionListWords([...DEFAULT_SETTINGS.exclusionListWords]);
   }
 
-  private normalizeBlacklistWord(word: string): string {
+  private normalizeExclusionListWord(word: string): string {
     return word.trim().toLowerCase();
+  }
+
+  private sortExclusionListWords(words: string[]): string[] {
+    return [...words].sort((a, b) => a.localeCompare(b));
   }
 
   private normalizeFilterSettings(rawValue: unknown): WordCloudFilterSettings {
@@ -219,8 +224,8 @@ export class SettingsService {
     const wordPadding = this.clampNumber(raw.wordPadding, 0, 12, DEFAULT_SETTINGS.render.wordPadding);
     const minFontSize = this.clampNumber(raw.minFontSize, 8, 64, DEFAULT_SETTINGS.render.minFontSize);
     const maxFontSize = this.clampNumber(raw.maxFontSize, 16, 140, DEFAULT_SETTINGS.render.maxFontSize);
-    const safeMinFontSize = Math.min(minFontSize, maxFontSize - 1);
-    const safeMaxFontSize = Math.max(maxFontSize, safeMinFontSize + 1);
+    const safeMinFontSize = Math.min(minFontSize, maxFontSize);
+    const safeMaxFontSize = Math.max(maxFontSize, safeMinFontSize);
 
     const fontFamily = typeof raw.fontFamily === 'string' && raw.fontFamily.trim().length > 0
       ? raw.fontFamily.trim()
@@ -247,20 +252,13 @@ export class SettingsService {
       ? raw.showWordTextMetricToggle
       : DEFAULT_SETTINGS.render.showWordTextMetricToggle;
 
-    const countLabelFormat = raw.countLabelFormat === 'paren'
-      || raw.countLabelFormat === 'dot'
-      || raw.countLabelFormat === 'colon'
-      ? raw.countLabelFormat
-      : DEFAULT_SETTINGS.render.countLabelFormat;
-
     const countLabelMinCount = this.clampNumber(raw.countLabelMinCount, 1, 100, DEFAULT_SETTINGS.render.countLabelMinCount);
 
-    const progressDetail = raw.progressDetail === 'minimal'
-      || raw.progressDetail === 'balanced'
-      || raw.progressDetail === 'detailed'
-      || raw.progressDetail === 'unhinged'
-      ? raw.progressDetail
-      : DEFAULT_SETTINGS.render.progressDetail;
+    const performanceMode = raw.performanceMode === 'full-speed'
+      || raw.performanceMode === 'balanced'
+      || raw.performanceMode === 'throttled'
+      ? raw.performanceMode
+      : DEFAULT_SETTINGS.render.performanceMode;
 
     const scanBatchSize = this.clampNumber(raw.scanBatchSize, 8, 64, DEFAULT_SETTINGS.render.scanBatchSize);
     const layoutTimeIntervalMs = this.clampNumber(raw.layoutTimeIntervalMs, 8, 40, DEFAULT_SETTINGS.render.layoutTimeIntervalMs);
@@ -283,9 +281,8 @@ export class SettingsService {
       showCountInWordText,
       wordTextMetric,
       showWordTextMetricToggle,
-      countLabelFormat,
       countLabelMinCount,
-      progressDetail,
+      performanceMode,
       scanBatchSize,
       layoutTimeIntervalMs,
       deterministicLayout,
@@ -308,6 +305,7 @@ export class SettingsService {
 
     return Math.min(max, Math.max(min, value));
   }
+
 }
 
 function normalizeTagList(rawTags: unknown): string[] {
@@ -362,7 +360,7 @@ function normalizeFrontmatterRules(rawRules: unknown): FrontmatterRule[] {
 
 function cloneSettings(settings: WordCloudSettings): WordCloudSettings {
   return {
-    blacklistWords: [...settings.blacklistWords],
+    exclusionListWords: [...settings.exclusionListWords],
     render: { ...settings.render },
     filters: {
       scope: {

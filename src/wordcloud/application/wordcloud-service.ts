@@ -30,11 +30,10 @@ export class WordCloudService {
   ): Promise<WeightedWord[]> {
     const filesForScan = filterSourceFilesByMetadata(this.app, files, options?.sourceRules);
 
-    const performance = getPerformanceProfile(renderSettings.progressDetail);
+    const performance = getPerformanceProfile(renderSettings.performanceMode);
     const reportProgress = createThrottledProgress(onProgress, performance.progressThrottleMs);
-    const readBatchSize = performance.fullParallelRead
-      ? Math.max(1, filesForScan.length)
-      : Math.max(8, Math.round(renderSettings.scanBatchSize));
+    const resolvedBatchSize = performance.readBatchSize ?? Math.max(8, Math.round(renderSettings.scanBatchSize));
+    const readBatchSize = Math.max(1, Math.min(filesForScan.length || 1, resolvedBatchSize));
 
     const documents = await readPipelineDocuments(
       this.app,
@@ -95,33 +94,26 @@ function createThrottledProgress(
   };
 }
 
-function getPerformanceProfile(detail: RenderSettings['progressDetail']): {
+function getPerformanceProfile(mode: RenderSettings['performanceMode']): {
   progressThrottleMs: number;
-  fullParallelRead: boolean;
+  readBatchSize: number | null;
 } {
-  if (detail === 'unhinged') {
+  if (mode === 'full-speed') {
     return {
       progressThrottleMs: 1_000_000,
-      fullParallelRead: true,
+      readBatchSize: Number.MAX_SAFE_INTEGER,
     };
   }
 
-  if (detail === 'detailed') {
+  if (mode === 'throttled') {
     return {
-      progressThrottleMs: 25,
-      fullParallelRead: false,
-    };
-  }
-
-  if (detail === 'minimal') {
-    return {
-      progressThrottleMs: 220,
-      fullParallelRead: false,
+      progressThrottleMs: 300,
+      readBatchSize: 8,
     };
   }
 
   return {
     progressThrottleMs: 80,
-    fullParallelRead: false,
+    readBatchSize: null,
   };
 }

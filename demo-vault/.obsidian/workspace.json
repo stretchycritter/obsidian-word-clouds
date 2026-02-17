@@ -4,17 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "9f2dc42f806c20dc",
+        "id": "c4da722e959b5ec0",
         "type": "tabs",
         "children": [
           {
-            "id": "7d8e2fd4d15b918a",
+            "id": "17af91789c483039",
             "type": "leaf",
             "state": {
-              "type": "vault-word-cloud-view",
+              "type": "empty",
               "state": {},
-              "icon": "cloud",
-              "title": "Vault Word Cloud"
+              "icon": "lucide-file",
+              "title": "New tab"
             }
           }
         ]
@@ -81,12 +81,11 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "00 - Word Clouds Plugin Home.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from 00 - Word Clouds Plugin Home"
+              "title": "Outgoing links"
             }
           },
           {

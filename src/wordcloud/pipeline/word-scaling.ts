@@ -9,7 +9,7 @@ export function mapCountsToWeightedWords(
   }
 
   const minFontSize = Math.max(8, Math.round(renderSettings.minFontSize));
-  const maxFontSize = Math.max(minFontSize + 1, Math.round(renderSettings.maxFontSize));
+  const maxFontSize = Math.max(minFontSize, Math.round(renderSettings.maxFontSize));
   const emphasis = Math.max(0.5, Math.min(3, renderSettings.emphasis));
 
   const normalizedEntries = entries

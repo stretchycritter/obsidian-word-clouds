@@ -413,7 +413,33 @@
 }
 
 .vault-word-cloud-settings-list {
-  margin-top: var(--size-4-2);
+  margin-top: var(--size-4-1);
+}
+
+.vault-word-cloud-settings-excluded-details {
+  margin-top: var(--size-4-1);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-secondary);
+}
+
+.vault-word-cloud-settings-excluded-summary {
+  padding: var(--size-4-2) var(--size-4-3);
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-medium);
+  user-select: none;
+}
+
+.vault-word-cloud-settings-excluded-summary:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 1px;
+}
+
+.vault-word-cloud-settings-excluded-details[open] .vault-word-cloud-settings-list {
+  margin-top: 0;
+  padding: var(--size-4-1) var(--size-4-3) var(--size-4-3) var(--size-4-3);
 }
 
 .vault-word-cloud-settings-items {
@@ -436,7 +462,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: var(--size-4-1);
+  padding: var(--size-4-2);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
   background: var(--background-secondary);
@@ -462,27 +488,26 @@
 }
 
 .vault-word-cloud-settings-badge-remove {
-  width: 18px;
-  height: 18px;
-  min-height: 18px;
-  min-width: 18px;
-  flex: 0 0 18px;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  min-width: 20px;
+  flex: 0 0 20px;
   border-radius: 999px;
   background: transparent;
   color: var(--text-muted);
-  cursor: pointer;
   padding: 0;
-  line-height: 1;
+  margin: 0;
 }
 
 .vault-word-cloud-settings-badge-remove:hover {
-  background: var(--background-modifier-hover);
   color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.vault-word-cloud-settings-badge-remove svg {
+  width: 10px;
+  height: 10px;
 }
 
 .vault-word-cloud-settings-badge-remove:focus-visible {
@@ -656,50 +681,6 @@
   min-height: 26px;
   white-space: nowrap;
   text-align: left;
-}
-
-.word-cloud-setting-info {
-  margin-left: 6px;
-  width: 18px;
-  height: 18px;
-  min-height: 18px;
-  min-width: 18px;
-  flex: 0 0 18px;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  border: 1px solid var(--background-modifier-border);
-  background: var(--background-secondary);
-  font-size: var(--font-ui-smaller);
-  line-height: 1;
-  padding: 0;
-  cursor: pointer;
-}
-
-.word-cloud-setting-info:hover {
-  background: var(--background-modifier-hover);
-}
-
-.word-cloud-setting-info:focus-visible {
-  outline: 2px solid var(--interactive-accent);
-  outline-offset: 1px;
-}
-
-.word-cloud-setting-info-popover {
-  margin-top: 6px;
-  margin-left: 24px;
-  padding: 8px 10px;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: var(--radius-s);
-  background: var(--background-secondary);
-  font-size: var(--font-ui-smaller);
-  color: var(--text-muted);
-}
-
-.word-cloud-setting-info-popover[hidden] {
-  display: none;
 }
 
 .word-cloud-embed-wizard {

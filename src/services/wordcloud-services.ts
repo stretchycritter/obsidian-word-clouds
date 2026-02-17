@@ -19,8 +19,8 @@ export interface WordCloudSettingsControls {
   getSettingsSnapshot(): Readonly<WordCloudSettings>;
   updateRenderSettings(patch: Partial<RenderSettings>): Promise<void>;
   resetRenderSettings(): Promise<void>;
-  removeBlacklistWord(rawWord: string): Promise<void>;
-  resetBlacklistWords(): Promise<void>;
+  removeExclusionListWord(rawWord: string): Promise<void>;
+  resetExclusionListWords(): Promise<void>;
 }
 
 export class WordCloudAppService implements WordCloudServices, WordCloudSettingsControls {
@@ -75,7 +75,7 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
 
     return this.processor.collectFromFiles(
       this.obsidian.getMarkdownFiles(),
-      this.settingsService.getBlacklistSet(),
+      this.settingsService.getExclusionListSet(),
       settings.render,
       onProgress,
       {
@@ -93,7 +93,7 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
   ): Promise<WeightedWord[]> {
     const settings = this.settingsService.getSnapshot();
 
-    return this.processor.collectFromFiles([file], this.settingsService.getBlacklistSet(), settings.render, onProgress, {
+    return this.processor.collectFromFiles([file], this.settingsService.getExclusionListSet(), settings.render, onProgress, {
       excludeWords: options?.excludeWords,
     });
   }
@@ -107,16 +107,16 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
     return openSearchForWord(this.app, word, options);
   }
 
-  async addBlacklistWord(rawWord: string): Promise<boolean> {
-    return this.settingsService.addBlacklistWord(rawWord);
+  async addExclusionListWord(rawWord: string): Promise<boolean> {
+    return this.settingsService.addExclusionListWord(rawWord);
   }
 
-  async removeBlacklistWord(rawWord: string): Promise<void> {
-    await this.settingsService.removeBlacklistWord(rawWord);
+  async removeExclusionListWord(rawWord: string): Promise<void> {
+    await this.settingsService.removeExclusionListWord(rawWord);
   }
 
-  async resetBlacklistWords(): Promise<void> {
-    await this.settingsService.resetBlacklistWords();
+  async resetExclusionListWords(): Promise<void> {
+    await this.settingsService.resetExclusionListWords();
   }
 
   async updateRenderSettings(patch: Partial<RenderSettings>): Promise<void> {

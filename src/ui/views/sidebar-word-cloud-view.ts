@@ -412,7 +412,7 @@ export class NoteWordCloudView extends ItemView {
         onProgress: updateProgress,
         onRefresh: () => this.renderCloud(containerEl),
         onExcludeInVault: async (word) => {
-          const added = await this.services.addBlacklistWord(word);
+          const added = await this.services.addExclusionListWord(word);
           new Notice(added ? `Excluded "${word}" from word clouds.` : `"${word}" is already excluded.`);
           await this.renderCloud(containerEl);
         },

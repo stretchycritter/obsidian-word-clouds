@@ -2,13 +2,13 @@ import { DEFAULT_STOP_WORDS } from '../constants';
 import type { RenderSettings, WordCloudFilterSettings } from '../types';
 
 export interface WordCloudSettings {
-  blacklistWords: string[];
+  exclusionListWords: string[];
   render: RenderSettings;
   filters: WordCloudFilterSettings;
 }
 
 export const DEFAULT_SETTINGS: WordCloudSettings = {
-  blacklistWords: [...DEFAULT_STOP_WORDS],
+  exclusionListWords: [...DEFAULT_STOP_WORDS],
   render: {
     rotationPreset: 'mostly-horizontal',
     spiral: 'archimedean',
@@ -21,9 +21,8 @@ export const DEFAULT_SETTINGS: WordCloudSettings = {
     showCountInWordText: false,
     wordTextMetric: 'count',
     showWordTextMetricToggle: false,
-    countLabelFormat: 'paren',
     countLabelMinCount: 1,
-    progressDetail: 'balanced',
+    performanceMode: 'balanced',
     scanBatchSize: 24,
     layoutTimeIntervalMs: 16,
     deterministicLayout: false,

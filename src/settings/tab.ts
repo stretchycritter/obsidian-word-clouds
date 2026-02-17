@@ -1,14 +1,11 @@
 import type { Plugin } from 'obsidian';
-import { PluginSettingTab, Setting } from 'obsidian';
-import { DEFAULT_SETTINGS } from './types';
+import { PluginSettingTab, Setting, setIcon } from 'obsidian';
 import type {
-  CountLabelFormat,
-  ProgressDetail,
+  PerformanceMode,
   RenderSettings,
   RotationPreset,
   ScalingMode,
   SpiralType,
-  WordTextMetric,
   WeightedWord,
 } from '../types';
 import type { WordCloudServices } from '../types';
@@ -16,9 +13,22 @@ import type { WordCloudSettingsControls } from '../services/wordcloud-services';
 import { mapCountsToWeightedWords } from '../wordcloud/pipeline/word-scaling';
 
 type SettingsTabServices = WordCloudServices & WordCloudSettingsControls;
+const SUPPORTED_FONT_FAMILIES: Array<{ value: string; label: string }> = [
+  { value: 'sans-serif', label: 'Sans serif (default)' },
+  { value: 'serif', label: 'Serif' },
+  { value: 'monospace', label: 'Monospace' },
+  { value: 'Arial, sans-serif', label: 'Arial' },
+  { value: 'Verdana, sans-serif', label: 'Verdana' },
+  { value: '"Trebuchet MS", sans-serif', label: 'Trebuchet MS' },
+  { value: '"Times New Roman", serif', label: 'Times New Roman' },
+  { value: 'Georgia, serif', label: 'Georgia' },
+  { value: '"Palatino Linotype", serif', label: 'Palatino Linotype' },
+  { value: '"Courier New", monospace', label: 'Courier New' },
+];
 
 export class VaultWordCloudSettingTab extends PluginSettingTab {
   private readonly services: SettingsTabServices;
+  private isExcludedWordsExpanded = false;
 
   constructor(plugin: Plugin, services: SettingsTabServices) {
     super(plugin.app, plugin);
@@ -31,35 +41,56 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
 
     containerEl.createEl('h2', { text: 'Word clouds settings' });
     const settings = this.services.getSettingsSnapshot();
+    containerEl.createEl('h3', { text: 'Filters' });
 
     let draftWord = '';
+    const submitDraftWord = async (): Promise<void> => {
+      const added = await this.services.addExclusionListWord(draftWord);
+      if (added) {
+        this.display();
+      }
+    };
 
-    const addExcludedWord = new Setting(containerEl)
+    new Setting(containerEl)
       .setName('Add excluded word')
-      .setDesc('Add one word at a time to the blacklist.')
+      .setDesc('Excluded words are applied vault wide.')
       .addText((text) => {
         text.setPlaceholder('Word to exclude');
         text.onChange((value) => {
           draftWord = value;
         });
+
+        text.inputEl.addEventListener('keydown', async (event) => {
+          if (event.key !== 'Enter') {
+            return;
+          }
+
+          event.preventDefault();
+          await submitDraftWord();
+        });
       })
       .addButton((button) => {
-        button
-          .setButtonText('Add')
-          .setCta()
-          .onClick(async () => {
-            const added = await this.services.addBlacklistWord(draftWord);
-            if (added) {
-              this.display();
-            }
-          });
+        button.setButtonText('Add').setCta().onClick(async () => {
+          await submitDraftWord();
+        });
       });
-    this.attachInfoIcon(addExcludedWord, 'Excluded words are always ignored from counting and sizing in all cloud types.');
 
-    const listWrapperEl = containerEl.createDiv({ cls: 'vault-word-cloud-settings-list' });
-    listWrapperEl.createEl('h3', { text: 'Excluded words' });
+    const sortedWords = [...settings.exclusionListWords].sort((a, b) => a.localeCompare(b));
+    const excludedWordsDetailsEl = containerEl.createEl('details', {
+      cls: 'vault-word-cloud-settings-excluded-details',
+    });
+    excludedWordsDetailsEl.open = this.isExcludedWordsExpanded;
+    excludedWordsDetailsEl.addEventListener('toggle', () => {
+      this.isExcludedWordsExpanded = excludedWordsDetailsEl.open;
+    });
+
+    const excludedWordsSummaryEl = excludedWordsDetailsEl.createEl('summary', {
+      cls: 'vault-word-cloud-settings-excluded-summary',
+    });
+    excludedWordsSummaryEl.setText(`View excluded words (${sortedWords.length})`);
+
+    const listWrapperEl = excludedWordsDetailsEl.createDiv({ cls: 'vault-word-cloud-settings-list' });
     const listEl = listWrapperEl.createDiv({ cls: 'vault-word-cloud-settings-badges' });
-    const sortedWords = [...settings.blacklistWords].sort((a, b) => a.localeCompare(b));
 
     if (sortedWords.length === 0) {
       listEl.createSpan({ cls: 'vault-word-cloud-settings-badges-empty', text: 'No excluded words configured.' });
@@ -69,37 +100,26 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
         badgeEl.createSpan({ cls: 'vault-word-cloud-settings-badge-text', text: word });
 
         const removeButton = badgeEl.createEl('button', {
-          cls: 'vault-word-cloud-settings-badge-remove',
-          text: 'x',
+          cls: 'vault-word-cloud-settings-badge-remove clickable-icon',
         });
-        removeButton.setAttr('aria-label', `Remove ${word}`);
+        setIcon(removeButton, 'x');
+        removeButton.type = 'button';
+        removeButton.setAttr('aria-label', `Remove ${word} from exclusion list`);
+        removeButton.setAttr('data-tooltip-position', 'top');
+        removeButton.setAttr('data-tooltip', `Remove ${word}`);
         removeButton.addEventListener('click', async () => {
-          await this.services.removeBlacklistWord(word);
+          await this.services.removeExclusionListWord(word);
           this.display();
         });
       }
     }
 
-    const resetExcludedWords = new Setting(containerEl)
-      .setName('Reset excluded words')
-      .setDesc('Restore the original default blacklist.')
-      .addButton((button) => {
-        button
-          .setButtonText('Reset to defaults')
-          .onClick(async () => {
-            await this.services.resetBlacklistWords();
-            this.display();
-          });
-      });
-    this.attachInfoIcon(resetExcludedWords, 'Resets only excluded words. Rendering and performance settings are unchanged.');
-
-    containerEl.createEl('h3', { text: 'Rendering' });
+    containerEl.createEl('h3', { text: 'Render defaults' });
+    containerEl.createEl('p').createEl('em', {
+      text: 'These settings control what the default rendered view for any Word Cloud is across all pages. These defaults can be overriden for each Word Cloud.',
+    });
 
     const previewWrapperEl = containerEl.createDiv({ cls: 'vault-word-cloud-settings-preview' });
-    previewWrapperEl.createEl('h4', { text: 'Preview' });
-    previewWrapperEl.createEl('p', {
-      text: 'Example cloud for render settings (does not use your vault data).',
-    });
     const previewCanvasEl = previewWrapperEl.createDiv({ cls: 'vault-word-cloud-settings-preview-canvas' });
 
     let previewNonce = 0;
@@ -139,7 +159,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       await rerenderPreview();
     };
 
-    const rotationStyle = new Setting(containerEl)
+    new Setting(containerEl)
       .setName('Rotation style')
       .setDesc('How words are angled in the cloud.')
       .addDropdown((dropdown) => {
@@ -155,9 +175,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
             });
           });
       });
-    this.attachInfoIcon(rotationStyle, 'Horizontal is easiest to read. Mixed/vertical can pack more words but may reduce readability.');
 
-    const spiralLayout = new Setting(containerEl)
+    new Setting(containerEl)
       .setName('Spiral layout')
       .setDesc('Placement strategy for positioning words.')
       .addDropdown((dropdown) => {
@@ -171,9 +190,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
             });
           });
       });
-    this.attachInfoIcon(spiralLayout, 'Archimedean is more organic. Rectangular can appear tighter in some datasets.');
 
-    const wordPadding = new Setting(containerEl)
+    new Setting(containerEl)
       .setName('Word padding')
       .setDesc('Space between words in pixels.')
       .addSlider((slider) => {
@@ -185,52 +203,68 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
             await updateRenderAndPreview({ wordPadding: value });
           });
       });
-    this.attachInfoIcon(wordPadding, 'Increase to reduce collisions and improve readability. Lower values pack more words.');
 
-    const minFontSize = new Setting(containerEl)
-      .setName('Minimum font size')
-      .setDesc('Smallest rendered word size.')
+    new Setting(containerEl)
+      .setName('Font size range')
+      .setDesc('Set minimum and maximum font size. Minimum cannot exceed maximum.')
       .addSlider((slider) => {
         slider
           .setLimits(8, 64, 1)
           .setValue(settings.render.minFontSize)
           .setDynamicTooltip()
           .onChange(async (value) => {
-            await updateRenderAndPreview({ minFontSize: value });
+            const current = this.services.getSettingsSnapshot().render;
+            const nextMin = Math.min(value, current.maxFontSize);
+            const nextMax = Math.max(current.maxFontSize, nextMin);
+            await updateRenderAndPreview({
+              minFontSize: nextMin,
+              maxFontSize: nextMax,
+            });
+            if (nextMin !== value) {
+              this.display();
+            }
           });
-      });
-    this.attachInfoIcon(minFontSize, 'Sets the floor of visual size mapping. Higher minimum makes low-frequency words more legible.');
-
-    const maxFontSize = new Setting(containerEl)
-      .setName('Maximum font size')
-      .setDesc('Largest rendered word size.')
+      })
       .addSlider((slider) => {
         slider
           .setLimits(16, 140, 1)
           .setValue(settings.render.maxFontSize)
           .setDynamicTooltip()
           .onChange(async (value) => {
-            await updateRenderAndPreview({ maxFontSize: value });
+            const current = this.services.getSettingsSnapshot().render;
+            const nextMax = Math.max(value, current.minFontSize);
+            const nextMin = Math.min(current.minFontSize, nextMax);
+            await updateRenderAndPreview({
+              minFontSize: nextMin,
+              maxFontSize: nextMax,
+            });
+            if (nextMax !== value) {
+              this.display();
+            }
           });
       });
-    this.attachInfoIcon(maxFontSize, 'Sets the ceiling of visual size mapping. Higher values emphasize top words more strongly.');
 
-    const fontFamily = new Setting(containerEl)
+    new Setting(containerEl)
       .setName('Font family')
-      .setDesc('CSS font family used for words.')
-      .addText((text) => {
-        text
-          .setPlaceholder('sans-serif')
-          .setValue(settings.render.fontFamily)
+      .setDesc('Choose a supported font family for words.')
+      .addDropdown((dropdown) => {
+        for (const font of SUPPORTED_FONT_FAMILIES) {
+          dropdown.addOption(font.value, font.label);
+        }
+        const fontValues = new Set(SUPPORTED_FONT_FAMILIES.map((font) => font.value));
+        const selectedFont = fontValues.has(settings.render.fontFamily)
+          ? settings.render.fontFamily
+          : 'sans-serif';
+        dropdown
+          .setValue(selectedFont)
           .onChange(async (value) => {
-            await updateRenderAndPreview({ fontFamily: value.trim() || 'sans-serif' });
+            await updateRenderAndPreview({ fontFamily: value });
           });
       });
-    this.attachInfoIcon(fontFamily, 'Wider fonts take more space and can increase overlap pressure.');
 
-    const showCountInWordText = new Setting(containerEl)
-      .setName('Show value in word text')
-      .setDesc('Append count or frequency directly to rendered words.')
+    new Setting(containerEl)
+      .setName('Show count for words')
+      .setDesc('Append count directly to rendered words.')
       .addToggle((toggle) => {
         toggle
           .setValue(settings.render.showCountInWordText)
@@ -239,24 +273,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
             this.display();
           });
       });
-    this.attachInfoIcon(showCountInWordText, 'Shows the selected metric inline (for example, word (12) or word (4.3%)). Improves precision, increases text length.');
 
-    const wordTextMetric = new Setting(containerEl)
-      .setName('Word value mode')
-      .setDesc('Choose whether inline values show count or frequency.')
-      .addDropdown((dropdown) => {
-        dropdown
-          .addOption('count', 'Count')
-          .addOption('frequency', 'Frequency (%)')
-          .setValue(settings.render.wordTextMetric)
-          .setDisabled(!settings.render.showCountInWordText)
-          .onChange(async (value) => {
-            await updateRenderAndPreview({ wordTextMetric: value as WordTextMetric });
-          });
-      });
-    this.attachInfoIcon(wordTextMetric, 'Count shows raw occurrences. Frequency shows each word as a percent of visible word occurrences.');
-
-    const showWordTextMetricToggle = new Setting(containerEl)
+    new Setting(containerEl)
       .setName('Show count/frequency toggle button')
       .setDesc('Add a rendered-view button to switch inline labels between count and frequency.')
       .addToggle((toggle) => {
@@ -267,25 +285,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
             await updateRenderAndPreview({ showWordTextMetricToggle: value });
           });
       });
-    this.attachInfoIcon(showWordTextMetricToggle, 'When enabled, each cloud shows a quick toggle in the corner controls.');
 
-    const countLabelFormat = new Setting(containerEl)
-      .setName('Count label format')
-      .setDesc('How inline values are shown when word text values are enabled.')
-      .addDropdown((dropdown) => {
-        dropdown
-          .addOption('paren', 'word (12)')
-          .addOption('dot', 'word · 12')
-          .addOption('colon', 'word: 12')
-          .setValue(settings.render.countLabelFormat)
-          .setDisabled(!settings.render.showCountInWordText)
-          .onChange(async (value) => {
-            await updateRenderAndPreview({ countLabelFormat: value as CountLabelFormat });
-          });
-      });
-    this.attachInfoIcon(countLabelFormat, 'Formatting style for inline counts.');
-
-    const countLabelMinimum = new Setting(containerEl)
+    new Setting(containerEl)
       .setName('Count label minimum')
       .setDesc('Show inline count only for words at or above this count.')
       .addSlider((slider) => {
@@ -298,9 +299,38 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
             await updateRenderAndPreview({ countLabelMinCount: value });
           });
       });
-    this.attachInfoIcon(countLabelMinimum, 'Avoids visual noise by hiding counts for very small values.');
 
-    const sizeScalingMode = new Setting(containerEl)
+    const deterministicSetting = new Setting(containerEl)
+      .setName('Deterministic layout')
+      .setDesc('Keep cloud layout stable across refreshes using a seed.')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(settings.render.deterministicLayout)
+          .onChange(async (value) => {
+            await updateRenderAndPreview({ deterministicLayout: value });
+            this.display();
+          });
+      });
+
+    if (settings.render.deterministicLayout) {
+      deterministicSetting.addText((text) => {
+        text.setPlaceholder('Seed');
+        text
+          .setValue(String(settings.render.randomSeed))
+          .onChange(async (value) => {
+            const parsed = Number.parseInt(value, 10);
+            if (!Number.isNaN(parsed)) {
+              await updateRenderAndPreview({ randomSeed: parsed });
+            }
+          });
+      });
+    }
+
+    const advancedRenderDetailsEl = containerEl.createEl('details');
+    const advancedRenderSummaryEl = advancedRenderDetailsEl.createEl('summary');
+    advancedRenderSummaryEl.setText('Advanced render settings');
+
+    new Setting(advancedRenderDetailsEl)
       .setName('Size scaling mode')
       .setDesc('How numeric count differences map to font-size differences.')
       .addDropdown((dropdown) => {
@@ -315,10 +345,9 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
             this.display();
           });
       });
-    this.attachInfoIcon(sizeScalingMode, 'Linear is proportional. Power exaggerates gaps. Log compresses extremes. Rank ignores absolute gaps.');
 
-    const emphasis = new Setting(containerEl)
-      .setName('Emphasis')
+    new Setting(advancedRenderDetailsEl)
+      .setName('Size scaling emphasis')
       .setDesc('Higher values exaggerate size differences (power scaling mode).')
       .addSlider((slider) => {
         slider
@@ -330,149 +359,63 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
             await updateRenderAndPreview({ emphasis: value });
           });
       });
-    this.attachInfoIcon(emphasis, 'Only used in Power scaling mode. 1.0 is baseline; higher exaggerates differences more.');
 
-    const deterministicLayout = new Setting(containerEl)
-      .setName('Deterministic layout')
-      .setDesc('Keep cloud layout stable across refreshes using a seed.')
-      .addToggle((toggle) => {
-        toggle
-          .setValue(settings.render.deterministicLayout)
+    containerEl.createEl('h3', { text: 'Performance' });
+
+    new Setting(containerEl)
+      .setName('Processing speed')
+      .setDesc('Controls how aggressively scanning your vault and generating word clouds in on render.')
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption('full-speed', 'Full speed')
+          .addOption('balanced', 'Balanced (default)')
+          .addOption('throttled', 'Throttled')
+          .setValue(settings.render.performanceMode)
           .onChange(async (value) => {
-            await updateRenderAndPreview({ deterministicLayout: value });
-            this.display();
+            await this.services.updateRenderSettings({ performanceMode: value as PerformanceMode });
           });
       });
-    this.attachInfoIcon(deterministicLayout, 'Useful for comparing before/after changes with stable positions.');
 
-    const randomSeed = new Setting(containerEl)
-      .setName('Random seed')
-      .setDesc('Seed used when deterministic layout is enabled.')
-      .addText((text) => {
-        text
-          .setValue(String(settings.render.randomSeed))
-          .setDisabled(!settings.render.deterministicLayout)
-          .onChange(async (value) => {
-            const parsed = Number.parseInt(value, 10);
-            if (!Number.isNaN(parsed)) {
-              await updateRenderAndPreview({ randomSeed: parsed });
-            }
-          });
-      });
-    this.attachInfoIcon(randomSeed, 'Changing seed gives a different stable arrangement.');
+    containerEl.createEl('h3', { text: 'Reset settings' });
+    containerEl.createEl('p', {
+      text: 'Destructive actions. These replace your current settings with defaults.',
+    });
 
-    const resetRendering = new Setting(containerEl)
-      .setName('Reset rendering settings')
-      .setDesc('Restore default renderer controls.')
+    new Setting(containerEl)
+      .setName('Reset render defaults')
+      .setDesc('Restore all render settings to defaults.')
       .addButton((button) => {
         button
-          .setButtonText('Reset rendering')
+          .setButtonText('Reset render settings')
+          .setWarning()
           .onClick(async () => {
+            const confirmed = window.confirm('Reset all render settings to defaults? This cannot be undone.');
+            if (!confirmed) {
+              return;
+            }
             await this.services.resetRenderSettings();
             this.display();
           });
       });
-    this.attachInfoIcon(resetRendering, 'Resets rendering options only.');
 
-    containerEl.createEl('h3', { text: 'Performance' });
-    containerEl.createEl('p', {
-      text: 'Tune speed vs UI smoothness and progress update detail for large clouds.',
-    });
-
-    const progressDetail = new Setting(containerEl)
-      .setName('Progress detail')
-      .setDesc('How frequently progress is updated while scanning and layout.')
-      .addDropdown((dropdown) => {
-        dropdown
-          .addOption('unhinged', 'Unhinged (max speed)')
-          .addOption('minimal', 'Minimal (fastest)')
-          .addOption('balanced', 'Balanced')
-          .addOption('detailed', 'Detailed')
-          .setValue(settings.render.progressDetail)
-          .onChange(async (value) => {
-            await this.services.updateRenderSettings({ progressDetail: value as ProgressDetail });
-          });
-      });
-    this.attachInfoIcon(progressDetail, 'Unhinged maximizes speed and may lock UI temporarily. Detailed is most informative but slower.');
-
-    const scanBatchSize = new Setting(containerEl)
-      .setName('Scan batch size')
-      .setDesc('How many files are read in parallel during vault scanning.')
-      .addSlider((slider) => {
-        slider
-          .setLimits(8, 64, 1)
-          .setValue(settings.render.scanBatchSize)
-          .setDynamicTooltip()
-          .onChange(async (value) => {
-            await this.services.updateRenderSettings({ scanBatchSize: value });
-          });
-      });
-    this.attachInfoIcon(scanBatchSize, 'Higher can be faster on strong devices but uses more memory/IO.');
-
-    const layoutTimeSlice = new Setting(containerEl)
-      .setName('Layout time slice (ms)')
-      .setDesc('Time per layout chunk. Lower is smoother; higher is faster.')
-      .addSlider((slider) => {
-        slider
-          .setLimits(8, 40, 1)
-          .setValue(settings.render.layoutTimeIntervalMs)
-          .setDynamicTooltip()
-          .onChange(async (value) => {
-            await this.services.updateRenderSettings({ layoutTimeIntervalMs: value });
-          });
-      });
-    this.attachInfoIcon(layoutTimeSlice, 'Controls responsiveness while laying out words.');
-
-    const resetPerformance = new Setting(containerEl)
-      .setName('Reset performance settings')
-      .setDesc('Restore default performance tuning values.')
+    new Setting(containerEl)
+      .setName('Reset excluded words')
+      .setDesc('Restore the default exclusion list.')
       .addButton((button) => {
         button
-          .setButtonText('Reset performance')
+          .setButtonText('Reset excluded words')
+          .setWarning()
           .onClick(async () => {
-            await this.services.updateRenderSettings({
-              progressDetail: DEFAULT_SETTINGS.render.progressDetail,
-              scanBatchSize: DEFAULT_SETTINGS.render.scanBatchSize,
-              layoutTimeIntervalMs: DEFAULT_SETTINGS.render.layoutTimeIntervalMs,
-            });
+            const confirmed = window.confirm('Reset excluded words to the default list? This cannot be undone.');
+            if (!confirmed) {
+              return;
+            }
+            await this.services.resetExclusionListWords();
             this.display();
           });
       });
-    this.attachInfoIcon(resetPerformance, 'Resets performance tuning only.');
 
     void rerenderPreview();
-  }
-
-  private attachInfoIcon(setting: Setting, infoText: string): void {
-    const icon = setting.nameEl.createEl('button', {
-      cls: 'word-cloud-setting-info',
-      text: 'i',
-    });
-    icon.type = 'button';
-    icon.setAttr('aria-label', 'Show setting details');
-    icon.setAttr('data-tooltip-position', 'top');
-    icon.setAttr('data-tooltip', infoText);
-
-    const popover = setting.settingEl.createDiv({ cls: 'word-cloud-setting-info-popover' });
-    popover.setText(infoText);
-    popover.setAttr('hidden', 'true');
-
-    icon.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-
-      if (popover.hasAttribute('hidden')) {
-        popover.removeAttribute('hidden');
-      } else {
-        popover.setAttr('hidden', 'true');
-      }
-    });
-
-    icon.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') {
-        popover.setAttr('hidden', 'true');
-      }
-    });
   }
 
   private buildPreviewWords(renderSettings: RenderSettings): WeightedWord[] {
