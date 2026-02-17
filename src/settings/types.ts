@@ -27,6 +27,9 @@ export const DEFAULT_SETTINGS: WordCloudSettings = {
     layoutTimeIntervalMs: 16,
     deterministicLayout: false,
     randomSeed: 42,
+    enableMouseInteractions: true,
+    enableControls: true,
+    enableExporting: true,
   },
   filters: {
     scope: {

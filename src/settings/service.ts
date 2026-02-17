@@ -268,6 +268,15 @@ export class SettingsService {
       : DEFAULT_SETTINGS.render.deterministicLayout;
 
     const randomSeed = this.clampNumber(raw.randomSeed, 1, 2147483647, DEFAULT_SETTINGS.render.randomSeed);
+    const enableMouseInteractions = typeof raw.enableMouseInteractions === 'boolean'
+      ? raw.enableMouseInteractions
+      : DEFAULT_SETTINGS.render.enableMouseInteractions;
+    const enableControls = typeof raw.enableControls === 'boolean'
+      ? raw.enableControls
+      : DEFAULT_SETTINGS.render.enableControls;
+    const enableExporting = typeof raw.enableExporting === 'boolean'
+      ? raw.enableExporting
+      : DEFAULT_SETTINGS.render.enableExporting;
 
     return {
       rotationPreset,
@@ -287,6 +296,9 @@ export class SettingsService {
       layoutTimeIntervalMs,
       deterministicLayout,
       randomSeed,
+      enableMouseInteractions,
+      enableControls,
+      enableExporting,
     };
   }
 

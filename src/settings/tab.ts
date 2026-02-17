@@ -326,6 +326,39 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       });
     }
 
+    new Setting(containerEl)
+      .setName('Enable mouse interactions')
+      .setDesc('Allow click, context menu, pan, and zoom interactions with the cloud.')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(settings.render.enableMouseInteractions)
+          .onChange(async (value) => {
+            await updateRenderAndPreview({ enableMouseInteractions: value });
+          });
+      });
+
+    new Setting(containerEl)
+      .setName('Enable controls')
+      .setDesc('Show on-canvas controls such as refresh and zoom buttons.')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(settings.render.enableControls)
+          .onChange(async (value) => {
+            await updateRenderAndPreview({ enableControls: value });
+          });
+      });
+
+    new Setting(containerEl)
+      .setName('Enable exporting')
+      .setDesc('Show export buttons for PNG and SVG downloads.')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(settings.render.enableExporting)
+          .onChange(async (value) => {
+            await updateRenderAndPreview({ enableExporting: value });
+          });
+      });
+
     const advancedRenderDetailsEl = containerEl.createEl('details');
     const advancedRenderSummaryEl = advancedRenderDetailsEl.createEl('summary');
     advancedRenderSummaryEl.setText('Advanced render settings');

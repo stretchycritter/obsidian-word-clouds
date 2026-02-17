@@ -85,9 +85,10 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
     onRefresh,
   } = options;
   const exportBaseName = sanitizeFileName(options.exportBaseName ?? 'word-cloud');
-  const enableExport = options.enableExport ?? true;
-  const enableOverlayControls = options.enableOverlayControls ?? true;
-  const enableViewportInteraction = options.enableViewportInteraction ?? true;
+  const enableMouseInteractions = options.enableViewportInteraction ?? renderSettings.enableMouseInteractions;
+  const enableExport = options.enableExport ?? renderSettings.enableExporting;
+  const enableOverlayControls = options.enableOverlayControls ?? renderSettings.enableControls;
+  const enableViewportInteraction = enableMouseInteractions;
   const showRefreshControl = options.showRefreshControl ?? true;
   const showZoomControls = options.showZoomControls ?? true;
   const showEditControl = options.showEditControl ?? false;
@@ -153,12 +154,15 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
           .style('font-size', (d) => `${d.size}px`)
           .style('font-family', renderSettings.fontFamily || 'sans-serif')
           .style('fill', (_, i) => color(String(i)))
-          .style('cursor', 'pointer')
+          .style('cursor', enableMouseInteractions ? 'pointer' : 'default')
           .attr('tabindex', 0)
           .attr('text-anchor', 'middle')
           .attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0}) rotate(${d.rotate ?? 0})`)
           .text((d) => d.layoutText)
           .on('click', (_, d) => {
+            if (!enableMouseInteractions) {
+              return;
+            }
             if (viewportControls.shouldSuppressWordClick()) {
               return;
             }
@@ -177,6 +181,9 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
             }
           })
           .on('contextmenu', (event: MouseEvent, d) => {
+            if (!enableMouseInteractions) {
+              return;
+            }
             if (!onExcludeInCloud && !onExcludeInVault) {
               return;
             }

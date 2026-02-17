@@ -33,6 +33,9 @@ export type RenderSettings = {
   layoutTimeIntervalMs: number;
   deterministicLayout: boolean;
   randomSeed: number;
+  enableMouseInteractions: boolean;
+  enableControls: boolean;
+  enableExporting: boolean;
 };
 
 export type WordCloudRenderOptions = {
