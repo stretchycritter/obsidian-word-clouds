@@ -16,7 +16,13 @@
 
 ```bash
 npm install
-npm run build
+npm run build:dev
+```
+
+## Release build (minified)
+
+```bash
+npm run build:release
 ```
 
 ## Watch (auto rebuild + deploy to demo vault)

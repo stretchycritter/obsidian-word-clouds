@@ -41,7 +41,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(message);
-    console.error('Run "npm run build" first, or use "npm run build:demo".');
+    console.error('Run "npm run build:dev" first, or use "npm run build:demo".');
     process.exit(1);
   }
 }

@@ -4,12 +4,15 @@
   "description": "Obsidian plugin that generates a word cloud from an entire vault.",
   "main": "main.js",
   "scripts": {
-    "release": "npm run typecheck && node esbuild.config.mjs release",
-    "dev": "node esbuild.config.mjs",
+    "build": "npm run build:dev",
+    "build:dev": "node esbuild.config.mjs dev",
+    "dev": "node esbuild.config.mjs watch",
+    "build:release": "npm run typecheck && node esbuild.config.mjs release",
+    "release": "npm run build:release",
     "test": "jest --runInBand",
     "typecheck": "tsc --noEmit --project tsconfig.jest.json",
     "deploy:demo": "node scripts/deploy-demo.mjs",
-    "build:demo": "npm run build && npm run deploy:demo",
+    "build:demo": "npm run build:dev && npm run deploy:demo",
     "watch:demo": "node scripts/watch-demo.mjs",
     "deploy": "npm run build:demo"
   },
