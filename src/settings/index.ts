@@ -12,7 +12,7 @@ import type {
   WeightedWord,
 } from '../types';
 import type VaultWordCloudPlugin from '../main';
-import { mapCountsToWeightedWords } from '../processing/scaling';
+import { mapCountsToWeightedWords } from '../wordcloud/pipeline/word-scaling';
 
 export interface WordCloudSettings {
   blacklistWords: string[];

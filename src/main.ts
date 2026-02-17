@@ -1,8 +1,8 @@
 import { MarkdownView, Notice, Plugin, TFile, TFolder } from 'obsidian';
 import { VIEW_TYPE_NOTE_WORD_CLOUD, VIEW_TYPE_VAULT_WORD_CLOUD } from './constants';
-import { registerEmbeddedWordCloudProcessor } from './block-renderers/wordcloud-block-renderer';
+import { registerEmbeddedWordCloudProcessor } from './blocks/wordcloud-block';
 import { openSearchForWord } from './actions/apply-search';
-import { WordCloudProcessor } from './processing/processor';
+import { WordCloudService } from './wordcloud/application/wordcloud-service';
 import { DEFAULT_SETTINGS, VaultWordCloudSettingTab, type WordCloudSettings } from './settings';
 import type {
   RenderSettings,
@@ -14,20 +14,20 @@ import type {
   WordCloudServices,
   WeightedWord,
 } from './types';
-import { drawWordCloud } from './rendering/word-cloud-renderer';
-import { NoteWordCloudView } from './views/note-word-cloud-view';
-import { VaultWordCloudView } from './views/vault-word-cloud-view';
-import { EmbedWordCloudModal } from './modals/embed-word-cloud-modal';
-import type { FrontmatterRule, SourceScope } from './pipeline/types';
+import { drawWordCloud } from './renderers/word-cloud-renderer';
+import { NoteWordCloudView } from './views/sidebar-word-cloud-view';
+import { VaultWordCloudView } from './views/document-word-cloud-view';
+import { EmbedWordCloudModal } from './modals/edit-word-cloud-modal';
+import type { FrontmatterRule, SourceScope } from './wordcloud/pipeline/types';
 import { normalizeTag } from './utils';
 
 export default class VaultWordCloudPlugin extends Plugin implements WordCloudServices {
   settings: WordCloudSettings = { ...DEFAULT_SETTINGS };
-  private processor!: WordCloudProcessor;
+  private processor!: WordCloudService;
 
   async onload(): Promise<void> {
     await this.loadSettings();
-    this.processor = new WordCloudProcessor(this.app);
+    this.processor = new WordCloudService(this.app);
 
     this.registerView(VIEW_TYPE_VAULT_WORD_CLOUD, (leaf) => new VaultWordCloudView(leaf, this));
     this.registerView(VIEW_TYPE_NOTE_WORD_CLOUD, (leaf) => new NoteWordCloudView(leaf, this));

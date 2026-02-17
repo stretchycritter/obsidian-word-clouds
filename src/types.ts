@@ -1,5 +1,5 @@
 import type { TFile } from 'obsidian';
-import type { FrequencyThresholds, FrontmatterRule, SourceSelectionRules, SourceScope } from './pipeline/types';
+import type { FrequencyThresholds, FrontmatterRule, SourceSelectionRules, SourceScope } from './wordcloud/pipeline/types';
 
 export type TagMatchMode = 'any' | 'all';
 
