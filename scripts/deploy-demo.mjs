@@ -18,7 +18,7 @@ export function deployToDemoVault() {
 
   const distDir = path.join(projectRoot, 'dist');
   const pluginDir = path.join(projectRoot, 'demo-vault', '.obsidian', 'plugins', pluginId);
-  const filesToCopy = ['manifest.json', 'main.js', 'styles.css'];
+  const filesToCopy = ['manifest.json', 'main.js', 'styles.css', 'THIRD_PARTY_NOTICES.md'];
 
   mkdirSync(pluginDir, { recursive: true });
 

@@ -10,6 +10,7 @@ function copyStaticFiles() {
   mkdirSync(distDir, { recursive: true });
   copyFileSync(path.join(process.cwd(), 'manifest.json'), path.join(distDir, 'manifest.json'));
   copyFileSync(path.join(process.cwd(), 'src', 'styles.css'), path.join(distDir, 'styles.css'));
+  copyFileSync(path.join(process.cwd(), 'THIRD_PARTY_NOTICES.md'), path.join(distDir, 'THIRD_PARTY_NOTICES.md'));
 }
 
 const context = await esbuild.context({

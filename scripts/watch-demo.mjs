@@ -7,7 +7,7 @@ import { deployToDemoVault } from './deploy-demo.mjs';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDir, '..');
 const distDir = path.join(projectRoot, 'dist');
-const watchedFiles = ['main.js', 'manifest.json', 'styles.css'];
+const watchedFiles = ['main.js', 'manifest.json', 'styles.css', 'THIRD_PARTY_NOTICES.md'];
 
 let deployInProgress = false;
 let deployQueued = false;
