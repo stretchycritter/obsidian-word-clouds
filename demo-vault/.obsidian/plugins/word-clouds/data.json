@@ -100,7 +100,7 @@
   "filters": {
     "scope": {
       "mode": "vault",
-      "activeFilePath": "",
+      "activeFilePath": "00 - Word Clouds Plugin Home.md",
       "folderPaths": []
     },
     "includeTags": [],

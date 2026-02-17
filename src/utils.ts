@@ -10,7 +10,3 @@ export function normalizeTag(tag: string): string {
 export function escapeForSearch(value: string): string {
   return value.replace(/"/g, '\\"');
 }
-
-export function getSelectedMultiValues(selectEl: HTMLSelectElement): string[] {
-  return Array.from(selectEl.selectedOptions).map((option) => option.value);
-}
