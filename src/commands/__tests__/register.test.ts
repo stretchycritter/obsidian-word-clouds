@@ -1,6 +1,6 @@
 import type { Plugin } from 'obsidian';
 import type { Deps } from '@/types';
-import { registerCommands } from '../register';
+import { registerCommands } from '@/commands/register';
 import { t } from '@/i18n';
 import { activateNoteWordCloudView, activateVaultWordCloudView } from '@/ui/views/activate';
 import { EmbedWordCloudModal } from '@/ui/modals/edit-word-cloud-modal';

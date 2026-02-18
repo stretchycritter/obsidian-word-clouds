@@ -1,4 +1,4 @@
-import { openSearchForWord } from '../apply-search';
+import { openSearchForWord } from '@/utils/apply-search';
 
 interface MockLeaf {
   setViewState: jest.Mock<Promise<void>, [unknown]>;

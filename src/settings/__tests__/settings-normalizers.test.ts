@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS } from '../constants';
+import { DEFAULT_SETTINGS } from '@/settings/constants';
 import {
   cloneSettings,
   normalizeExclusionListWord,
@@ -6,7 +6,7 @@ import {
   normalizeFilterSettings,
   normalizeRenderSettings,
   sortExclusionListWords,
-} from '../settings-normalizers';
+} from '@/settings/settings-normalizers';
 
 describe('settings-normalizers', () => {
   test('cloneSettings returns a deep copy', () => {

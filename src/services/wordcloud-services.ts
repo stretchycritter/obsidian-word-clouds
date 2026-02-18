@@ -1,18 +1,18 @@
 import type { App, TFile } from 'obsidian';
-import { drawWordCloud } from '../ui/renderers/word-cloud-renderer';
-import { openSearchForWord } from '../utils/apply-search';
+import { drawWordCloud } from '@/ui/renderers/word-cloud-renderer';
+import { openSearchForWord } from '@/utils/apply-search';
 import type {
   SearchOptions,
   VaultCollectionOptions,
   WordCloudRenderOptions,
   WordCloudServices,
-} from './types';
-import type { ObsidianService } from './obsidian-service';
-import type { SettingsService } from '../settings/settings-service';
-import type { FontFamilyOption, RenderSettings, WordCloudFilterSettings, WordCloudSettings } from '../settings/types';
-import type { WordCloudService } from '../wordcloud/application/wordcloud-service';
-import type { WeightedWord } from '../wordcloud/types';
-import { mergeRenderSettings } from './render-settings';
+} from '@/services/types';
+import type { ObsidianService } from '@/services/obsidian-service';
+import type { SettingsService } from '@/settings/settings-service';
+import type { FontFamilyOption, RenderSettings, WordCloudFilterSettings, WordCloudSettings } from '@/settings/types';
+import type { WordCloudService } from '@/core';
+import type { WeightedWord } from '@/core';
+import { mergeRenderSettings } from '@/services/render-settings';
 
 export interface WordCloudSettingsControls {
   getSettingsSnapshot(): Readonly<WordCloudSettings>;

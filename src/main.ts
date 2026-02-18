@@ -10,7 +10,7 @@ import { EventCoordinator } from '@/events/coordinator';
 import { ObsidianService } from '@/services/obsidian-service';
 import { SettingsService } from '@/settings/settings-service';
 import { WordCloudAppService } from '@/services/wordcloud-services';
-import { WordCloudService } from '@/wordcloud/application/wordcloud-service';
+import { WordCloudService } from '@/core';
 
 export default class VaultWordCloudPlugin extends Plugin {
   private readonly disposer = new Disposer();

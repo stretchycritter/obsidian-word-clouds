@@ -4,11 +4,11 @@ import { select } from 'd3-selection';
 import { Menu } from 'obsidian';
 import type { RenderSettings, RotationPreset, WordTextMetric } from '@/settings/types';
 import type { WordCloudRenderOptions } from '@/services/types';
-import type { WeightedWord } from '@/wordcloud/types';
+import type { WeightedWord } from '@/core';
 import {
   renderWordCloudOverlayControls,
   sanitizeWordCloudExportBaseName,
-} from '../components/word-cloud-overlay-controls';
+} from '@/ui/components/word-cloud-overlay-controls';
 
 function buildDeterministicRandom(seed: number): () => number {
   let state = seed >>> 0;

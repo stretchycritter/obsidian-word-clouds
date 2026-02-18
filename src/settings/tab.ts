@@ -6,10 +6,10 @@ import type {
   RotationPreset,
   ScalingMode,
   SpiralType,
-} from './types';
-import type { WordCloudServices } from '../services/types';
-import type { WordCloudSettingsControls } from '../services/wordcloud-services';
-import { renderWordCloudCanvas } from '../ui/renderers/word-cloud-canvas-renderer';
+} from '@/settings/types';
+import type { WordCloudServices } from '@/services/types';
+import type { WordCloudSettingsControls } from '@/services/wordcloud-services';
+import { renderWordCloudCanvas } from '@/ui/renderers/word-cloud-canvas-renderer';
 
 type SettingsTabServices = WordCloudServices & WordCloudSettingsControls;
 

@@ -10,11 +10,11 @@ import type {
   SpiralType,
   TagMatchMode,
   WordTextMetric,
-} from '../../settings/types';
-import type { WordCloudServices } from '../../services/types';
-import { EmbedWordCloudModal } from '../modals/edit-word-cloud-modal';
-import { normalizeTag } from '../../utils/utils';
-import { renderWordCloudCanvas } from '../renderers/word-cloud-canvas-renderer';
+} from '@/settings/types';
+import type { WordCloudServices } from '@/services/types';
+import { EmbedWordCloudModal } from '@/ui/modals/edit-word-cloud-modal';
+import { normalizeTag } from '@/utils/utils';
+import { renderWordCloudCanvas } from '@/ui/renderers/word-cloud-canvas-renderer';
 
 type EmbeddedWordCloudScope = 'file' | 'vault' | 'folder';
 type EmbeddedWordCloudSize = 'small' | 'medium' | 'large';

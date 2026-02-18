@@ -5,8 +5,8 @@ import type {
   SourceSelectionRules,
   TagMatchMode,
   WordCloudFilterSettings,
-} from '../settings/types';
-import type { WeightedWord } from '../wordcloud/types';
+} from '@/settings/types';
+import type { WeightedWord } from '@/core';
 
 export type WordCloudRenderOptions = {
   containerEl: HTMLDivElement;

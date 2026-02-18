@@ -1,5 +1,5 @@
 import type { Plugin } from 'obsidian';
-import { DEFAULT_SETTINGS } from '../constants';
+import { DEFAULT_SETTINGS } from '@/settings/constants';
 
 jest.mock('obsidian', () => {
   type EventHandler = (event: any) => void | Promise<void>;
@@ -329,12 +329,12 @@ jest.mock('obsidian', () => {
   };
 }, { virtual: true });
 
-jest.mock('../../ui/renderers/word-cloud-canvas-renderer', () => ({
+jest.mock('@/ui/renderers/word-cloud-canvas-renderer', () => ({
   renderWordCloudCanvas: jest.fn().mockResolvedValue(undefined),
 }));
 
-import { renderWordCloudCanvas } from '../../ui/renderers/word-cloud-canvas-renderer';
-import { VaultWordCloudSettingTab } from '../tab';
+import { renderWordCloudCanvas } from '@/ui/renderers/word-cloud-canvas-renderer';
+import { VaultWordCloudSettingTab } from '@/settings/tab';
 
 type MockServices = ReturnType<typeof createServicesMock>;
 

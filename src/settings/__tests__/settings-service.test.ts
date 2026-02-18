@@ -1,6 +1,6 @@
 import type { Plugin } from 'obsidian';
-import { DEFAULT_SETTINGS } from '../constants';
-import { SettingsService } from '../settings-service';
+import { DEFAULT_SETTINGS } from '@/settings/constants';
+import { SettingsService } from '@/settings/settings-service';
 
 describe('SettingsService', () => {
   test('load falls back to defaults when stored data is invalid', async () => {
@@ -67,6 +67,7 @@ describe('SettingsService', () => {
   test('font family selection falls back to default when unsupported', () => {
     const service = new SettingsService(createPluginMock({}));
     expect(service.getSelectedSupportedFontFamily('serif')).toBe('serif');
+    expect(service.getSelectedSupportedFontFamily(' serif ')).toBe('serif');
     expect(service.getSelectedSupportedFontFamily('unsupported-font')).toBe(DEFAULT_SETTINGS.render.fontFamily);
   });
 
@@ -90,6 +91,69 @@ describe('SettingsService', () => {
     const previewWords = service.getSettingsPreviewWords();
     expect(previewWords.length).toBeGreaterThan(0);
     expect(previewWords[0]).toEqual(expect.objectContaining({ text: expect.any(String), size: expect.any(Number) }));
+  });
+
+  test('getSupportedFontFamilyOptions returns supported entries', () => {
+    const service = new SettingsService(createPluginMock({}));
+    const options = service.getSupportedFontFamilyOptions();
+    expect(options.length).toBeGreaterThan(0);
+    expect(options).toContainEqual(expect.objectContaining({ value: 'sans-serif' }));
+  });
+
+  test('addExclusionListWord persists normalized, sorted values and rejects duplicates/blanks', async () => {
+    const plugin = createPluginMock({ exclusionListWords: ['beta'] });
+    const service = new SettingsService(plugin);
+    await service.load();
+
+    await expect(service.addExclusionListWord('  Alpha  ')).resolves.toBe(true);
+    expect(service.getSnapshot().exclusionListWords).toEqual(['alpha', 'beta']);
+    expect(plugin.saveData).toHaveBeenCalledTimes(1);
+
+    await expect(service.addExclusionListWord('alpha')).resolves.toBe(false);
+    await expect(service.addExclusionListWord('   ')).resolves.toBe(false);
+    expect(plugin.saveData).toHaveBeenCalledTimes(1);
+  });
+
+  test('removeExclusionListWord normalizes input before removing', async () => {
+    const plugin = createPluginMock({ exclusionListWords: ['alpha', 'beta'] });
+    const service = new SettingsService(plugin);
+    await service.load();
+
+    await service.removeExclusionListWord('  ALPHA ');
+    expect(service.getSnapshot().exclusionListWords).toEqual(['beta']);
+    expect(plugin.saveData).toHaveBeenCalledTimes(1);
+  });
+
+  test('resetExclusionListWords restores sorted defaults', async () => {
+    const plugin = createPluginMock({ exclusionListWords: ['custom-word'] });
+    const service = new SettingsService(plugin);
+    await service.load();
+
+    await service.resetExclusionListWords();
+    expect(service.getSnapshot().exclusionListWords).toEqual([...DEFAULT_SETTINGS.exclusionListWords].sort((a, b) => a.localeCompare(b)));
+    expect(plugin.saveData).toHaveBeenCalledTimes(1);
+  });
+
+  test('getExclusionListSet returns normalized unique words', async () => {
+    const service = new SettingsService(createPluginMock({
+      exclusionListWords: ['  ALPHA ', 'alpha', '', ' beta '],
+    }));
+    await service.load();
+
+    expect(service.getExclusionListSet()).toEqual(new Set(['alpha', 'beta']));
+  });
+
+  test('resetRenderSettings restores defaults and emits change', async () => {
+    const service = new SettingsService(createPluginMock({}));
+    const listener = jest.fn();
+    await service.load();
+    service.onChange(listener);
+
+    await service.updateRenderSettings({ performanceMode: 'throttled', minFontSize: 22 });
+    await service.resetRenderSettings();
+
+    expect(service.getSnapshot().render).toEqual(DEFAULT_SETTINGS.render);
+    expect(listener).toHaveBeenCalledTimes(2);
   });
 
   test('failed persistence does not mutate in-memory settings or emit change', async () => {
@@ -139,6 +203,18 @@ describe('SettingsService', () => {
     await service.updateRenderSettings({ performanceMode: 'balanced' });
 
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  test('dispose removes listeners and suppresses future notifications', async () => {
+    const service = new SettingsService(createPluginMock({}));
+    const listener = jest.fn();
+    await service.load();
+
+    service.onChange(listener);
+    service.dispose();
+    await service.updateRenderSettings({ performanceMode: 'throttled' });
+
+    expect(listener).not.toHaveBeenCalled();
   });
 });
 

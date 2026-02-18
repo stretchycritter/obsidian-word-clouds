@@ -4,10 +4,10 @@ import type {
   FontFamilyOption,
   WordCloudSettings,
   WordCloudFilterSettings,
-} from './types';
-import { DEFAULT_SETTINGS, SETTINGS_PREVIEW_TEMPLATE, SUPPORTED_FONT_FAMILIES } from './constants';
-import type { WeightedWord } from '../wordcloud/types';
-import { mapCountsToWeightedWords } from '../wordcloud/pipeline/word-scaling';
+} from '@/settings/types';
+import { DEFAULT_SETTINGS, SETTINGS_PREVIEW_TEMPLATE, SUPPORTED_FONT_FAMILIES } from '@/settings/constants';
+import type { WeightedWord } from '@/core';
+import { mapCountsToWeightedWords } from '@/core';
 import {
   cloneSettings,
   normalizeExclusionListWord,
@@ -15,7 +15,7 @@ import {
   normalizeFilterSettings,
   normalizeRenderSettings,
   sortExclusionListWords,
-} from './settings-normalizers';
+} from '@/settings/settings-normalizers';
 
 export type SettingsChangeListener = (settings: Readonly<WordCloudSettings>) => void;
 

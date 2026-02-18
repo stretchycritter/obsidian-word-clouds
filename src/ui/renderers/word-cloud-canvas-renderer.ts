@@ -1,7 +1,7 @@
 import { Notice, type TFile } from 'obsidian';
 import type { SearchOptions, WordCloudRenderOptions, WordCloudServices } from '@/services/types';
 import type { RenderSettings, WordCloudFilterSettings } from '@/settings/types';
-import type { WeightedWord } from '@/wordcloud/types';
+import type { WeightedWord } from '@/core';
 
 type RenderNonceRef = {
   value: number;

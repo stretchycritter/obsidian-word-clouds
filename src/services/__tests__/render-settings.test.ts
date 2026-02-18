@@ -1,6 +1,6 @@
 import type { RenderSettings } from '@/settings/types';
 import { DEFAULT_SETTINGS } from '@/settings/constants';
-import { mergeRenderSettings } from '../render-settings';
+import { mergeRenderSettings } from '@/services/render-settings';
 
 describe('mergeRenderSettings', () => {
   test('returns a copy of defaults when override is undefined', () => {

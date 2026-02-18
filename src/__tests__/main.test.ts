@@ -37,7 +37,7 @@ jest.mock('@/services/wordcloud-services', () => ({
   WordCloudAppService: jest.fn().mockImplementation(() => ({})),
 }));
 
-jest.mock('@/wordcloud/application/wordcloud-service', () => ({
+jest.mock('@/core', () => ({
   WordCloudService: jest.fn().mockImplementation(() => ({})),
 }));
 
@@ -73,7 +73,7 @@ import { EventCoordinator } from '@/events/coordinator';
 import { ObsidianService } from '@/services/obsidian-service';
 import { SettingsService } from '@/settings/settings-service';
 import { WordCloudAppService } from '@/services/wordcloud-services';
-import { WordCloudService } from '@/wordcloud/application/wordcloud-service';
+import { WordCloudService } from '@/core';
 
 const mockedRegisterCommands = registerCommands as jest.MockedFunction<typeof registerCommands>;
 const mockedRegisterEvents = registerEvents as jest.MockedFunction<typeof registerEvents>;

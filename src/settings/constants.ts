@@ -1,4 +1,4 @@
-import type { FontFamilyOption, SettingsPreviewWord, WordCloudSettings } from './types';
+import type { FontFamilyOption, SettingsPreviewWord, WordCloudSettings } from '@/settings/types';
 
 export const SUPPORTED_FONT_FAMILIES: FontFamilyOption[] = [
   { value: 'sans-serif', label: 'Sans serif (default)' },

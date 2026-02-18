@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS } from './constants';
+import { DEFAULT_SETTINGS } from '@/settings/constants';
 import type {
   FrontmatterRule,
   RenderSettings,
@@ -6,8 +6,8 @@ import type {
   TagMatchMode,
   WordCloudFilterSettings,
   WordCloudSettings,
-} from './types';
-import { normalizeTag } from '../utils/utils';
+} from '@/settings/types';
+import { normalizeTag } from '@/utils/utils';
 
 export function cloneSettings(settings: WordCloudSettings): WordCloudSettings {
   return {

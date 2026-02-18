@@ -1,9 +1,9 @@
 import type { Plugin } from 'obsidian';
 import type { Deps } from '@/types';
-import { registerSettings } from '../register';
-import { VaultWordCloudSettingTab } from '../tab';
+import { registerSettings } from '@/settings/register';
+import { VaultWordCloudSettingTab } from '@/settings/tab';
 
-jest.mock('../tab', () => ({
+jest.mock('@/settings/tab', () => ({
   VaultWordCloudSettingTab: jest.fn().mockImplementation(() => ({ mocked: 'settings-tab' })),
 }));
 

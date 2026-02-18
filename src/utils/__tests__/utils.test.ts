@@ -1,4 +1,4 @@
-import { escapeForSearch, normalizeTag } from '../utils';
+import { escapeForSearch, normalizeTag } from '@/utils/utils';
 
 describe('normalizeTag', () => {
   test('returns an empty string for whitespace-only input', () => {
