@@ -1,5 +1,5 @@
 import type { App, TFile } from 'obsidian';
-import type { WeightedWord } from '../../wordcloud/types';
+import type { WeightedWord } from '../types';
 import type { FrequencyThresholds, RenderSettings, SourceSelectionRules } from '../../settings/types';
 import { readPipelineDocuments } from '../ingestion/obsidian-source';
 import { filterSourceFilesByMetadata } from '../ingestion/metadata-file-filter';

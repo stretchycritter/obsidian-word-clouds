@@ -1,5 +1,5 @@
 import type { FrequencyThresholds, RenderSettings, SourceSelectionRules } from '../../settings/types';
-import type { WeightedWord } from '../../wordcloud/types';
+import type { WeightedWord } from '../types';
 
 export type PipelineDocument = {
   id: string;

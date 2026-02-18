@@ -8,14 +8,19 @@ import type {
   WordCloudServices,
 } from './types';
 import type { ObsidianService } from './obsidian-service';
-import type { SettingsService } from '../settings/service';
-import type { RenderSettings, WordCloudFilterSettings, WordCloudSettings } from '../settings/types';
+import type { SettingsService } from '../settings/settings-service';
+import type { FontFamilyOption, RenderSettings, WordCloudFilterSettings, WordCloudSettings } from '../settings/types';
 import type { WordCloudService } from '../wordcloud/application/wordcloud-service';
 import type { WeightedWord } from '../wordcloud/types';
 import { mergeRenderSettings } from './render-settings';
 
 export interface WordCloudSettingsControls {
   getSettingsSnapshot(): Readonly<WordCloudSettings>;
+  getSupportedFontFamilyOptions(): ReadonlyArray<FontFamilyOption>;
+  getSelectedSupportedFontFamily(rawFontFamily: string): string;
+  getSettingsPreviewWords(): WeightedWord[];
+  updateMinimumFontSize(minFontSize: number): Promise<RenderSettings>;
+  updateMaximumFontSize(maxFontSize: number): Promise<RenderSettings>;
   updateRenderSettings(patch: Partial<RenderSettings>): Promise<void>;
   resetRenderSettings(): Promise<void>;
   removeExclusionListWord(rawWord: string): Promise<void>;
@@ -32,6 +37,18 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
 
   getSettingsSnapshot(): Readonly<WordCloudSettings> {
     return this.settingsService.getSnapshot();
+  }
+
+  getSupportedFontFamilyOptions(): ReadonlyArray<FontFamilyOption> {
+    return this.settingsService.getSupportedFontFamilyOptions();
+  }
+
+  getSelectedSupportedFontFamily(rawFontFamily: string): string {
+    return this.settingsService.getSelectedSupportedFontFamily(rawFontFamily);
+  }
+
+  getSettingsPreviewWords(): WeightedWord[] {
+    return this.settingsService.getSettingsPreviewWords();
   }
 
   getAvailableTags(): string[] {
@@ -126,6 +143,14 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
 
   async updateRenderSettings(patch: Partial<RenderSettings>): Promise<void> {
     await this.settingsService.updateRenderSettings(patch);
+  }
+
+  async updateMinimumFontSize(minFontSize: number): Promise<RenderSettings> {
+    return this.settingsService.updateMinimumFontSize(minFontSize);
+  }
+
+  async updateMaximumFontSize(maxFontSize: number): Promise<RenderSettings> {
+    return this.settingsService.updateMaximumFontSize(maxFontSize);
   }
 
   async resetRenderSettings(): Promise<void> {

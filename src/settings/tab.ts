@@ -8,24 +8,14 @@ import type {
   SpiralType,
 } from './types';
 import type { WordCloudServices } from '../services/types';
-import type { WeightedWord } from '../wordcloud/types';
 import type { WordCloudSettingsControls } from '../services/wordcloud-services';
-import { mapCountsToWeightedWords } from '../wordcloud/pipeline/word-scaling';
 import { renderWordCloudCanvas } from '../ui/renderers/word-cloud-canvas-renderer';
 
 type SettingsTabServices = WordCloudServices & WordCloudSettingsControls;
-const SUPPORTED_FONT_FAMILIES: Array<{ value: string; label: string }> = [
-  { value: 'sans-serif', label: 'Sans serif (default)' },
-  { value: 'serif', label: 'Serif' },
-  { value: 'monospace', label: 'Monospace' },
-  { value: 'Arial, sans-serif', label: 'Arial' },
-  { value: 'Verdana, sans-serif', label: 'Verdana' },
-  { value: '"Trebuchet MS", sans-serif', label: 'Trebuchet MS' },
-  { value: '"Times New Roman", serif', label: 'Times New Roman' },
-  { value: 'Georgia, serif', label: 'Georgia' },
-  { value: '"Palatino Linotype", serif', label: 'Palatino Linotype' },
-  { value: '"Courier New", monospace', label: 'Courier New' },
-];
+
+const GITHUB_ISSUE_BASE_URL = 'https://github.com/stretchycritter/obsidian-word-clouds/issues/new';
+const BUG_REPORT_ISSUE_URL = `${GITHUB_ISSUE_BASE_URL}?template=bug_report.yml`;
+const FEATURE_REQUEST_ISSUE_URL = `${GITHUB_ISSUE_BASE_URL}?template=feature_request.yml`;
 
 export class VaultWordCloudSettingTab extends PluginSettingTab {
   private readonly services: SettingsTabServices;
@@ -76,7 +66,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
         });
       });
 
-    const sortedWords = [...settings.exclusionListWords].sort((a, b) => a.localeCompare(b));
+    const sortedWords = settings.exclusionListWords;
     const excludedWordsDetailsEl = containerEl.createEl('details', {
       cls: 'vault-word-cloud-settings-excluded-details',
     });
@@ -153,7 +143,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
         resolveExtraContext: () => null,
         getAriaLabel: () => 'Word cloud render preview',
         getNoWordsMessage: () => 'No preview words available.',
-        getWords: async () => this.buildPreviewWords(this.services.getSettingsSnapshot().render),
+        getWords: async () => this.services.getSettingsPreviewWords(),
         onWordClick: () => {
           // no-op in settings preview
         },
@@ -223,14 +213,9 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           .setValue(settings.render.minFontSize)
           .setDynamicTooltip()
           .onChange(async (value) => {
-            const current = this.services.getSettingsSnapshot().render;
-            const nextMin = Math.min(value, current.maxFontSize);
-            const nextMax = Math.max(current.maxFontSize, nextMin);
-            await updateRenderAndPreview({
-              minFontSize: nextMin,
-              maxFontSize: nextMax,
-            });
-            if (nextMin !== value) {
+            const nextRenderSettings = await this.services.updateMinimumFontSize(value);
+            await rerenderPreview();
+            if (nextRenderSettings.minFontSize !== value) {
               this.display();
             }
           });
@@ -241,14 +226,9 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           .setValue(settings.render.maxFontSize)
           .setDynamicTooltip()
           .onChange(async (value) => {
-            const current = this.services.getSettingsSnapshot().render;
-            const nextMax = Math.max(value, current.minFontSize);
-            const nextMin = Math.min(current.minFontSize, nextMax);
-            await updateRenderAndPreview({
-              minFontSize: nextMin,
-              maxFontSize: nextMax,
-            });
-            if (nextMax !== value) {
+            const nextRenderSettings = await this.services.updateMaximumFontSize(value);
+            await rerenderPreview();
+            if (nextRenderSettings.maxFontSize !== value) {
               this.display();
             }
           });
@@ -258,15 +238,11 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       .setName('Font family')
       .setDesc('Choose a supported font family for words.')
       .addDropdown((dropdown) => {
-        for (const font of SUPPORTED_FONT_FAMILIES) {
+        for (const font of this.services.getSupportedFontFamilyOptions()) {
           dropdown.addOption(font.value, font.label);
         }
-        const fontValues = new Set(SUPPORTED_FONT_FAMILIES.map((font) => font.value));
-        const selectedFont = fontValues.has(settings.render.fontFamily)
-          ? settings.render.fontFamily
-          : 'sans-serif';
         dropdown
-          .setValue(selectedFont)
+          .setValue(this.services.getSelectedSupportedFontFamily(settings.render.fontFamily))
           .onChange(async (value) => {
             await updateRenderAndPreview({ fontFamily: value });
           });
@@ -458,33 +434,29 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
+    containerEl.createEl('h3', { text: 'Support and feedback' });
+    containerEl.createEl('p', {
+      text: 'Open a GitHub issue to report a bug or suggest a feature.',
+    });
+
+    new Setting(containerEl)
+      .setName('Report a bug')
+      .setDesc('Open the bug report issue form in GitHub.')
+      .addButton((button) => {
+        button.setButtonText('File a bug').onClick(() => {
+          window.open(BUG_REPORT_ISSUE_URL, '_blank', 'noopener,noreferrer');
+        });
+      });
+
+    new Setting(containerEl)
+      .setName('Suggest a feature')
+      .setDesc('Open the feature request issue form in GitHub.')
+      .addButton((button) => {
+        button.setButtonText('Suggest a feature').onClick(() => {
+          window.open(FEATURE_REQUEST_ISSUE_URL, '_blank', 'noopener,noreferrer');
+        });
+      });
+
     void rerenderPreview();
-  }
-
-  private buildPreviewWords(renderSettings: RenderSettings): WeightedWord[] {
-    const template = [
-      { text: 'obsidian', count: 48 },
-      { text: 'notes', count: 43 },
-      { text: 'plugins', count: 36 },
-      { text: 'vault', count: 33 },
-      { text: 'research', count: 28 },
-      { text: 'ideas', count: 25 },
-      { text: 'writing', count: 22 },
-      { text: 'daily', count: 20 },
-      { text: 'project', count: 18 },
-      { text: 'review', count: 16 },
-      { text: 'design', count: 14 },
-      { text: 'meeting', count: 12 },
-      { text: 'tasks', count: 11 },
-      { text: 'journal', count: 10 },
-      { text: 'draft', count: 9 },
-      { text: 'reading', count: 8 },
-      { text: 'plan', count: 7 },
-      { text: 'focus', count: 6 },
-      { text: 'habit', count: 5 },
-      { text: 'goals', count: 4 },
-    ];
-
-    return mapCountsToWeightedWords(template.map((entry) => [entry.text, entry.count] as [string, number]), renderSettings);
   }
 }

@@ -1,0 +1,87 @@
+import type { FontFamilyOption, SettingsPreviewWord, WordCloudSettings } from './types';
+
+export const SUPPORTED_FONT_FAMILIES: FontFamilyOption[] = [
+  { value: 'sans-serif', label: 'Sans serif (default)' },
+  { value: 'serif', label: 'Serif' },
+  { value: 'monospace', label: 'Monospace' },
+  { value: 'Arial, sans-serif', label: 'Arial' },
+  { value: 'Verdana, sans-serif', label: 'Verdana' },
+  { value: '"Trebuchet MS", sans-serif', label: 'Trebuchet MS' },
+  { value: '"Times New Roman", serif', label: 'Times New Roman' },
+  { value: 'Georgia, serif', label: 'Georgia' },
+  { value: '"Palatino Linotype", serif', label: 'Palatino Linotype' },
+  { value: '"Courier New", monospace', label: 'Courier New' },
+];
+
+export const SETTINGS_PREVIEW_TEMPLATE: ReadonlyArray<SettingsPreviewWord> = [
+  ['obsidian', 48],
+  ['notes', 43],
+  ['plugins', 36],
+  ['vault', 33],
+  ['research', 28],
+  ['ideas', 25],
+  ['writing', 22],
+  ['daily', 20],
+  ['project', 18],
+  ['review', 16],
+  ['design', 14],
+  ['meeting', 12],
+  ['tasks', 11],
+  ['journal', 10],
+  ['draft', 9],
+  ['reading', 8],
+  ['plan', 7],
+  ['focus', 6],
+  ['habit', 5],
+  ['goals', 4],
+];
+
+export const DEFAULT_STOP_WORDS: string[] = [
+  'the', 'and', 'for', 'that', 'this', 'with', 'from', 'are', 'was', 'were', 'have', 'has', 'had',
+  'you', 'your', 'they', 'them', 'their', 'its', 'our', 'ours', 'his', 'her', 'she', 'him', 'not',
+  'but', 'can', 'will', 'all', 'any', 'one', 'two', 'too', 'use', 'using', 'into', 'out', 'about',
+  'there', 'then', 'than', 'when', 'what', 'where', 'which', 'who', 'whom', 'how', 'why', 'also',
+  'just', 'like', 'some', 'more', 'most', 'much', 'many', 'very', 'each', 'other', 'such', 'only',
+  'note', 'notes', 'todo', 'done', 'null', 'true', 'false', 'http', 'https', 'www', 'com',
+];
+
+export const DEFAULT_SETTINGS: WordCloudSettings = {
+  exclusionListWords: [...DEFAULT_STOP_WORDS],
+  render: {
+    rotationPreset: 'mostly-horizontal',
+    spiral: 'archimedean',
+    wordPadding: 2,
+    minFontSize: 14,
+    maxFontSize: 72,
+    fontFamily: 'sans-serif',
+    scalingMode: 'power',
+    emphasis: 1,
+    showCountInWordText: false,
+    wordTextMetric: 'count',
+    showWordTextMetricToggle: false,
+    countLabelMinCount: 1,
+    performanceMode: 'balanced',
+    scanBatchSize: 24,
+    layoutTimeIntervalMs: 16,
+    deterministicLayout: false,
+    randomSeed: 42,
+    enableMouseInteractions: true,
+    enableControls: true,
+    enableExporting: true,
+  },
+  filters: {
+    scope: {
+      mode: 'vault',
+      activeFilePath: '',
+      folderPaths: [],
+    },
+    includeTags: [],
+    excludeTags: [],
+    tagMatchMode: 'any',
+    frontmatterRules: [],
+    frequency: {
+      minCount: 1,
+      maxCount: 9999,
+    },
+  },
+};

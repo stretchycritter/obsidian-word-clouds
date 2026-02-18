@@ -1,7 +1,7 @@
 import { scaleEntries } from '../08-scale-word-weights';
 import type { ScalingStrategy } from '../../types';
 import type { RenderSettings } from '../../../../settings/types';
-import type { WeightedWord } from '../../../../wordcloud/types';
+import type { WeightedWord } from '../../../types';
 
 describe('scaleEntries', () => {
   it('delegates scaling to the configured strategy', () => {

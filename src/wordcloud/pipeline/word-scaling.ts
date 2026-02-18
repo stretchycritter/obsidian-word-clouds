@@ -1,5 +1,5 @@
 import type { RenderSettings } from '../../settings/types';
-import type { WeightedWord } from '../../wordcloud/types';
+import type { WeightedWord } from '../types';
 
 export function mapCountsToWeightedWords(
   entries: Array<[string, number]>,

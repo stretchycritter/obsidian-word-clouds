@@ -8,7 +8,7 @@ import { registerSettings } from '@/settings/register';
 import { registerUI } from '@/ui/register';
 import { EventCoordinator } from '@/events/coordinator';
 import { ObsidianService } from '@/services/obsidian-service';
-import { SettingsService } from '@/settings/service';
+import { SettingsService } from '@/settings/settings-service';
 import { WordCloudAppService } from '@/services/wordcloud-services';
 import { WordCloudService } from '@/wordcloud/application/wordcloud-service';
 

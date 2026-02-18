@@ -1,0 +1,47 @@
+name: Feature request
+description: Suggest an idea or enhancement for the plugin.
+title: "[Feature]: "
+labels:
+  - enhancement
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing an idea. Please include enough context so we can evaluate and scope it.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem are you trying to solve?
+      placeholder: I want to...
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution
+      description: Describe the solution or behavior you want.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds or alternatives you considered.
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      description: How broadly would this help?
+      options:
+        - Nice to have
+        - Helpful for some workflows
+        - Critical for core workflows
+    validations:
+      required: true
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Mockups, examples, screenshots, or links.

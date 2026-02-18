@@ -26,7 +26,7 @@ jest.mock('@/services/obsidian-service', () => ({
   ObsidianService: jest.fn().mockImplementation(() => ({})),
 }));
 
-jest.mock('@/settings/service', () => ({
+jest.mock('@/settings/settings-service', () => ({
   SettingsService: jest.fn().mockImplementation(() => ({
     load: mockSettingsLoad,
     dispose: mockSettingsDispose,
@@ -71,7 +71,7 @@ import { registerSettings } from '@/settings/register';
 import { registerUI } from '@/ui/register';
 import { EventCoordinator } from '@/events/coordinator';
 import { ObsidianService } from '@/services/obsidian-service';
-import { SettingsService } from '@/settings/service';
+import { SettingsService } from '@/settings/settings-service';
 import { WordCloudAppService } from '@/services/wordcloud-services';
 import { WordCloudService } from '@/wordcloud/application/wordcloud-service';
 

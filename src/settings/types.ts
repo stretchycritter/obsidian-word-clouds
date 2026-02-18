@@ -4,6 +4,11 @@ export type SpiralType = 'archimedean' | 'rectangular';
 export type ScalingMode = 'linear' | 'power' | 'log' | 'rank';
 export type WordTextMetric = 'count' | 'frequency';
 export type PerformanceMode = 'full-speed' | 'balanced' | 'throttled';
+export type FontFamilyOption = {
+  value: string;
+  label: string;
+};
+export type SettingsPreviewWord = readonly [string, number];
 
 export type RenderSettings = {
   rotationPreset: RotationPreset;
@@ -107,53 +112,3 @@ export interface WordCloudSettings {
   render: RenderSettings;
   filters: WordCloudFilterSettings;
 }
-
-const DEFAULT_STOP_WORDS: string[] = [
-  'the', 'and', 'for', 'that', 'this', 'with', 'from', 'are', 'was', 'were', 'have', 'has', 'had',
-  'you', 'your', 'they', 'them', 'their', 'its', 'our', 'ours', 'his', 'her', 'she', 'him', 'not',
-  'but', 'can', 'will', 'all', 'any', 'one', 'two', 'too', 'use', 'using', 'into', 'out', 'about',
-  'there', 'then', 'than', 'when', 'what', 'where', 'which', 'who', 'whom', 'how', 'why', 'also',
-  'just', 'like', 'some', 'more', 'most', 'much', 'many', 'very', 'each', 'other', 'such', 'only',
-  'note', 'notes', 'todo', 'done', 'null', 'true', 'false', 'http', 'https', 'www', 'com',
-];
-
-export const DEFAULT_SETTINGS: WordCloudSettings = {
-  exclusionListWords: [...DEFAULT_STOP_WORDS],
-  render: {
-    rotationPreset: 'mostly-horizontal',
-    spiral: 'archimedean',
-    wordPadding: 2,
-    minFontSize: 14,
-    maxFontSize: 72,
-    fontFamily: 'sans-serif',
-    scalingMode: 'power',
-    emphasis: 1,
-    showCountInWordText: false,
-    wordTextMetric: 'count',
-    showWordTextMetricToggle: false,
-    countLabelMinCount: 1,
-    performanceMode: 'balanced',
-    scanBatchSize: 24,
-    layoutTimeIntervalMs: 16,
-    deterministicLayout: false,
-    randomSeed: 42,
-    enableMouseInteractions: true,
-    enableControls: true,
-    enableExporting: true,
-  },
-  filters: {
-    scope: {
-      mode: 'vault',
-      activeFilePath: '',
-      folderPaths: [],
-    },
-    includeTags: [],
-    excludeTags: [],
-    tagMatchMode: 'any',
-    frontmatterRules: [],
-    frequency: {
-      minCount: 1,
-      maxCount: 9999,
-    },
-  },
-};

@@ -1,0 +1,67 @@
+name: Bug report
+description: Report a problem with the plugin.
+title: "[Bug]: "
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please complete the fields below so we can reproduce and fix it quickly.
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      description: Version from `manifest.json` or Obsidian's Community Plugins screen.
+      placeholder: "0.2.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Desktop
+        - iOS
+        - Android
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: obsidian-version
+    attributes:
+      label: Obsidian version
+      placeholder: "1.6.7"
+    validations:
+      required: true
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Bug description
+      description: A clear and concise description of what happened.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include exact steps so we can reproduce the issue.
+      placeholder: |
+        1. Open note...
+        2. Run command...
+        3. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Logs, screenshots, sample notes, or other context.

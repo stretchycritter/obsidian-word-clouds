@@ -1,5 +1,5 @@
 import type { RenderSettings } from '@/settings/types';
-import { DEFAULT_SETTINGS } from '@/settings/types';
+import { DEFAULT_SETTINGS } from '@/settings/constants';
 import { mergeRenderSettings } from '../render-settings';
 
 describe('mergeRenderSettings', () => {
