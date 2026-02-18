@@ -1,5 +1,5 @@
 import type { App, TFile } from 'obsidian';
-import { drawWordCloud } from '@/ui/renderers/word-cloud-renderer';
+import { drawWordCloud } from '@/ui';
 import { openSearchForWord } from '@/utils/apply-search';
 import type {
   SearchOptions,

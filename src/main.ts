@@ -5,7 +5,7 @@ import { registerEvents } from '@/events/register';
 import { initI18n } from '@/i18n';
 import { Disposer } from '@/disposer';
 import { registerSettings } from '@/settings/register';
-import { registerUI } from '@/ui/register';
+import { registerUI } from '@/ui';
 import { EventCoordinator } from '@/events/coordinator';
 import { ObsidianService } from '@/services/obsidian-service';
 import { SettingsService } from '@/settings/settings-service';

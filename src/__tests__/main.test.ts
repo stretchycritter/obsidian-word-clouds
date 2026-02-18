@@ -49,7 +49,7 @@ jest.mock('@/events/register', () => ({
   registerEvents: jest.fn(),
 }));
 
-jest.mock('@/ui/register', () => ({
+jest.mock('@/ui', () => ({
   registerUI: jest.fn(),
 }));
 
@@ -68,7 +68,7 @@ import type { Deps } from '@/types';
 import { registerEvents } from '@/events/register';
 import { initI18n } from '@/i18n';
 import { registerSettings } from '@/settings/register';
-import { registerUI } from '@/ui/register';
+import { registerUI } from '@/ui';
 import { EventCoordinator } from '@/events/coordinator';
 import { ObsidianService } from '@/services/obsidian-service';
 import { SettingsService } from '@/settings/settings-service';

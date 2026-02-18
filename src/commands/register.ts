@@ -1,9 +1,9 @@
 import type { Plugin } from 'obsidian';
 import type { Deps } from '@/types';
 import { t } from '@/i18n';
-import { EmbedWordCloudModal } from '@/ui/modals/edit-word-cloud-modal';
+import { EmbedWordCloudModal } from '@/ui';
 import { insertEmbedAtCursor } from '@/services/editor-insertion';
-import { activateNoteWordCloudView, activateVaultWordCloudView } from '@/ui/views/activate';
+import { activateNoteWordCloudView, activateVaultWordCloudView } from '@/ui';
 
 export function registerCommands(plugin: Plugin, deps: Deps): void {
   plugin.addCommand({

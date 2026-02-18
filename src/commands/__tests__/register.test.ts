@@ -2,8 +2,8 @@ import type { Plugin } from 'obsidian';
 import type { Deps } from '@/types';
 import { registerCommands } from '@/commands/register';
 import { t } from '@/i18n';
-import { activateNoteWordCloudView, activateVaultWordCloudView } from '@/ui/views/activate';
-import { EmbedWordCloudModal } from '@/ui/modals/edit-word-cloud-modal';
+import { activateNoteWordCloudView, activateVaultWordCloudView } from '@/ui';
+import { EmbedWordCloudModal } from '@/ui';
 import { insertEmbedAtCursor } from '@/services/editor-insertion';
 
 const mockT = t as jest.MockedFunction<typeof t>;
@@ -11,30 +11,26 @@ const mockedActivateVaultWordCloudView = activateVaultWordCloudView as jest.Mock
 const mockedActivateNoteWordCloudView = activateNoteWordCloudView as jest.MockedFunction<typeof activateNoteWordCloudView>;
 const mockedInsertEmbedAtCursor = insertEmbedAtCursor as jest.MockedFunction<typeof insertEmbedAtCursor>;
 const mockedEmbedWordCloudModal = EmbedWordCloudModal as unknown as jest.MockedClass<typeof EmbedWordCloudModal>;
+const mockModalOpenSpy = jest.fn();
+const mockModalConstructorSpy = jest.fn();
 
 jest.mock('@/i18n', () => ({
   t: jest.fn((key: string) => `translated:${key}`),
 }));
 
-jest.mock('@/ui/views/activate', () => ({
+jest.mock('@/ui', () => ({
   activateVaultWordCloudView: jest.fn(),
   activateNoteWordCloudView: jest.fn(),
+  EmbedWordCloudModal: jest.fn().mockImplementation((app, service, onSubmit) => {
+    mockModalConstructorSpy(app, service, onSubmit);
+    return {
+      open: mockModalOpenSpy,
+    };
+  }),
 }));
 
 jest.mock('@/services/editor-insertion', () => ({
   insertEmbedAtCursor: jest.fn(),
-}));
-
-const modalOpenSpy = jest.fn();
-const modalConstructorSpy = jest.fn();
-
-jest.mock('@/ui/modals/edit-word-cloud-modal', () => ({
-  EmbedWordCloudModal: jest.fn().mockImplementation((app, service, onSubmit) => {
-    modalConstructorSpy(app, service, onSubmit);
-    return {
-      open: modalOpenSpy,
-    };
-  }),
 }));
 
 describe('registerCommands', () => {
@@ -100,10 +96,10 @@ describe('registerCommands', () => {
     command.callback?.();
 
     expect(mockedEmbedWordCloudModal).toHaveBeenCalledTimes(1);
-    expect(modalOpenSpy).toHaveBeenCalledTimes(1);
-    expect(modalConstructorSpy).toHaveBeenCalledWith(plugin.app, deps.services.wordCloud, expect.any(Function));
+    expect(mockModalOpenSpy).toHaveBeenCalledTimes(1);
+    expect(mockModalConstructorSpy).toHaveBeenCalledWith(plugin.app, deps.services.wordCloud, expect.any(Function));
 
-    const onSubmit = modalConstructorSpy.mock.calls[0]?.[2] as ((embedBlock: string) => void) | undefined;
+    const onSubmit = mockModalConstructorSpy.mock.calls[0]?.[2] as ((embedBlock: string) => void) | undefined;
     onSubmit?.('```wordcloud```');
     expect(mockedInsertEmbedAtCursor).toHaveBeenCalledWith(plugin.app, '```wordcloud```');
   });

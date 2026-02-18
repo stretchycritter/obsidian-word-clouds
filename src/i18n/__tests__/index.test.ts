@@ -12,7 +12,7 @@ jest.mock(
 );
 
 import { moment } from "obsidian";
-import { getActiveLocale, initI18n, setLocale, SUPPORTED_TRANSLATIONS, t } from "@/i18n/index";
+import { getActiveLocale, initI18n, setLocale, SUPPORTED_TRANSLATIONS, t } from "@/i18n";
 
 const mockedLocale = moment.locale as jest.MockedFunction<typeof moment.locale>;
 

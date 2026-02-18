@@ -329,11 +329,11 @@ jest.mock('obsidian', () => {
   };
 }, { virtual: true });
 
-jest.mock('@/ui/renderers/word-cloud-canvas-renderer', () => ({
+jest.mock('@/ui', () => ({
   renderWordCloudCanvas: jest.fn().mockResolvedValue(undefined),
 }));
 
-import { renderWordCloudCanvas } from '@/ui/renderers/word-cloud-canvas-renderer';
+import { renderWordCloudCanvas } from '@/ui';
 import { VaultWordCloudSettingTab } from '@/settings/tab';
 
 type MockServices = ReturnType<typeof createServicesMock>;

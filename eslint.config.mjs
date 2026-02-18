@@ -24,7 +24,7 @@ export default [
   },
   {
     files: ['src/**/*.ts'],
-    ignores: ['src/core/**/*.ts'],
+    ignores: ['src/core/**/*.ts', 'src/ui/**/*.ts', 'src/i18n/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -33,6 +33,14 @@ export default [
             {
               group: ['@/core/*'],
               message: 'Import from "@/core" instead of deep core internals.',
+            },
+            {
+              group: ['@/ui/*'],
+              message: 'Import from "@/ui" instead of deep ui internals.',
+            },
+            {
+              group: ['@/i18n/*'],
+              message: 'Import from "@/i18n" instead of deep i18n internals.',
             },
           ],
         },

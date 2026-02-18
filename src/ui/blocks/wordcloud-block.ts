@@ -12,9 +12,9 @@ import type {
   WordTextMetric,
 } from '@/settings/types';
 import type { WordCloudServices } from '@/services/types';
-import { EmbedWordCloudModal } from '@/ui/modals/edit-word-cloud-modal';
+import { EmbedWordCloudModal } from '@/ui';
 import { normalizeTag } from '@/utils/utils';
-import { renderWordCloudCanvas } from '@/ui/renderers/word-cloud-canvas-renderer';
+import { renderWordCloudCanvas } from '@/ui';
 
 type EmbeddedWordCloudScope = 'file' | 'vault' | 'folder';
 type EmbeddedWordCloudSize = 'small' | 'medium' | 'large';
