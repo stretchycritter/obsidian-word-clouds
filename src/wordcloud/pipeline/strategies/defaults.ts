@@ -1,5 +1,5 @@
-import { MAX_WORDS, MIN_WORD_LENGTH } from '../../../constants';
-import type { RenderSettings, WeightedWord } from '../../../types';
+import type { RenderSettings } from '../../../settings/types';
+import type { WeightedWord } from '../../../wordcloud/types';
 import { mapCountsToWeightedWords } from '../word-scaling';
 import type {
   AggregateResult,
@@ -13,6 +13,9 @@ import type {
   Token,
   TokenizerStrategy,
 } from '../types';
+
+const MAX_WORDS = 140;
+const MIN_WORD_LENGTH = 3;
 
 const defaultTokenizer: TokenizerStrategy = {
   tokenize(text: string): string[] {

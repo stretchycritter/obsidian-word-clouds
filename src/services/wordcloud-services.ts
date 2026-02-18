@@ -2,18 +2,17 @@ import type { App, TFile } from 'obsidian';
 import { drawWordCloud } from '../ui/renderers/word-cloud-renderer';
 import { openSearchForWord } from '../utils/apply-search';
 import type {
-  RenderSettings,
   SearchOptions,
   VaultCollectionOptions,
-  WordCloudFilterSettings,
   WordCloudRenderOptions,
   WordCloudServices,
-  WeightedWord,
-} from '../types';
+} from './types';
 import type { ObsidianService } from './obsidian-service';
 import type { SettingsService } from '../settings/service';
-import type { WordCloudSettings } from '../settings/types';
+import type { RenderSettings, WordCloudFilterSettings, WordCloudSettings } from '../settings/types';
 import type { WordCloudService } from '../wordcloud/application/wordcloud-service';
+import type { WeightedWord } from '../wordcloud/types';
+import { mergeRenderSettings } from './render-settings';
 
 export interface WordCloudSettingsControls {
   getSettingsSnapshot(): Readonly<WordCloudSettings>;
@@ -64,6 +63,7 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
     onProgress?: (message: string, percent: number) => void,
   ): Promise<WeightedWord[]> {
     const settings = this.settingsService.getSnapshot();
+    const renderSettings = mergeRenderSettings(settings.render, options.renderSettingsOverride);
     const sourceRules = options.sourceRules ?? {
       scope: settings.filters.scope,
       includeTags: settings.filters.includeTags,
@@ -76,7 +76,7 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
     return this.processor.collectFromFiles(
       this.obsidian.getMarkdownFiles(),
       this.settingsService.getExclusionListSet(),
-      settings.render,
+      renderSettings,
       onProgress,
       {
         sourceRules,
@@ -89,18 +89,23 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
   async collectFileWords(
     file: TFile,
     onProgress?: (message: string, percent: number) => void,
-    options?: { excludeWords?: string[] },
+    options?: {
+      excludeWords?: string[];
+      renderSettingsOverride?: Partial<RenderSettings>;
+    },
   ): Promise<WeightedWord[]> {
     const settings = this.settingsService.getSnapshot();
+    const renderSettings = mergeRenderSettings(settings.render, options?.renderSettingsOverride);
 
-    return this.processor.collectFromFiles([file], this.settingsService.getExclusionListSet(), settings.render, onProgress, {
+    return this.processor.collectFromFiles([file], this.settingsService.getExclusionListSet(), renderSettings, onProgress, {
       excludeWords: options?.excludeWords,
     });
   }
 
   async drawWordCloud(options: WordCloudRenderOptions): Promise<void> {
     const settings = this.settingsService.getSnapshot();
-    return drawWordCloud(options, settings.render);
+    const renderSettings = mergeRenderSettings(settings.render, options.renderSettingsOverride);
+    return drawWordCloud(options, renderSettings);
   }
 
   async openSearchForWord(word: string, options: SearchOptions = {}): Promise<void> {

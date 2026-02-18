@@ -1,12 +1,16 @@
 import { Plugin } from 'obsidian';
 import { registerCommands } from '@/commands/register';
-import { createDeps } from '@/create-deps';
-import type { Deps } from '@/deps';
+import type { Deps } from '@/types';
 import { registerEvents } from '@/events/register';
 import { initI18n } from '@/i18n';
-import { Disposer } from '@/lifecycle/disposer';
+import { Disposer } from '@/disposer';
 import { registerSettings } from '@/settings/register';
 import { registerUI } from '@/ui/register';
+import { EventCoordinator } from '@/events/coordinator';
+import { ObsidianService } from '@/services/obsidian-service';
+import { SettingsService } from '@/settings/service';
+import { WordCloudAppService } from '@/services/wordcloud-services';
+import { WordCloudService } from '@/wordcloud/application/wordcloud-service';
 
 export default class VaultWordCloudPlugin extends Plugin {
   private readonly disposer = new Disposer();
@@ -41,4 +45,27 @@ export default class VaultWordCloudPlugin extends Plugin {
   private registerTeardown(deps: Deps): void {
     this.disposer.add(deps.dispose);
   }
+}
+
+export async function createDeps(plugin: Plugin): Promise<Deps> {
+  const settingsService = new SettingsService(plugin);
+  await settingsService.load();
+
+  const obsidian = new ObsidianService(plugin.app);
+  const processor = new WordCloudService(plugin.app);
+  const wordCloud = new WordCloudAppService(plugin.app, obsidian, processor, settingsService);
+  const coordinator = new EventCoordinator();
+
+  return {
+    settingsService,
+    services: {
+      obsidian,
+      wordCloud,
+    },
+    coordinator,
+    dispose: () => {
+      coordinator.dispose();
+      settingsService.dispose();
+    },
+  };
 }

@@ -1,6 +1,6 @@
 import type { Plugin } from 'obsidian';
-import { VIEW_TYPE_NOTE_WORD_CLOUD, VIEW_TYPE_VAULT_WORD_CLOUD } from '@/constants';
-import type { Deps } from '@/deps';
+import { VIEW_TYPE_NOTE_WORD_CLOUD, VIEW_TYPE_VAULT_WORD_CLOUD } from '@/ui/constants';
+import type { Deps } from '@/types';
 import { t } from '../i18n';
 import { registerEmbeddedWordCloudProcessor } from './blocks/wordcloud-block';
 import { activateVaultWordCloudView } from './views/activate';

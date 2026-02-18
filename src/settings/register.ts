@@ -1,5 +1,5 @@
 import type { Plugin } from 'obsidian';
-import type { Deps } from '../deps';
+import type { Deps } from '../types';
 import { VaultWordCloudSettingTab } from './tab';
 
 export function registerSettings(plugin: Plugin, deps: Deps): void {

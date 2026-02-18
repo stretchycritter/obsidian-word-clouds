@@ -1,5 +1,5 @@
 import type { Plugin } from 'obsidian';
-import type { Deps } from '../deps';
+import type { Deps } from '../types';
 import { t } from '../i18n';
 import { EmbedWordCloudModal } from '../ui/modals/edit-word-cloud-modal';
 import { insertEmbedAtCursor } from '../services/editor-insertion';

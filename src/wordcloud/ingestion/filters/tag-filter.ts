@@ -1,6 +1,5 @@
 import type { App, TFile } from 'obsidian';
-import type { TagMatchMode } from '../../../types';
-import type { SourceSelectionRules } from '../../pipeline/types';
+import type { SourceSelectionRules, TagMatchMode } from '../../../settings/types';
 import { normalizeTag } from '../../../utils/utils';
 
 type FilePredicate = (file: TFile) => boolean;

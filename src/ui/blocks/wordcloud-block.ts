@@ -1,8 +1,20 @@
 import { MarkdownPostProcessorContext, MarkdownView, Notice, Plugin, TFile } from 'obsidian';
-import type { TagMatchMode, WordCloudServices } from '../../types';
+import type {
+  FrontmatterOperator,
+  FrontmatterRule,
+  PerformanceMode,
+  RenderSettings,
+  RotationPreset,
+  ScalingMode,
+  SourceScope,
+  SpiralType,
+  TagMatchMode,
+  WordTextMetric,
+} from '../../settings/types';
+import type { WordCloudServices } from '../../services/types';
 import { EmbedWordCloudModal } from '../modals/edit-word-cloud-modal';
-import type { FrontmatterOperator, FrontmatterRule, SourceScope } from '../../wordcloud/pipeline/types';
 import { normalizeTag } from '../../utils/utils';
+import { renderWordCloudCanvas } from '../renderers/word-cloud-canvas-renderer';
 
 type EmbeddedWordCloudScope = 'file' | 'vault' | 'folder';
 type EmbeddedWordCloudSize = 'small' | 'medium' | 'large';
@@ -20,6 +32,7 @@ type EmbeddedWordCloudOptions = {
   maxCount: number;
   excludeWords: string[];
   interactions: boolean;
+  renderSettingsOverride: Partial<RenderSettings>;
   specificFilePath?: string;
 };
 
@@ -48,6 +61,7 @@ const DEFAULT_OPTIONS: EmbeddedWordCloudOptions = {
   maxCount: 9999,
   excludeWords: [],
   interactions: true,
+  renderSettingsOverride: {},
 };
 
 const FRONTMATTER_OPERATORS = new Set<FrontmatterOperator>([
@@ -70,6 +84,7 @@ const EMBED_SIZE_HEIGHT: Record<EmbeddedWordCloudSize, number> = {
   large: 440,
 };
 const embeddedRenderStates = new WeakMap<HTMLElement, EmbeddedRenderState>();
+const embeddedRenderNonces = new WeakMap<HTMLElement, { value: number }>();
 const embeddedCloudInstances = new WeakMap<HTMLElement, EmbeddedCloudInstance>();
 const embeddedCloudsBySourcePath = new Map<string, Set<HTMLElement>>();
 const sourcePathRefreshTimers = new Map<string, number>();
@@ -84,42 +99,24 @@ export function registerEmbeddedWordCloudProcessor(
       void render(source, el, ctx);
     });
     const options = parseOptions(source);
+    const nonceRef = embeddedRenderNonces.get(el) ?? { value: 0 };
+    embeddedRenderNonces.set(el, nonceRef);
 
     el.empty();
     const wrapperEl = el.createDiv({ cls: 'word-cloud-embed' });
-    const stateEl = wrapperEl.createDiv({ cls: 'word-cloud-embed-state', text: 'Building cloud...' });
     const canvasEl = wrapperEl.createDiv({ cls: 'word-cloud-embed-canvas' });
     canvasEl.style.height = `${EMBED_SIZE_HEIGHT[options.size]}px`;
-
-    const updateProgress = (message: string, percent: number): void => {
-      stateEl.setText(`${message} (${percent}%)`);
-    };
 
     try {
       const sourceScope = resolveSourceScope(plugin, ctx, options);
       if (options.scope === 'file' && !sourceScope.activeFilePath) {
-        stateEl.setText('Could not resolve the file for this embedded cloud.');
+        wrapperEl.createDiv({ cls: 'word-cloud-embed-state', text: 'Could not resolve the file for this embedded cloud.' });
         return;
       }
       if (options.scope === 'folder' && (sourceScope.folderPaths?.length ?? 0) === 0) {
-        stateEl.setText('Add at least one folder path for folder scope.');
+        wrapperEl.createDiv({ cls: 'word-cloud-embed-state', text: 'Add at least one folder path for folder scope.' });
         return;
       }
-
-      const words = await services.collectVaultWords({
-        sourceRules: {
-          scope: sourceScope,
-          includeTags: options.includeTags,
-          excludeTags: options.excludeTags,
-          tagMatchMode: options.tagMatchMode,
-          frontmatterRules: options.frontmatterRules,
-        },
-        frequency: {
-          minCount: options.minCount,
-          maxCount: options.maxCount,
-        },
-        excludeWords: options.excludeWords,
-      }, updateProgress);
 
       let searchScope: { filePath?: string; includeTags?: string[]; excludeTags?: string[]; tagMatchMode?: TagMatchMode } = {};
       if (options.scope === 'file' && sourceScope.activeFilePath) {
@@ -132,47 +129,79 @@ export function registerEmbeddedWordCloudProcessor(
         };
       }
 
-      if (words.length === 0) {
-        stateEl.setText('No words found for this embedded cloud.');
-        return;
-      }
-
-      await services.drawWordCloud({
+      await renderWordCloudCanvas({
+        nonceRef,
         containerEl: canvasEl,
-        words,
-        ariaLabel: 'Embedded word cloud',
-        onProgress: updateProgress,
-        onRefresh: () => render(source, el, ctx),
-        onExcludeInCloud: async (word) => {
-          const changed = await updateEmbeddedCloudExcludedWords(plugin, ctx, el, source, word);
-          if (changed) {
-            new Notice(`Excluded "${word}" in this cloud.`);
-          } else {
-            new Notice(`"${word}" is already excluded in this cloud.`);
-          }
+        services,
+        errorLogPrefix: 'Word clouds',
+        createStatusHandle: (initialText) => {
+          const stateEl = wrapperEl.createDiv({ cls: 'word-cloud-embed-state', text: initialText });
+          return {
+            setText: (text) => stateEl.setText(text),
+            remove: () => stateEl.remove(),
+          };
         },
-        onExcludeInVault: async (word) => {
-          const added = await services.addExclusionListWord(word);
-          new Notice(added ? `Excluded "${word}" from word clouds.` : `"${word}" is already excluded.`);
+        renderEmptyState: (message) => {
+          wrapperEl.createDiv({ cls: 'word-cloud-embed-state', text: message });
         },
-        onEdit: () => {
-          openEmbeddedWordCloudEditWizard(plugin, services, ctx, el, options);
+        renderErrorState: (message) => {
+          wrapperEl.createDiv({ cls: 'word-cloud-embed-state', text: message });
         },
-        enableOverlayControls: true,
-        enableViewportInteraction: options.interactions,
-        showRefreshControl: true,
-        showZoomControls: options.interactions,
-        showEditControl: true,
+        resolveScopeFilePath: () => sourceScope.activeFilePath ?? '',
+        resolveExtraContext: () => ({ sourceScope }),
+        getAriaLabel: () => 'Embedded word cloud',
+        getNoWordsMessage: () => 'No words found for this embedded cloud.',
+        getRenderSettingsOverride: () => options.renderSettingsOverride,
+        getWords: async (_context, updateProgress, renderSettingsOverride) => {
+          return services.collectVaultWords({
+            sourceRules: {
+              scope: sourceScope,
+              includeTags: options.includeTags,
+              excludeTags: options.excludeTags,
+              tagMatchMode: options.tagMatchMode,
+              frontmatterRules: options.frontmatterRules,
+            },
+            frequency: {
+              minCount: options.minCount,
+              maxCount: options.maxCount,
+            },
+            excludeWords: options.excludeWords,
+            renderSettingsOverride,
+          }, updateProgress);
+        },
         onWordClick: (word) => {
           void services.openSearchForWord(word, searchScope);
         },
+        getDrawOptions: () => ({
+          onExcludeInCloud: async (word) => {
+            const changed = await updateEmbeddedCloudExcludedWords(plugin, ctx, el, source, word);
+            if (changed) {
+              new Notice(`Excluded "${word}" in this cloud.`);
+            } else {
+              new Notice(`"${word}" is already excluded in this cloud.`);
+            }
+          },
+          onExcludeInVault: async (word) => {
+            const added = await services.addExclusionListWord(word);
+            new Notice(added ? `Excluded "${word}" from word clouds.` : `"${word}" is already excluded.`);
+          },
+          onEdit: () => {
+            openEmbeddedWordCloudEditWizard(plugin, services, ctx, el, options);
+          },
+          enableOverlayControls: true,
+          enableViewportInteraction: options.interactions,
+          showRefreshControl: true,
+          showZoomControls: options.interactions,
+          showEditControl: true,
+        }),
+        onRefresh: () => render(source, el, ctx),
+        onAfterRender: () => {
+          registerEmbeddedResizeObserver(el, canvasEl, () => render(source, el, ctx));
+        },
       });
-
-      stateEl.remove();
-      registerEmbeddedResizeObserver(el, canvasEl, () => render(source, el, ctx));
     } catch (error) {
       console.error('Word clouds: failed to render embedded cloud', error);
-      stateEl.setText('Could not render embedded word cloud.');
+      wrapperEl.createDiv({ cls: 'word-cloud-embed-state', text: 'Could not render embedded word cloud.' });
     }
   };
 
@@ -359,6 +388,11 @@ function parseOptions(source: string): EmbeddedWordCloudOptions {
       if (!scopeWasExplicitlySet) {
         options.scope = 'file';
       }
+      continue;
+    }
+
+    if (parseRenderSettingOption(rawKey, rawValue, options.renderSettingsOverride)) {
+      continue;
     }
   }
 
@@ -367,6 +401,227 @@ function parseOptions(source: string): EmbeddedWordCloudOptions {
   options.maxCount = Math.max(options.minCount, options.maxCount);
 
   return options;
+}
+
+const ROTATION_PRESETS = new Set<RotationPreset>([
+  'horizontal',
+  'mostly-horizontal',
+  'mixed',
+  'vertical',
+]);
+
+const SPIRAL_TYPES = new Set<SpiralType>([
+  'archimedean',
+  'rectangular',
+]);
+
+const SCALING_MODES = new Set<ScalingMode>([
+  'linear',
+  'power',
+  'log',
+  'rank',
+]);
+
+const WORD_TEXT_METRICS = new Set<WordTextMetric>([
+  'count',
+  'frequency',
+]);
+
+const PERFORMANCE_MODES = new Set<PerformanceMode>([
+  'full-speed',
+  'balanced',
+  'throttled',
+]);
+
+function parseRenderSettingOption(
+  rawKey: string,
+  rawValue: string,
+  target: Partial<RenderSettings>,
+): boolean {
+  const key = rawKey.trim().toLowerCase().replace(/_/g, '-');
+  const value = rawValue.trim();
+
+  const setNumber = (
+    setter: (next: number) => void,
+    minimum?: number,
+    maximum?: number,
+  ): boolean => {
+    const parsed = Number.parseFloat(value);
+    if (Number.isNaN(parsed)) {
+      return false;
+    }
+    const bounded = Math.min(maximum ?? parsed, Math.max(minimum ?? parsed, parsed));
+    setter(bounded);
+    return true;
+  };
+
+  const setInteger = (
+    setter: (next: number) => void,
+    minimum?: number,
+    maximum?: number,
+  ): boolean => {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isNaN(parsed)) {
+      return false;
+    }
+    const bounded = Math.min(maximum ?? parsed, Math.max(minimum ?? parsed, parsed));
+    setter(bounded);
+    return true;
+  };
+
+  const setBoolean = (setter: (next: boolean) => void): boolean => {
+    const parsed = parseBooleanOption(value, false);
+    if (
+      value.toLowerCase() !== 'true'
+      && value.toLowerCase() !== 'yes'
+      && value.toLowerCase() !== 'on'
+      && value !== '1'
+      && value.toLowerCase() !== 'false'
+      && value.toLowerCase() !== 'no'
+      && value.toLowerCase() !== 'off'
+      && value !== '0'
+    ) {
+      return false;
+    }
+    setter(parsed);
+    return true;
+  };
+
+  const normalizedEnum = value.toLowerCase().replace(/\s+/g, '-');
+
+  if (key === 'rotation' || key === 'rotation-preset') {
+    if (!ROTATION_PRESETS.has(normalizedEnum as RotationPreset)) {
+      return false;
+    }
+    target.rotationPreset = normalizedEnum as RotationPreset;
+    return true;
+  }
+
+  if (key === 'spiral') {
+    if (!SPIRAL_TYPES.has(normalizedEnum as SpiralType)) {
+      return false;
+    }
+    target.spiral = normalizedEnum as SpiralType;
+    return true;
+  }
+
+  if (key === 'word-padding' || key === 'padding') {
+    return setNumber((next) => {
+      target.wordPadding = next;
+    }, 0);
+  }
+
+  if (key === 'min-font-size' || key === 'min-font') {
+    return setNumber((next) => {
+      target.minFontSize = next;
+    }, 1);
+  }
+
+  if (key === 'max-font-size' || key === 'max-font') {
+    return setNumber((next) => {
+      target.maxFontSize = next;
+    }, 1);
+  }
+
+  if (key === 'font' || key === 'font-family') {
+    if (!value) {
+      return false;
+    }
+    target.fontFamily = value;
+    return true;
+  }
+
+  if (key === 'scaling' || key === 'scaling-mode') {
+    if (!SCALING_MODES.has(normalizedEnum as ScalingMode)) {
+      return false;
+    }
+    target.scalingMode = normalizedEnum as ScalingMode;
+    return true;
+  }
+
+  if (key === 'emphasis') {
+    return setNumber((next) => {
+      target.emphasis = next;
+    }, 0.1);
+  }
+
+  if (key === 'show-count-in-word-text' || key === 'show-count-labels') {
+    return setBoolean((next) => {
+      target.showCountInWordText = next;
+    });
+  }
+
+  if (key === 'word-text-metric' || key === 'text-metric') {
+    if (!WORD_TEXT_METRICS.has(normalizedEnum as WordTextMetric)) {
+      return false;
+    }
+    target.wordTextMetric = normalizedEnum as WordTextMetric;
+    return true;
+  }
+
+  if (key === 'show-word-text-metric-toggle' || key === 'show-metric-toggle') {
+    return setBoolean((next) => {
+      target.showWordTextMetricToggle = next;
+    });
+  }
+
+  if (key === 'count-label-min-count' || key === 'min-count-label') {
+    return setInteger((next) => {
+      target.countLabelMinCount = next;
+    }, 1);
+  }
+
+  if (key === 'performance-mode' || key === 'performance') {
+    if (!PERFORMANCE_MODES.has(normalizedEnum as PerformanceMode)) {
+      return false;
+    }
+    target.performanceMode = normalizedEnum as PerformanceMode;
+    return true;
+  }
+
+  if (key === 'scan-batch-size' || key === 'batch-size') {
+    return setInteger((next) => {
+      target.scanBatchSize = next;
+    }, 1);
+  }
+
+  if (key === 'layout-time-interval-ms' || key === 'layout-interval-ms') {
+    return setInteger((next) => {
+      target.layoutTimeIntervalMs = next;
+    }, 0);
+  }
+
+  if (key === 'deterministic-layout' || key === 'deterministic') {
+    return setBoolean((next) => {
+      target.deterministicLayout = next;
+    });
+  }
+
+  if (key === 'random-seed' || key === 'seed') {
+    return setInteger((next) => {
+      target.randomSeed = next;
+    });
+  }
+
+  if (key === 'enable-mouse-interactions' || key === 'mouse-interactions') {
+    return setBoolean((next) => {
+      target.enableMouseInteractions = next;
+    });
+  }
+
+  if (key === 'enable-controls' || key === 'overlay-controls') {
+    return setBoolean((next) => {
+      target.enableControls = next;
+    });
+  }
+
+  if (key === 'enable-exporting' || key === 'exporting') {
+    return setBoolean((next) => {
+      target.enableExporting = next;
+    });
+  }
+
+  return false;
 }
 
 function parseScopeOption(value: string): EmbeddedWordCloudScope | null {

@@ -6,11 +6,12 @@ import type {
   RotationPreset,
   ScalingMode,
   SpiralType,
-  WeightedWord,
-} from '../types';
-import type { WordCloudServices } from '../types';
+} from './types';
+import type { WordCloudServices } from '../services/types';
+import type { WeightedWord } from '../wordcloud/types';
 import type { WordCloudSettingsControls } from '../services/wordcloud-services';
 import { mapCountsToWeightedWords } from '../wordcloud/pipeline/word-scaling';
+import { renderWordCloudCanvas } from '../ui/renderers/word-cloud-canvas-renderer';
 
 type SettingsTabServices = WordCloudServices & WordCloudSettingsControls;
 const SUPPORTED_FONT_FAMILIES: Array<{ value: string; label: string }> = [
@@ -122,36 +123,45 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
     const previewWrapperEl = containerEl.createDiv({ cls: 'vault-word-cloud-settings-preview' });
     const previewCanvasEl = previewWrapperEl.createDiv({ cls: 'vault-word-cloud-settings-preview-canvas' });
 
-    let previewNonce = 0;
+    const previewNonce = { value: 0 };
     const rerenderPreview = async (): Promise<void> => {
-      const nonce = ++previewNonce;
-      previewCanvasEl.empty();
-      const loadingEl = previewCanvasEl.createDiv({ cls: 'vault-word-cloud-state', text: 'Rendering preview...' });
-
-      try {
-        const sampleWords = this.buildPreviewWords(this.services.getSettingsSnapshot().render);
-        loadingEl.remove();
-        await this.services.drawWordCloud({
-          containerEl: previewCanvasEl,
-          words: sampleWords,
-          ariaLabel: 'Word cloud render preview',
-          onRefresh: rerenderPreview,
-          onWordClick: () => {
-            // no-op in settings preview
-          },
+      await renderWordCloudCanvas({
+        nonceRef: previewNonce,
+        containerEl: previewCanvasEl,
+        services: this.services,
+        errorLogPrefix: 'Word clouds settings preview',
+        createStatusHandle: (initialText) => {
+          const stateEl = previewCanvasEl.createDiv({ cls: 'vault-word-cloud-state', text: initialText });
+          return {
+            setText: (text) => stateEl.setText(text),
+            remove: () => stateEl.remove(),
+          };
+        },
+        renderEmptyState: (message) => {
+          previewCanvasEl.createDiv({
+            cls: 'vault-word-cloud-state',
+            text: message,
+          });
+        },
+        renderErrorState: (_message) => {
+          previewCanvasEl.createDiv({
+            cls: 'vault-word-cloud-state',
+            text: 'Could not render preview.',
+          });
+        },
+        resolveScopeFilePath: () => '',
+        resolveExtraContext: () => null,
+        getAriaLabel: () => 'Word cloud render preview',
+        getNoWordsMessage: () => 'No preview words available.',
+        getWords: async () => this.buildPreviewWords(this.services.getSettingsSnapshot().render),
+        onWordClick: () => {
+          // no-op in settings preview
+        },
+        getDrawOptions: () => ({
           enableExport: false,
-        });
-      } catch {
-        if (nonce !== previewNonce) {
-          return;
-        }
-
-        loadingEl.remove();
-        previewCanvasEl.createDiv({
-          cls: 'vault-word-cloud-state',
-          text: 'Could not render preview.',
-        });
-      }
+        }),
+        onRefresh: rerenderPreview,
+      });
     };
 
     const updateRenderAndPreview = async (patch: Partial<RenderSettings>): Promise<void> => {

@@ -1,4 +1,4 @@
-import type { FrequencyThresholds } from '../types';
+import type { FrequencyThresholds } from '../../../settings/types';
 
 export function applyFrequencyThresholds(
   entries: Array<[string, number]>,
@@ -22,4 +22,3 @@ function clampThreshold(value: number | undefined, fallback: number): number {
 
   return Math.max(1, Math.round(value));
 }
-

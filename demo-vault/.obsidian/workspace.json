@@ -4,17 +4,22 @@
     "type": "split",
     "children": [
       {
-        "id": "c4da722e959b5ec0",
+        "id": "dbeffe65e5c5197d",
         "type": "tabs",
         "children": [
           {
-            "id": "17af91789c483039",
+            "id": "b61b35ffa44335b7",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "00 - Word Clouds Plugin Home.md",
+                "mode": "source",
+                "source": false,
+                "backlinks": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "00 - Word Clouds Plugin Home"
             }
           }
         ]
@@ -81,11 +86,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
+                "file": "00 - Word Clouds Plugin Home.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links"
+              "title": "Outgoing links from 00 - Word Clouds Plugin Home"
             }
           },
           {
@@ -135,7 +141,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200
+    "width": 200,
+    "collapsed": true
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -144,8 +151,9 @@
       "word-clouds:Open word clouds": false
     }
   },
-  "active": "b77233d9637886ba",
+  "active": "b61b35ffa44335b7",
   "lastOpenFiles": [
+    "Untitled.md",
     "00 - Word Clouds Plugin Home.md",
     "Features/Vault Word Cloud.md",
     "Features/Note Word Cloud.md",

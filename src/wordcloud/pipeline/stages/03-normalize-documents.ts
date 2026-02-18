@@ -1,5 +1,7 @@
-import { FRONTMATTER_PATTERN, WORD_CLOUD_BLOCK_PATTERN } from '../../../constants';
 import type { NormalizedDocument, PipelineDocument } from '../types';
+
+const FRONTMATTER_PATTERN = /^---\s*\n[\s\S]*?\n---\s*(?:\n|$)/;
+const WORD_CLOUD_BLOCK_PATTERN = /```(?:wordcloud|word-cloud)\s*\n[\s\S]*?\n```/gi;
 
 export function normalizeDocuments(documents: PipelineDocument[]): NormalizedDocument[] {
   return documents.map((document) => ({

@@ -1,6 +1,6 @@
 import { createRenderModel } from '../09-create-render-model';
 import type { AggregateResult, RenderModel, RenderModelStrategy } from '../../types';
-import type { WeightedWord } from '../../../../types';
+import type { WeightedWord } from '../../../../wordcloud/types';
 
 describe('createRenderModel', () => {
   it('delegates render model construction to the configured strategy', () => {

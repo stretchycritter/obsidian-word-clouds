@@ -1,5 +1,5 @@
 import type { App, CachedMetadata, TFile } from 'obsidian';
-import type { SourceSelectionRules } from '../../../pipeline/types';
+import type { SourceSelectionRules } from '../../../../settings/types';
 import { compileTagPredicate } from '../tag-filter';
 
 describe('compileTagPredicate', () => {

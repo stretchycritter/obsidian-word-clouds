@@ -1,6 +1,6 @@
 import { setIcon } from 'obsidian';
-import type { SourceScopeMode } from '../../wordcloud/pipeline/types';
-import type { WordCloudFilterSettings, WordCloudServices } from '../../types';
+import type { SourceScopeMode, WordCloudFilterSettings } from '../../settings/types';
+import type { WordCloudServices } from '../../services/types';
 
 const ALL_FREQUENCIES_MIN = 1;
 const ALL_FREQUENCIES_MAX = 9999;

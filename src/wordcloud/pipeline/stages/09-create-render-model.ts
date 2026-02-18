@@ -1,5 +1,5 @@
 import type { AggregateResult, RenderModel, RenderModelStrategy } from '../types';
-import type { WeightedWord } from '../../../types';
+import type { WeightedWord } from '../../../wordcloud/types';
 
 export function createRenderModel(
   words: WeightedWord[],

@@ -1,5 +1,5 @@
 import type { App } from 'obsidian';
-import { VIEW_TYPE_NOTE_WORD_CLOUD, VIEW_TYPE_VAULT_WORD_CLOUD } from '@/constants';
+import { VIEW_TYPE_NOTE_WORD_CLOUD, VIEW_TYPE_VAULT_WORD_CLOUD } from '@/ui/constants';
 
 export async function activateVaultWordCloudView(app: App): Promise<void> {
   const { workspace } = app;

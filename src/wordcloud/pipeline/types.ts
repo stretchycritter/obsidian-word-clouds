@@ -1,4 +1,5 @@
-import type { RenderSettings, TagMatchMode, WeightedWord } from '../../types';
+import type { FrequencyThresholds, RenderSettings, SourceSelectionRules } from '../../settings/types';
+import type { WeightedWord } from '../../wordcloud/types';
 
 export type PipelineDocument = {
   id: string;
@@ -7,71 +8,6 @@ export type PipelineDocument = {
   rawText: string;
   tags: string[];
   frontmatter: Record<string, unknown>;
-};
-
-export type SourceScopeMode = 'vault' | 'active-file' | 'folder';
-
-export type SourceScope = {
-  mode: SourceScopeMode;
-  activeFilePath?: string;
-  folderPaths?: string[];
-};
-
-export type FrontmatterOperator = 'equals' | 'not-equals' | 'contains' | 'gt' | 'gte' | 'lt' | 'lte' | 'exists' | 'not-exists';
-
-export type FrontmatterRule = {
-  key: string;
-  operator: FrontmatterOperator;
-  value?: string;
-};
-
-export type PathRules = {
-  folderPrefixes?: string[];
-  exactFolders?: string[];
-  subfolderRoots?: string[];
-  filenameEquals?: string[];
-  filenameRegex?: string;
-  extensions?: string[];
-};
-
-export type DateRangeRule = {
-  before?: number;
-  after?: number;
-  between?: {
-    start: number;
-    end: number;
-  };
-};
-
-export type LinkRules = {
-  filePaths?: string[];
-  folderPrefixes?: string[];
-  minCount?: number;
-  maxCount?: number;
-  withTags?: string[];
-  tagMatchMode?: TagMatchMode;
-};
-
-export type FrequencyThresholds = {
-  minCount?: number;
-  maxCount?: number;
-};
-
-export type SourceSelectionRules = {
-  scope?: SourceScope;
-  pathRules?: PathRules;
-  includeTags?: string[];
-  excludeTags?: string[];
-  includeTagPrefixes?: string[];
-  excludeTagPrefixes?: string[];
-  tagPrefixMatchMode?: TagMatchMode;
-  tagMatchMode?: TagMatchMode;
-  frontmatterRules?: FrontmatterRule[];
-  modifiedTime?: DateRangeRule;
-  createdTime?: DateRangeRule;
-  outgoingLinks?: LinkRules;
-  incomingLinks?: LinkRules;
-  queryText?: string;
 };
 
 export type PipelineInput = {

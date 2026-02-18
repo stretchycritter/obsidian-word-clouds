@@ -1,5 +1,5 @@
 import type { App, CachedMetadata, TAbstractFile, TFile } from 'obsidian';
-import type { SourceSelectionRules } from '../../../pipeline/types';
+import type { SourceSelectionRules } from '../../../../settings/types';
 import { compileIncomingLinkPredicate, compileOutgoingLinkPredicate } from '../link-filter';
 
 describe('link predicates', () => {

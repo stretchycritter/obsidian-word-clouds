@@ -1,101 +1,14 @@
-import type { TFile } from 'obsidian';
-import type { FrequencyThresholds, FrontmatterRule, SourceSelectionRules, SourceScope } from './wordcloud/pipeline/types';
+import type { EventCoordinator } from './events/coordinator';
+import type { ObsidianService } from './services/obsidian-service';
+import type { SettingsService } from './settings/service';
+import type { WordCloudAppService } from './services/wordcloud-services';
 
-export type TagMatchMode = 'any' | 'all';
-
-export type WeightedWord = {
-  text: string;
-  count: number;
-  size: number;
+export type Deps = {
+  settingsService: SettingsService;
+  services: {
+    obsidian: ObsidianService;
+    wordCloud: WordCloudAppService;
+  };
+  coordinator: EventCoordinator;
+  dispose: () => void;
 };
-
-export type RotationPreset = 'horizontal' | 'mostly-horizontal' | 'mixed' | 'vertical';
-export type SpiralType = 'archimedean' | 'rectangular';
-export type ScalingMode = 'linear' | 'power' | 'log' | 'rank';
-export type WordTextMetric = 'count' | 'frequency';
-export type PerformanceMode = 'full-speed' | 'balanced' | 'throttled';
-
-export type RenderSettings = {
-  rotationPreset: RotationPreset;
-  spiral: SpiralType;
-  wordPadding: number;
-  minFontSize: number;
-  maxFontSize: number;
-  fontFamily: string;
-  scalingMode: ScalingMode;
-  emphasis: number;
-  showCountInWordText: boolean;
-  wordTextMetric: WordTextMetric;
-  showWordTextMetricToggle: boolean;
-  countLabelMinCount: number;
-  performanceMode: PerformanceMode;
-  scanBatchSize: number;
-  layoutTimeIntervalMs: number;
-  deterministicLayout: boolean;
-  randomSeed: number;
-  enableMouseInteractions: boolean;
-  enableControls: boolean;
-  enableExporting: boolean;
-};
-
-export type WordCloudRenderOptions = {
-  containerEl: HTMLDivElement;
-  words: WeightedWord[];
-  ariaLabel: string;
-  onWordClick: (word: string) => void;
-  onExcludeInCloud?: (word: string) => void | Promise<void>;
-  onExcludeInVault?: (word: string) => void | Promise<void>;
-  onRefresh: () => void | Promise<void>;
-  onEdit?: () => void | Promise<void>;
-  onProgress?: (message: string, percent: number) => void;
-  exportBaseName?: string;
-  enableExport?: boolean;
-  enableOverlayControls?: boolean;
-  enableViewportInteraction?: boolean;
-  showRefreshControl?: boolean;
-  showZoomControls?: boolean;
-  showEditControl?: boolean;
-};
-
-export type SearchOptions = {
-  includeTags?: string[];
-  excludeTags?: string[];
-  tagMatchMode?: TagMatchMode;
-  filePath?: string;
-};
-
-export type VaultCollectionOptions = {
-  sourceRules?: SourceSelectionRules;
-  frequency?: FrequencyThresholds;
-  excludeWords?: string[];
-};
-
-export type WordCloudFilterSettings = {
-  scope: SourceScope;
-  includeTags: string[];
-  excludeTags: string[];
-  tagMatchMode: TagMatchMode;
-  frontmatterRules: FrontmatterRule[];
-  frequency: Required<FrequencyThresholds>;
-};
-
-export interface WordCloudServices {
-  getAvailableTags(): string[];
-  getAvailableFolders(): string[];
-  getOpenMarkdownFiles(): TFile[];
-  getActiveFile(): TFile | null;
-  getFilterSettings(): WordCloudFilterSettings;
-  updateFilterSettings(patch: Partial<WordCloudFilterSettings>): Promise<void>;
-  collectVaultWords(
-    options?: VaultCollectionOptions,
-    onProgress?: (message: string, percent: number) => void,
-  ): Promise<WeightedWord[]>;
-  collectFileWords(
-    file: TFile,
-    onProgress?: (message: string, percent: number) => void,
-    options?: { excludeWords?: string[] },
-  ): Promise<WeightedWord[]>;
-  drawWordCloud(options: WordCloudRenderOptions): Promise<void>;
-  openSearchForWord(word: string, options?: SearchOptions): Promise<void>;
-  addExclusionListWord(rawWord: string): Promise<boolean>;
-}

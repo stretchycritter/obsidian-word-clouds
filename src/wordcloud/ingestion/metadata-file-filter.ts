@@ -1,5 +1,5 @@
 import type { App, TFile } from 'obsidian';
-import type { SourceSelectionRules } from '../pipeline/types';
+import type { SourceSelectionRules } from '../../settings/types';
 import { compilePathPredicate } from './filters/path-filter';
 import { compileTagPredicate } from './filters/tag-filter';
 import { compileDatePredicate } from './filters/date-filter';

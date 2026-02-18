@@ -1,4 +1,4 @@
-import type { SourceSelectionRules } from '../../pipeline/types';
+import type { SourceSelectionRules } from '../../../settings/types';
 import type { TFile } from 'obsidian';
 
 type FilePredicate = (file: TFile) => boolean;

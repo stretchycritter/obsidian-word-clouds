@@ -1,11 +1,13 @@
-import { ItemView, Notice, WorkspaceLeaf } from 'obsidian';
-import { VIEW_TYPE_VAULT_WORD_CLOUD } from '@/constants';
-import type { WordCloudFilterSettings, WordCloudServices } from '@/types';
+import { ItemView, WorkspaceLeaf } from 'obsidian';
+import { VIEW_TYPE_VAULT_WORD_CLOUD } from '@/ui/constants';
+import type { RenderSettings, WordCloudFilterSettings } from '@/settings/types';
+import type { WordCloudServices } from '@/services/types';
 import { WordCloudFilterPanel } from '../components/filter-panel';
+import { renderWordCloudCanvas } from '../renderers/word-cloud-canvas-renderer';
 
 export class VaultWordCloudView extends ItemView {
   private readonly services: WordCloudServices;
-  private renderNonce = 0;
+  private readonly renderNonce = { value: 0 };
   private filters: WordCloudFilterSettings;
 
   constructor(leaf: WorkspaceLeaf, services: WordCloudServices) {
@@ -71,77 +73,49 @@ export class VaultWordCloudView extends ItemView {
     }
   }
 
-  private async renderCloud(containerEl: HTMLDivElement): Promise<void> {
-    const activeNonce = ++this.renderNonce;
-    containerEl.empty();
-    const loadingEl = containerEl.createDiv({ cls: 'vault-word-cloud-state', text: 'Building cloud...' });
-    const updateProgress = (message: string, percent: number): void => {
-      if (activeNonce !== this.renderNonce) {
-        return;
-      }
-      loadingEl.setText(`${message} (${percent}%)`);
-    };
-
-    try {
-      const activeFilePath = this.services.getActiveFile()?.path ?? '';
-      const words = await this.services.collectVaultWords({
-        sourceRules: {
-          scope: {
-            ...this.filters.scope,
-            activeFilePath,
-          },
-          includeTags: this.filters.includeTags,
-          excludeTags: this.filters.excludeTags,
-          tagMatchMode: this.filters.tagMatchMode,
-          frontmatterRules: this.filters.frontmatterRules,
-        },
-        frequency: this.filters.frequency,
-      }, updateProgress);
-
-      if (words.length === 0) {
-        loadingEl.remove();
+  private async renderCloud(
+    containerEl: HTMLDivElement,
+    renderSettingsOverride?: Partial<RenderSettings>,
+  ): Promise<void> {
+    await renderWordCloudCanvas({
+      nonceRef: this.renderNonce,
+      containerEl,
+      services: this.services,
+      filters: this.filters,
+      errorLogPrefix: 'Vault word cloud',
+      createStatusHandle: (initialText) => {
+        const stateEl = containerEl.createDiv({ cls: 'vault-word-cloud-state', text: initialText });
+        return {
+          setText: (text) => stateEl.setText(text),
+          remove: () => stateEl.remove(),
+        };
+      },
+      renderEmptyState: (message) => {
         containerEl.createDiv({
           cls: 'vault-word-cloud-state',
-          text: 'No words found for the selected filters.',
+          text: message,
         });
-        return;
-      }
-
-      await this.services.drawWordCloud({
-        containerEl,
-        words,
-        ariaLabel: 'Word cloud based on markdown files in the vault',
-        onProgress: updateProgress,
-        onRefresh: () => this.renderCloud(containerEl),
-        onExcludeInVault: async (word) => {
-          const added = await this.services.addExclusionListWord(word);
-          new Notice(added ? `Excluded "${word}" from word clouds.` : `"${word}" is already excluded.`);
-          await this.renderCloud(containerEl);
-        },
-        onWordClick: (word) => {
-          void this.services.openSearchForWord(word, {
-            includeTags: this.filters.includeTags,
-            excludeTags: this.filters.excludeTags,
-            tagMatchMode: this.filters.tagMatchMode,
-            filePath: this.filters.scope.mode === 'active-file'
-              ? activeFilePath
-              : undefined,
-          });
-        },
-      });
-
-      if (activeNonce !== this.renderNonce) {
-        return;
-      }
-
-      loadingEl.remove();
-    } catch (error) {
-      loadingEl.remove();
-      console.error('Vault word cloud: failed to render cloud', error);
-      containerEl.createDiv({
-        cls: 'vault-word-cloud-state',
-        text: 'Could not render the word cloud. Open developer console for details.',
-      });
-    }
+      },
+      renderErrorState: (message) => {
+        containerEl.createDiv({
+          cls: 'vault-word-cloud-state',
+          text: message,
+        });
+      },
+      resolveScopeFilePath: () => this.services.getActiveFile()?.path ?? '',
+      resolveExtraContext: () => null,
+      getAriaLabel: () => 'Word cloud based on markdown files in the vault',
+      getNoWordsMessage: () => 'No words found for the selected filters.',
+      getSearchOptions: ({ scopeFilePath, filters }) => ({
+        includeTags: filters?.includeTags ?? [],
+        excludeTags: filters?.excludeTags ?? [],
+        tagMatchMode: filters?.tagMatchMode ?? 'any',
+        filePath: filters?.scope.mode === 'active-file'
+          ? scopeFilePath
+          : undefined,
+      }),
+      getRenderSettingsOverride: () => renderSettingsOverride,
+      onRefresh: () => this.renderCloud(containerEl, renderSettingsOverride),
+    });
   }
 }

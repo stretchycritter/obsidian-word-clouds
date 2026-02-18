@@ -1,12 +1,14 @@
 import type { Plugin } from 'obsidian';
 import type {
+  FrontmatterRule,
   RenderSettings,
+  SourceScope,
   TagMatchMode,
+  WordCloudSettings,
   WordCloudFilterSettings,
-} from '../types';
-import type { FrontmatterRule, SourceScope } from '../wordcloud/pipeline/types';
+} from './types';
 import { normalizeTag } from '../utils/utils';
-import { DEFAULT_SETTINGS, type WordCloudSettings } from './types';
+import { DEFAULT_SETTINGS } from './types';
 
 export type SettingsChangeListener = (settings: Readonly<WordCloudSettings>) => void;
 

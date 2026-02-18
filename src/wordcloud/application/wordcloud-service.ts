@@ -1,10 +1,10 @@
 import type { App, TFile } from 'obsidian';
-import type { RenderSettings, WeightedWord } from '../../types';
+import type { WeightedWord } from '../../wordcloud/types';
+import type { FrequencyThresholds, RenderSettings, SourceSelectionRules } from '../../settings/types';
 import { readPipelineDocuments } from '../ingestion/obsidian-source';
 import { filterSourceFilesByMetadata } from '../ingestion/metadata-file-filter';
 import { getAvailableTags } from '../ingestion/tag-catalog';
 import { runTransformPipeline } from '../pipeline/run-transform-pipeline';
-import type { FrequencyThresholds, SourceSelectionRules } from '../pipeline/types';
 
 export class WordCloudService {
   private readonly app: App;

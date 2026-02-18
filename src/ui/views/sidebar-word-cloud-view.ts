@@ -1,14 +1,20 @@
-import { ItemView, Notice, type TFile, WorkspaceLeaf } from 'obsidian';
-import { VIEW_TYPE_NOTE_WORD_CLOUD } from '@/constants';
+import { ItemView, type TFile, WorkspaceLeaf } from 'obsidian';
+import { VIEW_TYPE_NOTE_WORD_CLOUD } from '@/ui/constants';
 import { drawFrequencyChart } from '../renderers/frequency-chart-renderer';
-import type { WeightedWord, WordCloudFilterSettings, WordCloudServices } from '@/types';
+import type { RenderSettings, WordCloudFilterSettings } from '@/settings/types';
+import type { WordCloudServices } from '@/services/types';
+import type { WeightedWord } from '@/wordcloud/types';
 import { WordCloudFilterPanel } from '../components/filter-panel';
+import {
+  renderWordCloudCanvas,
+  resolveSelectedFileByPath,
+} from '../renderers/word-cloud-canvas-renderer';
 
 type NoteViewTab = 'cloud' | 'frequency';
 
 export class NoteWordCloudView extends ItemView {
   private readonly services: WordCloudServices;
-  private renderNonce = 0;
+  private readonly renderNonce = { value: 0 };
   private selectedFilePath = '';
   private activeTab: NoteViewTab = 'cloud';
   private latestWords: WeightedWord[] = [];
@@ -341,110 +347,81 @@ export class NoteWordCloudView extends ItemView {
     return this.services.getActiveFile()?.path ?? '';
   }
 
-  private findSelectedOpenFile(): TFile | null {
-    const scopeFilePath = this.resolveScopeFilePath();
-    return this.services.getOpenMarkdownFiles().find((file) => file.path === scopeFilePath) ?? null;
+  private findSelectedOpenFile(scopeFilePath = this.resolveScopeFilePath()): TFile | null {
+    return resolveSelectedFileByPath(this.services.getOpenMarkdownFiles(), scopeFilePath);
   }
 
-  private async renderCloud(containerEl: HTMLDivElement): Promise<void> {
-    const activeNonce = ++this.renderNonce;
-    containerEl.empty();
-    const loadingEl = containerEl.createDiv({ cls: 'vault-word-cloud-state', text: 'Building cloud...' });
-    const updateProgress = (message: string, percent: number): void => {
-      if (activeNonce !== this.renderNonce) {
-        return;
-      }
-      loadingEl.setText(`${message} (${percent}%)`);
-    };
-
-    try {
-      const scopeFilePath = this.resolveScopeFilePath();
-      const selectedFile = this.findSelectedOpenFile();
-
-      const words = await this.services.collectVaultWords({
-        sourceRules: {
-          scope: {
-            ...this.filters.scope,
-            activeFilePath: scopeFilePath,
-          },
-          includeTags: this.filters.includeTags,
-          excludeTags: this.filters.excludeTags,
-          tagMatchMode: this.filters.tagMatchMode,
-          frontmatterRules: this.filters.frontmatterRules,
-        },
-        frequency: this.filters.frequency,
-      }, updateProgress);
-
-      if (words.length === 0) {
-        this.latestWords = [];
-        this.latestContextLabel = this.filters.scope.mode === 'active-file' && selectedFile
-          ? selectedFile.basename
-          : 'selected filters';
-        this.frequencyRendered = false;
-        loadingEl.remove();
-
+  private async renderCloud(
+    containerEl: HTMLDivElement,
+    renderSettingsOverride?: Partial<RenderSettings>,
+  ): Promise<void> {
+    await renderWordCloudCanvas({
+      nonceRef: this.renderNonce,
+      containerEl,
+      services: this.services,
+      filters: this.filters,
+      errorLogPrefix: 'Note word cloud',
+      createStatusHandle: (initialText) => {
+        const stateEl = containerEl.createDiv({ cls: 'vault-word-cloud-state', text: initialText });
+        return {
+          setText: (text) => stateEl.setText(text),
+          remove: () => stateEl.remove(),
+        };
+      },
+      renderEmptyState: (message) => {
         containerEl.createDiv({
           cls: 'vault-word-cloud-state',
-          text: this.filters.scope.mode === 'active-file' && !scopeFilePath
-            ? 'Open a markdown note and select it to view a note-specific word cloud.'
-            : 'No words found for the selected filters.',
+          text: message,
         });
-
+      },
+      renderErrorState: (message) => {
+        containerEl.createDiv({
+          cls: 'vault-word-cloud-state',
+          text: message,
+        });
+      },
+      resolveScopeFilePath: () => this.resolveScopeFilePath(),
+      resolveExtraContext: (scopeFilePath) => ({
+        selectedFile: this.findSelectedOpenFile(scopeFilePath),
+      }),
+      getAriaLabel: ({ filters, extra }) => (
+        filters?.scope.mode === 'active-file' && extra.selectedFile
+          ? `Word cloud for ${extra.selectedFile.basename}`
+          : 'Word cloud for selected filters'
+      ),
+      getNoWordsMessage: ({ filters, scopeFilePath }) => (
+        filters?.scope.mode === 'active-file' && !scopeFilePath
+          ? 'Open a markdown note and select it to view a note-specific word cloud.'
+          : 'No words found for the selected filters.'
+      ),
+      getSearchOptions: ({ filters, scopeFilePath }) => ({
+        includeTags: filters?.includeTags ?? [],
+        excludeTags: filters?.excludeTags ?? [],
+        tagMatchMode: filters?.tagMatchMode ?? 'any',
+        filePath: filters?.scope.mode === 'active-file'
+          ? scopeFilePath
+          : undefined,
+      }),
+      onWordsResolved: (words, { filters, extra }) => {
+        this.latestWords = words;
+        this.latestContextLabel = filters?.scope.mode === 'active-file' && extra.selectedFile
+          ? extra.selectedFile.basename
+          : 'selected filters';
+        this.frequencyRendered = false;
+      },
+      onAfterRender: () => {
         if (this.activeTab === 'frequency') {
           this.renderFrequencyChart(true);
         }
-
-        return;
-      }
-
-      this.latestWords = words;
-      this.latestContextLabel = this.filters.scope.mode === 'active-file' && selectedFile
-        ? selectedFile.basename
-        : 'selected filters';
-      this.frequencyRendered = false;
-
-      await this.services.drawWordCloud({
-        containerEl,
-        words,
-        ariaLabel: this.filters.scope.mode === 'active-file' && selectedFile
-          ? `Word cloud for ${selectedFile.basename}`
-          : 'Word cloud for selected filters',
-        onProgress: updateProgress,
-        onRefresh: () => this.renderCloud(containerEl),
-        onExcludeInVault: async (word) => {
-          const added = await this.services.addExclusionListWord(word);
-          new Notice(added ? `Excluded "${word}" from word clouds.` : `"${word}" is already excluded.`);
-          await this.renderCloud(containerEl);
-        },
-        onWordClick: (word) => {
-          void this.services.openSearchForWord(word, {
-            includeTags: this.filters.includeTags,
-            excludeTags: this.filters.excludeTags,
-            tagMatchMode: this.filters.tagMatchMode,
-            filePath: this.filters.scope.mode === 'active-file'
-              ? scopeFilePath
-              : undefined,
-          });
-        },
-      });
-
-      if (activeNonce !== this.renderNonce) {
-        return;
-      }
-
-      loadingEl.remove();
-
-      if (this.activeTab === 'frequency') {
-        this.renderFrequencyChart(true);
-      }
-    } catch (error) {
-      loadingEl.remove();
-      console.error('Note word cloud: failed to render cloud', error);
-      containerEl.createDiv({
-        cls: 'vault-word-cloud-state',
-        text: 'Could not render the word cloud. Open developer console for details.',
-      });
-    }
+      },
+      onAfterEmpty: () => {
+        if (this.activeTab === 'frequency') {
+          this.renderFrequencyChart(true);
+        }
+      },
+      getRenderSettingsOverride: () => renderSettingsOverride,
+      onRefresh: () => this.renderCloud(containerEl, renderSettingsOverride),
+    });
   }
 
   private renderFrequencyChart(force = false): void {

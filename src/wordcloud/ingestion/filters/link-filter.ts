@@ -1,6 +1,5 @@
 import type { App, TFile } from 'obsidian';
-import type { TagMatchMode } from '../../../types';
-import type { LinkRules, SourceSelectionRules } from '../../pipeline/types';
+import type { LinkRules, SourceSelectionRules, TagMatchMode } from '../../../settings/types';
 import { getFileTags } from '../obsidian-source';
 import { normalizeTag } from '../../../utils/utils';
 
