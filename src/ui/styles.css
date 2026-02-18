@@ -527,6 +527,47 @@
   box-shadow: inset 0 0 0 1px var(--background-modifier-border-hover);
 }
 
+.vault-word-cloud-settings-support {
+  margin-top: var(--size-4-3);
+  padding: var(--size-4-3);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--size-4-2);
+  text-align: center;
+}
+
+.vault-word-cloud-settings-support-title {
+  margin: 0;
+  width: 100%;
+  text-align: center;
+}
+
+.vault-word-cloud-settings-support-copy {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  width: 100%;
+  text-align: center;
+}
+
+.vault-word-cloud-settings-support-actions {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-4-3);
+}
+
+.vault-word-cloud-settings-support-button {
+  min-width: 150px;
+  justify-content: center;
+}
+
 .word-cloud-embed {
   border-radius: var(--radius-m);
   background: var(--background-primary-alt);

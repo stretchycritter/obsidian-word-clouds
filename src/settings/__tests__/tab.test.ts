@@ -499,12 +499,19 @@ describe('VaultWordCloudSettingTab', () => {
     const tab = createTab(services);
     tab.display();
 
-    const bugButton = getControl('Report a bug', 0) as { triggerClick: () => Promise<void> };
-    const featureButton = getControl('Suggest a feature', 0) as { triggerClick: () => Promise<void> };
+    const featureButton = (tab.containerEl as unknown as {
+      findByClass: (className: string) => { trigger: (eventName: string) => Promise<void> } | null;
+    }).findByClass('vault-word-cloud-settings-support-button-feature');
+    const bugButton = (tab.containerEl as unknown as {
+      findByClass: (className: string) => { trigger: (eventName: string) => Promise<void> } | null;
+    }).findByClass('vault-word-cloud-settings-support-button-report');
     const openMock = (globalThis as any).window.open as jest.Mock;
 
-    await bugButton.triggerClick();
-    await featureButton.triggerClick();
+    expect(featureButton).not.toBeNull();
+    expect(bugButton).not.toBeNull();
+
+    await bugButton?.trigger('click');
+    await featureButton?.trigger('click');
 
     expect(openMock).toHaveBeenNthCalledWith(
       1,

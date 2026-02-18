@@ -434,28 +434,37 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    containerEl.createEl('h3', { text: 'Support and feedback' });
-    containerEl.createEl('p', {
+    const supportContainerEl = containerEl.createDiv({ cls: 'vault-word-cloud-settings-support' });
+    supportContainerEl.createEl('h3', {
+      cls: 'vault-word-cloud-settings-support-title',
+      text: 'Support and feedback',
+    });
+    supportContainerEl.createEl('p', {
+      cls: 'vault-word-cloud-settings-support-copy',
       text: 'Open a GitHub issue to report a bug or suggest a feature.',
     });
 
-    new Setting(containerEl)
-      .setName('Report a bug')
-      .setDesc('Open the bug report issue form in GitHub.')
-      .addButton((button) => {
-        button.setButtonText('File a bug').onClick(() => {
-          window.open(BUG_REPORT_ISSUE_URL, '_blank', 'noopener,noreferrer');
-        });
-      });
+    const supportButtonsEl = supportContainerEl.createDiv({ cls: 'vault-word-cloud-settings-support-actions' });
 
-    new Setting(containerEl)
-      .setName('Suggest a feature')
-      .setDesc('Open the feature request issue form in GitHub.')
-      .addButton((button) => {
-        button.setButtonText('Suggest a feature').onClick(() => {
-          window.open(FEATURE_REQUEST_ISSUE_URL, '_blank', 'noopener,noreferrer');
-        });
-      });
+    const featureButtonEl = supportButtonsEl.createEl('button', {
+      cls: 'mod-cta vault-word-cloud-settings-support-button vault-word-cloud-settings-support-button-feature',
+      text: 'Suggest a feature',
+    });
+    featureButtonEl.type = 'button';
+    featureButtonEl.setAttr('aria-label', 'Suggest a feature');
+    featureButtonEl.addEventListener('click', () => {
+      window.open(FEATURE_REQUEST_ISSUE_URL, '_blank', 'noopener,noreferrer');
+    });
+
+    const bugButtonEl = supportButtonsEl.createEl('button', {
+      cls: 'vault-word-cloud-settings-support-button vault-word-cloud-settings-support-button-report',
+      text: 'Report a bug',
+    });
+    bugButtonEl.type = 'button';
+    bugButtonEl.setAttr('aria-label', 'Report a bug');
+    bugButtonEl.addEventListener('click', () => {
+      window.open(BUG_REPORT_ISSUE_URL, '_blank', 'noopener,noreferrer');
+    });
 
     void rerenderPreview();
   }
