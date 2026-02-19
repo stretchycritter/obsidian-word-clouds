@@ -10,6 +10,7 @@ export class VaultWordCloudView extends ItemView {
   private readonly services: WordCloudServices;
   private readonly renderNonce = { value: 0 };
   private filters: WordCloudFilterSettings;
+  private isEditPanelOpen = false;
 
   constructor(leaf: WorkspaceLeaf, services: WordCloudServices) {
     super(leaf);
@@ -36,12 +37,11 @@ export class VaultWordCloudView extends ItemView {
 
     this.filters = this.services.getFilterSettings();
 
-    const topEl = contentEl.createDiv({ cls: 'vault-word-cloud-top' });
-    const headerEl = topEl.createDiv({ cls: 'vault-word-cloud-header' });
-    headerEl.createEl('h2', { text: t('ui.views.vault.title'), cls: 'vault-word-cloud-title' });
+    const shellEl = contentEl.createDiv({ cls: 'word-cloud-view-shell' });
+    const canvasEl = shellEl.createDiv({ cls: 'vault-word-cloud-canvas' });
+    const editPanelEl = shellEl.createDiv({ cls: 'word-cloud-inline-edit-panel' });
+    const editPanelContentEl = editPanelEl.createDiv({ cls: 'word-cloud-inline-edit-content' });
 
-    const controlsEl = topEl.createDiv({ cls: 'vault-word-cloud-controls' });
-    const canvasEl = contentEl.createDiv({ cls: 'vault-word-cloud-canvas' });
     const registerElementEvent = (
       element: HTMLElement,
       type: keyof HTMLElementEventMap,
@@ -50,9 +50,20 @@ export class VaultWordCloudView extends ItemView {
       this.registerDomEvent(element, type, callback as EventListener);
     };
 
+    const setEditPanelOpen = (isOpen: boolean): void => {
+      this.isEditPanelOpen = isOpen;
+      editPanelEl.toggleClass('is-open', isOpen);
+      if (!isOpen) {
+        editPanelEl.setAttr('hidden', 'true');
+        return;
+      }
+
+      editPanelEl.removeAttribute('hidden');
+    };
+
     const filterPanel = new WordCloudFilterPanel({
       services: this.services,
-      containerEl: controlsEl,
+      containerEl: editPanelContentEl,
       registerDomEvent: registerElementEvent,
       filters: this.filters,
       onChange: async (nextFilters) => {
@@ -60,11 +71,20 @@ export class VaultWordCloudView extends ItemView {
         await this.services.updateFilterSettings(this.filters);
         this.filters = this.services.getFilterSettings();
         filterPanel.setFilters(this.filters);
-        await this.renderCloud(canvasEl);
+        await this.renderCloud(canvasEl, setEditPanelOpen);
       },
     });
 
-    await this.renderCloud(canvasEl);
+    setEditPanelOpen(false);
+
+    this.registerDomEvent(editPanelEl, 'keydown', (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setEditPanelOpen(false);
+      }
+    });
+
+    await this.renderCloud(canvasEl, setEditPanelOpen);
   }
 
   async onResize(): Promise<void> {
@@ -76,6 +96,7 @@ export class VaultWordCloudView extends ItemView {
 
   private async renderCloud(
     containerEl: HTMLDivElement,
+    setEditPanelOpen?: (isOpen: boolean) => void,
     renderSettingsOverride?: Partial<RenderSettings>,
   ): Promise<void> {
     await renderWordCloudCanvas({
@@ -120,7 +141,15 @@ export class VaultWordCloudView extends ItemView {
           : undefined,
       }),
       getRenderSettingsOverride: () => renderSettingsOverride,
-      onRefresh: () => this.renderCloud(containerEl, renderSettingsOverride),
+      getDrawOptions: () => ({
+        onEdit: () => {
+          const toggle = setEditPanelOpen ?? (() => undefined);
+          toggle(!this.isEditPanelOpen);
+        },
+        enableOverlayControls: true,
+        showEditControl: true,
+      }),
+      onRefresh: () => this.renderCloud(containerEl, setEditPanelOpen, renderSettingsOverride),
     });
   }
 }

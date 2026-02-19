@@ -41,7 +41,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "\"release\"",
+                "query": "",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -69,7 +69,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200
+    "width": 337.50390243530273
   },
   "right": {
     "id": "e98e6cad050a3058",
@@ -85,12 +85,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "load-testing/large/load-test-large-002.md",
+                "file": "00 - Word Clouds Plugin Home.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from load-test-large-002"
+              "title": "Outgoing links from 00 - Word Clouds Plugin Home"
             }
           },
           {
@@ -128,20 +128,31 @@
             "state": {
               "type": "outline",
               "state": {
+                "file": "00 - Word Clouds Plugin Home.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline"
+              "title": "Outline of 00 - Word Clouds Plugin Home"
+            }
+          },
+          {
+            "id": "2b57cc2193872250",
+            "type": "leaf",
+            "state": {
+              "type": "note-word-cloud-view",
+              "state": {},
+              "icon": "file-text",
+              "title": "Note word clouds"
             }
           }
-        ]
+        ],
+        "currentTab": 4
       }
     ],
     "direction": "horizontal",
-    "width": 200,
-    "collapsed": true
+    "width": 395.5
   },
   "left-ribbon": {
     "hiddenItems": {

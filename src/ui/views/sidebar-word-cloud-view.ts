@@ -1,27 +1,18 @@
 import { ItemView, type TFile, WorkspaceLeaf } from 'obsidian';
 import { VIEW_TYPE_NOTE_WORD_CLOUD } from '@/ui/constants';
-import { renderFrequencyChart, renderWordCloudCanvas } from '@/core';
+import { renderWordCloudCanvas } from '@/core';
 import type { RenderSettings, WordCloudFilterSettings } from '@/settings/types';
 import type { WordCloudServices } from '@/services/types';
-import type { WeightedWord } from '@/core';
 import { WordCloudFilterPanel } from '@/ui/components/filter-panel';
 import { t } from '@/i18n';
-
-type NoteViewTab = 'cloud' | 'frequency';
 
 export class NoteWordCloudView extends ItemView {
   private readonly services: WordCloudServices;
   private readonly renderNonce = { value: 0 };
   private selectedFilePath = '';
-  private activeTab: NoteViewTab = 'cloud';
-  private latestWords: WeightedWord[] = [];
-  private latestContextLabel = t('ui.views.note.context.currentFilters');
-  private frequencyRendered = false;
-  private cloudCanvasEl: HTMLDivElement | null = null;
-  private frequencyCanvasEl: HTMLDivElement | null = null;
-  private cloudTabButtonEl: HTMLButtonElement | null = null;
-  private frequencyTabButtonEl: HTMLButtonElement | null = null;
   private filters: WordCloudFilterSettings;
+  private cloudCanvasEl: HTMLDivElement | null = null;
+  private isEditPanelOpen = false;
 
   constructor(leaf: WorkspaceLeaf, services: WordCloudServices) {
     super(leaf);
@@ -48,44 +39,19 @@ export class NoteWordCloudView extends ItemView {
 
     this.filters = this.services.getFilterSettings();
 
-    const topEl = contentEl.createDiv({ cls: 'vault-word-cloud-top' });
-    const headerEl = topEl.createDiv({ cls: 'vault-word-cloud-header' });
-    headerEl.createEl('h2', { text: t('ui.views.note.title'), cls: 'vault-word-cloud-title' });
+    if (this.filters.scope.mode === 'active-file') {
+      this.selectedFilePath = this.filters.scope.activeFilePath || this.services.getActiveFile()?.path || '';
+    } else {
+      this.selectedFilePath = this.services.getActiveFile()?.path || '';
+    }
 
-    const controlsEl = topEl.createDiv({ cls: 'vault-word-cloud-controls' });
+    const shellEl = contentEl.createDiv({ cls: 'word-cloud-view-shell' });
+    const cloudCanvasEl = shellEl.createDiv({ cls: 'vault-word-cloud-canvas' });
+    const editPanelEl = shellEl.createDiv({ cls: 'word-cloud-inline-edit-panel' });
+    const editPanelContentEl = editPanelEl.createDiv({ cls: 'word-cloud-inline-edit-content' });
 
-    const noteControlsEl = controlsEl.createDiv({ cls: 'vault-word-cloud-filter-section' });
-    const noteHeaderEl = noteControlsEl.createDiv({ cls: 'vault-word-cloud-controls-header' });
-    noteHeaderEl.createEl('span', { text: t('ui.views.note.picker.title'), cls: 'vault-word-cloud-controls-title' });
-    noteHeaderEl.createEl('span', {
-      text: t('ui.views.note.picker.summary'),
-      cls: 'vault-word-cloud-controls-summary',
-    });
+    this.cloudCanvasEl = cloudCanvasEl;
 
-    const noteGridEl = noteControlsEl.createDiv({ cls: 'vault-word-cloud-filter-grid' });
-    const fileFilterEl = noteGridEl.createDiv({ cls: 'vault-word-cloud-tag-filter' });
-    const fileLabelEl = fileFilterEl.createEl('label', { text: t('ui.views.note.picker.openNote'), cls: 'vault-word-cloud-tag-label' });
-    const fileSelectEl = fileFilterEl.createEl('select', { cls: 'vault-word-cloud-mode-select' });
-    fileSelectEl.id = 'vault-word-cloud-note-select';
-    fileLabelEl.setAttr('for', fileSelectEl.id);
-    fileSelectEl.setAttr('aria-label', t('ui.views.note.picker.ariaChooseOpenNote'));
-
-    const noteActionsEl = noteGridEl.createDiv({ cls: 'vault-word-cloud-match-mode' });
-    noteActionsEl.createEl('span', { text: t('ui.views.note.actions.title'), cls: 'vault-word-cloud-tag-label' });
-
-    const activeButton = noteActionsEl.createEl('button', {
-      text: t('ui.views.note.actions.useActiveNote'),
-      cls: 'vault-word-cloud-refresh',
-    });
-    activeButton.type = 'button';
-    activeButton.setAttr('aria-label', t('ui.views.note.actions.ariaUseActiveNote'));
-
-    const refreshButton = noteActionsEl.createEl('button', {
-      text: t('ui.views.common.refresh'),
-      cls: 'vault-word-cloud-refresh',
-    });
-    refreshButton.type = 'button';
-    refreshButton.setAttr('aria-label', t('ui.views.note.actions.ariaRefreshInsights'));
     const registerElementEvent = (
       element: HTMLElement,
       type: keyof HTMLElementEventMap,
@@ -94,143 +60,42 @@ export class NoteWordCloudView extends ItemView {
       this.registerDomEvent(element, type, callback as EventListener);
     };
 
-    let filterPanel: WordCloudFilterPanel;
-    const persistFiltersAndRender = async (nextFilters: WordCloudFilterSettings): Promise<void> => {
-      this.filters = nextFilters;
-      await this.services.updateFilterSettings(this.filters);
-      this.filters = this.services.getFilterSettings();
-      filterPanel.setFilters(this.filters);
-      await this.renderCloud(cloudCanvasEl);
+    const setEditPanelOpen = (isOpen: boolean): void => {
+      this.isEditPanelOpen = isOpen;
+      editPanelEl.toggleClass('is-open', isOpen);
+      if (!isOpen) {
+        editPanelEl.setAttr('hidden', 'true');
+        return;
+      }
+
+      editPanelEl.removeAttribute('hidden');
     };
 
-    filterPanel = new WordCloudFilterPanel({
+    const filterPanel = new WordCloudFilterPanel({
       services: this.services,
-      containerEl: controlsEl,
+      containerEl: editPanelContentEl,
       registerDomEvent: registerElementEvent,
       filters: this.filters,
-      onChange: persistFiltersAndRender,
+      onChange: async (nextFilters) => {
+        this.filters = nextFilters;
+        await this.services.updateFilterSettings(this.filters);
+        this.filters = this.services.getFilterSettings();
+
+        if (this.filters.scope.mode === 'active-file') {
+          this.selectedFilePath = this.filters.scope.activeFilePath || this.services.getActiveFile()?.path || '';
+        }
+
+        filterPanel.setFilters(this.filters);
+        await this.renderCloud(cloudCanvasEl, setEditPanelOpen);
+      },
     });
 
-    const tabsEl = contentEl.createDiv({ cls: 'note-word-cloud-tabs' });
-    tabsEl.setAttr('role', 'tablist');
-    tabsEl.setAttr('aria-label', t('ui.views.note.tabs.ariaLabel'));
+    setEditPanelOpen(false);
 
-    const cloudTabButton = tabsEl.createEl('button', {
-      cls: 'note-word-cloud-tab is-active',
-      text: t('ui.views.note.tabs.wordCloud'),
-    });
-    cloudTabButton.type = 'button';
-    cloudTabButton.id = 'note-word-cloud-tab-cloud';
-    cloudTabButton.setAttr('role', 'tab');
-    cloudTabButton.setAttr('aria-controls', 'note-word-cloud-panel-cloud');
-    cloudTabButton.setAttr('aria-selected', 'true');
-    cloudTabButton.setAttr('tabindex', '0');
-
-    const frequencyTabButton = tabsEl.createEl('button', {
-      cls: 'note-word-cloud-tab',
-      text: t('ui.views.note.tabs.frequency'),
-    });
-    frequencyTabButton.type = 'button';
-    frequencyTabButton.id = 'note-word-cloud-tab-frequency';
-    frequencyTabButton.setAttr('role', 'tab');
-    frequencyTabButton.setAttr('aria-controls', 'note-word-cloud-panel-frequency');
-    frequencyTabButton.setAttr('aria-selected', 'false');
-    frequencyTabButton.setAttr('tabindex', '-1');
-
-    const panelsEl = contentEl.createDiv({ cls: 'note-word-cloud-panels' });
-
-    const cloudPanelEl = panelsEl.createDiv({ cls: 'note-word-cloud-panel is-active' });
-    cloudPanelEl.id = 'note-word-cloud-panel-cloud';
-    cloudPanelEl.setAttr('role', 'tabpanel');
-    cloudPanelEl.setAttr('aria-labelledby', cloudTabButton.id);
-
-    const frequencyPanelEl = panelsEl.createDiv({ cls: 'note-word-cloud-panel' });
-    frequencyPanelEl.id = 'note-word-cloud-panel-frequency';
-    frequencyPanelEl.setAttr('role', 'tabpanel');
-    frequencyPanelEl.setAttr('aria-labelledby', frequencyTabButton.id);
-    frequencyPanelEl.setAttr('hidden', '');
-
-    const cloudCanvasEl = cloudPanelEl.createDiv({ cls: 'vault-word-cloud-canvas' });
-    const frequencyCanvasEl = frequencyPanelEl.createDiv({ cls: 'note-word-cloud-frequency-canvas' });
-
-    this.cloudCanvasEl = cloudCanvasEl;
-    this.frequencyCanvasEl = frequencyCanvasEl;
-    this.cloudTabButtonEl = cloudTabButton;
-    this.frequencyTabButtonEl = frequencyTabButton;
-
-    this.updateOpenFileOptions(fileSelectEl);
-
-    this.registerDomEvent(fileSelectEl, 'change', () => {
-      this.selectedFilePath = fileSelectEl.value;
-      if (this.filters.scope.mode !== 'active-file') {
-        void this.renderCloud(cloudCanvasEl);
-        return;
-      }
-
-      void persistFiltersAndRender({
-        ...this.filters,
-        scope: {
-          ...this.filters.scope,
-          mode: 'active-file',
-          activeFilePath: this.selectedFilePath,
-        },
-      });
-    });
-
-    this.registerDomEvent(activeButton, 'click', () => {
-      const activeFile = this.services.getActiveFile();
-      if (activeFile) {
-        this.selectedFilePath = activeFile.path;
-        this.updateOpenFileOptions(fileSelectEl);
-        fileSelectEl.value = this.selectedFilePath;
-      }
-
-      if (this.filters.scope.mode !== 'active-file') {
-        void this.renderCloud(cloudCanvasEl);
-        return;
-      }
-
-      void persistFiltersAndRender({
-        ...this.filters,
-        scope: {
-          ...this.filters.scope,
-          mode: 'active-file',
-          activeFilePath: this.selectedFilePath,
-        },
-      });
-    });
-
-    this.registerDomEvent(refreshButton, 'click', () => {
-      this.updateOpenFileOptions(fileSelectEl);
-      if (!fileSelectEl.value && this.selectedFilePath) {
-        this.selectedFilePath = '';
-      }
-      void this.renderCloud(cloudCanvasEl);
-    });
-
-    this.registerDomEvent(cloudTabButton, 'click', () => {
-      this.switchTab('cloud', cloudPanelEl, frequencyPanelEl);
-    });
-
-    this.registerDomEvent(frequencyTabButton, 'click', () => {
-      this.switchTab('frequency', cloudPanelEl, frequencyPanelEl);
-      this.renderFrequencyChart(true);
-    });
-
-    this.registerDomEvent(cloudTabButton, 'keydown', (event: KeyboardEvent) => {
-      if (event.key === 'ArrowRight') {
+    this.registerDomEvent(editPanelEl, 'keydown', (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
         event.preventDefault();
-        frequencyTabButton.focus();
-        this.switchTab('frequency', cloudPanelEl, frequencyPanelEl);
-        this.renderFrequencyChart(true);
-      }
-    });
-
-    this.registerDomEvent(frequencyTabButton, 'keydown', (event: KeyboardEvent) => {
-      if (event.key === 'ArrowLeft') {
-        event.preventDefault();
-        cloudTabButton.focus();
-        this.switchTab('cloud', cloudPanelEl, frequencyPanelEl);
+        setEditPanelOpen(false);
       }
     });
 
@@ -240,96 +105,44 @@ export class NoteWordCloudView extends ItemView {
         return;
       }
 
-      if (this.selectedFilePath !== activeFile.path) {
-        this.selectedFilePath = activeFile.path;
-        this.updateOpenFileOptions(fileSelectEl);
-        fileSelectEl.value = this.selectedFilePath;
-
-        if (this.filters.scope.mode === 'active-file') {
-          void persistFiltersAndRender({
-            ...this.filters,
-            scope: {
-              ...this.filters.scope,
-              mode: 'active-file',
-              activeFilePath: this.selectedFilePath,
-            },
-          });
-          return;
-        }
-
-        void this.renderCloud(cloudCanvasEl);
+      if (this.selectedFilePath === activeFile.path) {
+        return;
       }
+
+      this.selectedFilePath = activeFile.path;
+
+      if (this.filters.scope.mode !== 'active-file') {
+        void this.renderCloud(cloudCanvasEl, setEditPanelOpen);
+        return;
+      }
+
+      void (async () => {
+        this.filters = {
+          ...this.filters,
+          scope: {
+            ...this.filters.scope,
+            mode: 'active-file',
+            activeFilePath: this.selectedFilePath,
+          },
+        };
+        await this.services.updateFilterSettings(this.filters);
+        this.filters = this.services.getFilterSettings();
+        filterPanel.setFilters(this.filters);
+        await this.renderCloud(cloudCanvasEl, setEditPanelOpen);
+      })();
     }));
 
-    await this.renderCloud(cloudCanvasEl);
+    await this.renderCloud(cloudCanvasEl, setEditPanelOpen);
   }
 
   async onClose(): Promise<void> {
     this.cloudCanvasEl = null;
-    this.frequencyCanvasEl = null;
-    this.cloudTabButtonEl = null;
-    this.frequencyTabButtonEl = null;
   }
 
   async onResize(): Promise<void> {
-    if (this.activeTab === 'cloud' && this.cloudCanvasEl) {
+    if (this.cloudCanvasEl) {
       await this.renderCloud(this.cloudCanvasEl);
-      return;
     }
-
-    if (this.activeTab === 'frequency') {
-      this.renderFrequencyChart(true);
-    }
-  }
-
-  private switchTab(tab: NoteViewTab, cloudPanelEl: HTMLDivElement, frequencyPanelEl: HTMLDivElement): void {
-    this.activeTab = tab;
-    const showCloud = tab === 'cloud';
-
-    this.cloudTabButtonEl?.toggleClass('is-active', showCloud);
-    this.cloudTabButtonEl?.setAttr('aria-selected', showCloud ? 'true' : 'false');
-    this.cloudTabButtonEl?.setAttr('tabindex', showCloud ? '0' : '-1');
-
-    this.frequencyTabButtonEl?.toggleClass('is-active', !showCloud);
-    this.frequencyTabButtonEl?.setAttr('aria-selected', showCloud ? 'false' : 'true');
-    this.frequencyTabButtonEl?.setAttr('tabindex', showCloud ? '-1' : '0');
-
-    cloudPanelEl.toggleClass('is-active', showCloud);
-    frequencyPanelEl.toggleClass('is-active', !showCloud);
-
-    if (showCloud) {
-      cloudPanelEl.removeAttribute('hidden');
-      frequencyPanelEl.setAttr('hidden', '');
-      return;
-    }
-
-    cloudPanelEl.setAttr('hidden', '');
-    frequencyPanelEl.removeAttribute('hidden');
-  }
-
-  private updateOpenFileOptions(selectEl: HTMLSelectElement): void {
-    const openFiles = this.services.getOpenMarkdownFiles();
-    const activeFile = this.services.getActiveFile();
-
-    if (!this.selectedFilePath && activeFile) {
-      this.selectedFilePath = activeFile.path;
-    }
-
-    const selected = this.selectedFilePath;
-    selectEl.empty();
-
-    if (openFiles.length === 0) {
-      selectEl.createEl('option', { text: t('ui.views.note.picker.noOpenMarkdownNotes'), value: '' });
-      this.selectedFilePath = '';
-      return;
-    }
-
-    for (const file of openFiles) {
-      const option = selectEl.createEl('option', { text: file.path, value: file.path });
-      option.selected = file.path === selected;
-    }
-
-    this.selectedFilePath = selectEl.value;
   }
 
   private resolveScopeFilePath(): string {
@@ -350,6 +163,7 @@ export class NoteWordCloudView extends ItemView {
 
   private async renderCloud(
     containerEl: HTMLDivElement,
+    setEditPanelOpen?: (isOpen: boolean) => void,
     renderSettingsOverride?: Partial<RenderSettings>,
   ): Promise<void> {
     await renderWordCloudCanvas({
@@ -403,50 +217,16 @@ export class NoteWordCloudView extends ItemView {
           ? scopeFilePath
           : undefined,
       }),
-      onWordsResolved: (words, { filters, extra }) => {
-        this.latestWords = words;
-        this.latestContextLabel = filters?.scope.mode === 'active-file' && extra.selectedFile
-          ? extra.selectedFile.basename
-          : t('ui.views.note.context.selectedFilters');
-        this.frequencyRendered = false;
-      },
-      onAfterRender: () => {
-        if (this.activeTab === 'frequency') {
-          this.renderFrequencyChart(true);
-        }
-      },
-      onAfterEmpty: () => {
-        if (this.activeTab === 'frequency') {
-          this.renderFrequencyChart(true);
-        }
-      },
       getRenderSettingsOverride: () => renderSettingsOverride,
-      onRefresh: () => this.renderCloud(containerEl, renderSettingsOverride),
+      getDrawOptions: () => ({
+        onEdit: () => {
+          const toggle = setEditPanelOpen ?? (() => undefined);
+          toggle(!this.isEditPanelOpen);
+        },
+        enableOverlayControls: true,
+        showEditControl: true,
+      }),
+      onRefresh: () => this.renderCloud(containerEl, setEditPanelOpen, renderSettingsOverride),
     });
-  }
-
-  private renderFrequencyChart(force = false): void {
-    if (!this.frequencyCanvasEl || (!force && this.frequencyRendered)) {
-      return;
-    }
-
-    this.frequencyCanvasEl.empty();
-
-    if (this.latestWords.length === 0) {
-      this.frequencyCanvasEl.createDiv({
-        cls: 'vault-word-cloud-state',
-        text: t('ui.views.common.noWordsForFilters'),
-      });
-      this.frequencyRendered = true;
-      return;
-    }
-
-    renderFrequencyChart({
-      containerEl: this.frequencyCanvasEl,
-      words: this.latestWords,
-      ariaLabel: t('ui.views.note.aria.frequencyChartForContext').replace('{context}', this.latestContextLabel),
-    });
-
-    this.frequencyRendered = true;
   }
 }
