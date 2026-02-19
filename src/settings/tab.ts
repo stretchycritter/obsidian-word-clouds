@@ -56,154 +56,17 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-
-    containerEl.createEl('h2', { text: t('settings.tab.title') });
+    const contentEl = containerEl.createDiv({ cls: 'vault-word-cloud-settings-tab' });
     const settings = this.services.getSettingsSnapshot();
+    const createSection = (headingKey: string): HTMLElement => {
+      const sectionEl = contentEl.createDiv({ cls: 'vault-word-cloud-settings-section' });
+      sectionEl.createEl('h3', { text: t(headingKey) });
+      return sectionEl;
+    };
 
-    const renderFiltersSection = (): void => {
-      containerEl.createEl('h3', { text: t('settings.tab.filters.heading') });
-
-      new Setting(containerEl)
-        .setName(t('settings.tab.filters.minimumWordLength.name'))
-        .setDesc(t('settings.tab.filters.minimumWordLength.desc'))
-        .addSlider((slider) => {
-          slider
-            .setLimits(1, 32, 1)
-            .setValue(settings.filters.minWordLength)
-            .setDynamicTooltip()
-            .onChange(async (value) => {
-              await this.services.updateFilterSettings({ minWordLength: value });
-            });
-        });
-
-      new Setting(containerEl)
-        .setName(t('settings.tab.filters.nlp.enabled.name'))
-        .setDesc(t('settings.tab.filters.nlp.enabled.desc'))
-        .addToggle((toggle) => {
-          toggle
-            .setValue(settings.filters.nlp.enabled)
-            .onChange(async (value) => {
-              const nextMode = value && settings.filters.nlp.mode === 'off'
-                ? 'light'
-                : settings.filters.nlp.mode;
-              await this.services.updateFilterSettings({
-                nlp: {
-                  ...settings.filters.nlp,
-                  enabled: value,
-                  mode: nextMode,
-                },
-              });
-              this.display();
-            });
-        });
-
-      new Setting(containerEl)
-        .setName(t('settings.tab.filters.nlp.mode.name'))
-        .setDesc(t('settings.tab.filters.nlp.mode.desc'))
-        .addDropdown((dropdown) => {
-          dropdown
-            .addOption('off', t('settings.tab.filters.nlp.mode.off'))
-            .addOption('light', t('settings.tab.filters.nlp.mode.light'))
-            .addOption('aggressive', t('settings.tab.filters.nlp.mode.aggressive'))
-            .setValue(settings.filters.nlp.mode)
-            .setDisabled(!settings.filters.nlp.enabled)
-            .onChange(async (value) => {
-              await this.services.updateFilterSettings({
-                nlp: {
-                  ...settings.filters.nlp,
-                  mode: value === 'light' || value === 'aggressive' ? value : 'off',
-                },
-              });
-            });
-        });
-
-      new Setting(containerEl)
-        .setName(t('settings.tab.filters.nlp.preserveAcronyms.name'))
-        .setDesc(t('settings.tab.filters.nlp.preserveAcronyms.desc'))
-        .addToggle((toggle) => {
-          toggle
-            .setValue(settings.filters.nlp.preserveAcronyms)
-            .setDisabled(!settings.filters.nlp.enabled)
-            .onChange(async (value) => {
-              await this.services.updateFilterSettings({
-                nlp: {
-                  ...settings.filters.nlp,
-                  preserveAcronyms: value,
-                },
-              });
-            });
-        });
-
-      new Setting(containerEl)
-        .setName(t('settings.tab.filters.nlp.minLemmaLength.name'))
-        .setDesc(t('settings.tab.filters.nlp.minLemmaLength.desc'))
-        .addSlider((slider) => {
-          slider
-            .setLimits(2, 32, 1)
-            .setValue(settings.filters.nlp.minLemmaLength)
-            .setDynamicTooltip()
-            .setDisabled(!settings.filters.nlp.enabled)
-            .onChange(async (value) => {
-              await this.services.updateFilterSettings({
-                nlp: {
-                  ...settings.filters.nlp,
-                  minLemmaLength: value,
-                },
-              });
-            });
-        });
-
-      new Setting(containerEl)
-        .setName(t('settings.tab.filters.nlp.filterNumericTokens.name'))
-        .setDesc(t('settings.tab.filters.nlp.filterNumericTokens.desc'))
-        .addToggle((toggle) => {
-          toggle
-            .setValue(settings.filters.nlp.filterNumericTokens)
-            .setDisabled(!settings.filters.nlp.enabled)
-            .onChange(async (value) => {
-              await this.services.updateFilterSettings({
-                nlp: {
-                  ...settings.filters.nlp,
-                  filterNumericTokens: value,
-                },
-              });
-            });
-        });
-
-      let draftWord = '';
-      const submitDraftWord = async (): Promise<void> => {
-        const added = await this.services.addExclusionListWord(draftWord);
-        if (added) {
-          this.display();
-        }
-      };
-
-      new Setting(containerEl)
-        .setName(t('settings.tab.filters.addExcludedWord.name'))
-        .setDesc(t('settings.tab.filters.addExcludedWord.desc'))
-        .addText((text) => {
-          text.setPlaceholder(t('settings.tab.filters.addExcludedWord.placeholder'));
-          text.onChange((value) => {
-            draftWord = value;
-          });
-
-          text.inputEl.addEventListener('keydown', async (event) => {
-            if (event.key !== 'Enter') {
-              return;
-            }
-
-            event.preventDefault();
-            await submitDraftWord();
-          });
-        })
-        .addButton((button) => {
-          button.setButtonText(t('settings.tab.filters.addExcludedWord.button')).setCta().onClick(async () => {
-            await submitDraftWord();
-          });
-        });
-
+    const renderFiltersSection = (sectionEl: HTMLElement): void => {
       const sortedWords = settings.exclusionListWords;
-      const excludedWordsDetailsEl = containerEl.createEl('details', {
+      const excludedWordsDetailsEl = sectionEl.createEl('details', {
         cls: 'vault-word-cloud-settings-excluded-details',
       });
       excludedWordsDetailsEl.open = this.isExcludedWordsExpanded;
@@ -240,14 +103,154 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
         }
       }
+
+      let draftWord = '';
+      const submitDraftWord = async (): Promise<void> => {
+        const added = await this.services.addExclusionListWord(draftWord);
+        if (added) {
+          this.display();
+        }
+      };
+
+      new Setting(sectionEl)
+        .setName(t('settings.tab.filters.addExcludedWord.name'))
+        .setDesc(t('settings.tab.filters.addExcludedWord.desc'))
+        .addText((text) => {
+          text.setPlaceholder(t('settings.tab.filters.addExcludedWord.placeholder'));
+          text.onChange((value) => {
+            draftWord = value;
+          });
+
+          text.inputEl.addEventListener('keydown', async (event) => {
+            if (event.key !== 'Enter') {
+              return;
+            }
+
+            event.preventDefault();
+            await submitDraftWord();
+          });
+        })
+        .addButton((button) => {
+          button.setButtonText(t('settings.tab.filters.addExcludedWord.button')).setCta().onClick(async () => {
+            await submitDraftWord();
+          });
+        });
+
+      new Setting(sectionEl)
+        .setName(t('settings.tab.filters.minimumWordLength.name'))
+        .setDesc(t('settings.tab.filters.minimumWordLength.desc'))
+        .addSlider((slider) => {
+          slider
+            .setLimits(1, 32, 1)
+            .setValue(settings.filters.minWordLength)
+            .setDynamicTooltip()
+            .onChange(async (value) => {
+              await this.services.updateFilterSettings({ minWordLength: value });
+            });
+        });
+
+      new Setting(sectionEl)
+        .setName(t('settings.tab.filters.nlp.enabled.name'))
+        .setDesc(t('settings.tab.filters.nlp.enabled.desc'))
+        .addToggle((toggle) => {
+          toggle
+            .setValue(settings.filters.nlp.enabled)
+            .onChange(async (value) => {
+              const nextMode = value && settings.filters.nlp.mode === 'off'
+                ? 'light'
+                : settings.filters.nlp.mode;
+              await this.services.updateFilterSettings({
+                nlp: {
+                  ...settings.filters.nlp,
+                  enabled: value,
+                  mode: nextMode,
+                },
+              });
+              this.display();
+            });
+        });
+
+      new Setting(sectionEl)
+        .setName(t('settings.tab.filters.nlp.mode.name'))
+        .setDesc(t('settings.tab.filters.nlp.mode.desc'))
+        .addDropdown((dropdown) => {
+          dropdown
+            .addOption('off', t('settings.tab.filters.nlp.mode.off'))
+            .addOption('light', t('settings.tab.filters.nlp.mode.light'))
+            .addOption('aggressive', t('settings.tab.filters.nlp.mode.aggressive'))
+            .setValue(settings.filters.nlp.mode)
+            .setDisabled(!settings.filters.nlp.enabled)
+            .onChange(async (value) => {
+              await this.services.updateFilterSettings({
+                nlp: {
+                  ...settings.filters.nlp,
+                  mode: value === 'light' || value === 'aggressive' ? value : 'off',
+                },
+              });
+            });
+        });
+
+      new Setting(sectionEl)
+        .setName(t('settings.tab.filters.nlp.preserveAcronyms.name'))
+        .setDesc(t('settings.tab.filters.nlp.preserveAcronyms.desc'))
+        .addToggle((toggle) => {
+          toggle
+            .setValue(settings.filters.nlp.preserveAcronyms)
+            .setDisabled(!settings.filters.nlp.enabled)
+            .onChange(async (value) => {
+              await this.services.updateFilterSettings({
+                nlp: {
+                  ...settings.filters.nlp,
+                  preserveAcronyms: value,
+                },
+              });
+            });
+        });
+
+      new Setting(sectionEl)
+        .setName(t('settings.tab.filters.nlp.minLemmaLength.name'))
+        .setDesc(t('settings.tab.filters.nlp.minLemmaLength.desc'))
+        .addSlider((slider) => {
+          slider
+            .setLimits(2, 32, 1)
+            .setValue(settings.filters.nlp.minLemmaLength)
+            .setDynamicTooltip()
+            .setDisabled(!settings.filters.nlp.enabled)
+            .onChange(async (value) => {
+              await this.services.updateFilterSettings({
+                nlp: {
+                  ...settings.filters.nlp,
+                  minLemmaLength: value,
+                },
+              });
+            });
+        });
+
+      new Setting(sectionEl)
+        .setName(t('settings.tab.filters.nlp.filterNumericTokens.name'))
+        .setDesc(t('settings.tab.filters.nlp.filterNumericTokens.desc'))
+        .addToggle((toggle) => {
+          toggle
+            .setValue(settings.filters.nlp.filterNumericTokens)
+            .setDisabled(!settings.filters.nlp.enabled)
+            .onChange(async (value) => {
+              await this.services.updateFilterSettings({
+                nlp: {
+                  ...settings.filters.nlp,
+                  filterNumericTokens: value,
+                },
+              });
+            });
+        });
+
     };
 
-    containerEl.createEl('h3', { text: t('settings.tab.render.heading') });
-    containerEl.createEl('p').createEl('em', {
+    const renderSectionEl = createSection('settings.tab.render.heading');
+    renderSectionEl.createEl('p', { cls: 'vault-word-cloud-settings-section-description' }).createEl('em', {
       text: t('settings.tab.render.description'),
     });
 
-    const previewWrapperEl = containerEl.createDiv({ cls: 'vault-word-cloud-settings-preview' });
+    const previewWrapperEl = renderSectionEl.createDiv({ cls: 'vault-word-cloud-settings-preview' });
     const previewCanvasEl = previewWrapperEl.createDiv({ cls: 'vault-word-cloud-settings-preview-canvas' });
 
     const previewNonce = { value: 0 };
@@ -255,23 +258,27 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       await renderWordCloudCanvas({
         nonceRef: previewNonce,
         containerEl: previewCanvasEl,
+        preserveContainerDuringRender: true,
         services: this.services,
         errorLogPrefix: 'Word clouds settings preview',
-        createStatusHandle: (initialText) => {
-          const stateEl = previewCanvasEl.createDiv({ cls: 'vault-word-cloud-state', text: initialText });
+        createStatusHandle: (initialText, targetEl) => {
+          const renderTargetEl = targetEl ?? previewCanvasEl;
+          const stateEl = renderTargetEl.createDiv({ cls: 'vault-word-cloud-state', text: initialText });
           return {
             setText: (text) => stateEl.setText(text),
             remove: () => stateEl.remove(),
           };
         },
-        renderEmptyState: (message) => {
-          previewCanvasEl.createDiv({
+        renderEmptyState: (message, targetEl) => {
+          const renderTargetEl = targetEl ?? previewCanvasEl;
+          renderTargetEl.createDiv({
             cls: 'vault-word-cloud-state',
             text: message,
           });
         },
-        renderErrorState: (_message) => {
-          previewCanvasEl.createDiv({
+        renderErrorState: (_message, targetEl) => {
+          const renderTargetEl = targetEl ?? previewCanvasEl;
+          renderTargetEl.createDiv({
             cls: 'vault-word-cloud-state',
             text: t('settings.tab.preview.renderError'),
           });
@@ -296,7 +303,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       await rerenderPreview();
     };
 
-    new Setting(containerEl)
+    new Setting(renderSectionEl)
       .setName(t('settings.tab.render.rotation.name'))
       .setDesc(t('settings.tab.render.rotation.desc'))
       .addDropdown((dropdown) => {
@@ -313,7 +320,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(containerEl)
+    new Setting(renderSectionEl)
       .setName(t('settings.tab.render.spiral.name'))
       .setDesc(t('settings.tab.render.spiral.desc'))
       .addDropdown((dropdown) => {
@@ -328,7 +335,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(containerEl)
+    new Setting(renderSectionEl)
       .setName(t('settings.tab.render.wordPadding.name'))
       .setDesc(t('settings.tab.render.wordPadding.desc'))
       .addSlider((slider) => {
@@ -341,7 +348,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(containerEl)
+    new Setting(renderSectionEl)
       .setName(t('settings.tab.render.fontSizeRange.name'))
       .setDesc(t('settings.tab.render.fontSizeRange.desc'))
       .addSlider((slider) => {
@@ -371,7 +378,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(containerEl)
+    new Setting(renderSectionEl)
       .setName(t('settings.tab.render.fontFamily.name'))
       .setDesc(t('settings.tab.render.fontFamily.desc'))
       .addDropdown((dropdown) => {
@@ -385,7 +392,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(containerEl)
+    new Setting(renderSectionEl)
       .setName(t('settings.tab.render.showCount.name'))
       .setDesc(t('settings.tab.render.showCount.desc'))
       .addToggle((toggle) => {
@@ -393,11 +400,10 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           .setValue(settings.render.showCountInWordText)
           .onChange(async (value) => {
             await updateRenderAndPreview({ showCountInWordText: value });
-            this.display();
           });
       });
 
-    new Setting(containerEl)
+    new Setting(renderSectionEl)
       .setName(t('settings.tab.render.wordCaseMode.name'))
       .setDesc(t('settings.tab.render.wordCaseMode.desc'))
       .addDropdown((dropdown) => {
@@ -412,33 +418,37 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(containerEl)
-      .setName(t('settings.tab.render.metricToggle.name'))
-      .setDesc(t('settings.tab.render.metricToggle.desc'))
-      .addToggle((toggle) => {
-        toggle
-          .setValue(settings.render.showWordTextMetricToggle)
-          .setDisabled(!settings.render.showCountInWordText)
+    new Setting(renderSectionEl)
+      .setName(t('settings.tab.render.scalingMode.name'))
+      .setDesc(t('settings.tab.render.scalingMode.desc'))
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption('linear', t('settings.tab.render.scalingMode.linear'))
+          .addOption('power', t('settings.tab.render.scalingMode.power'))
+          .addOption('log', t('settings.tab.render.scalingMode.log'))
+          .addOption('rank', t('settings.tab.render.scalingMode.rank'))
+          .setValue(settings.render.scalingMode)
           .onChange(async (value) => {
-            await updateRenderAndPreview({ showWordTextMetricToggle: value });
+            await updateRenderAndPreview({ scalingMode: value as ScalingMode });
+            this.display();
           });
       });
 
-    new Setting(containerEl)
-      .setName(t('settings.tab.render.countLabelMinimum.name'))
-      .setDesc(t('settings.tab.render.countLabelMinimum.desc'))
+    new Setting(renderSectionEl)
+      .setName(t('settings.tab.render.scalingEmphasis.name'))
+      .setDesc(t('settings.tab.render.scalingEmphasis.desc'))
       .addSlider((slider) => {
         slider
-          .setLimits(1, 100, 1)
-          .setValue(settings.render.countLabelMinCount)
+          .setLimits(0.5, 3, 0.1)
+          .setValue(settings.render.emphasis)
           .setDynamicTooltip()
-          .setDisabled(!settings.render.showCountInWordText)
+          .setDisabled(settings.render.scalingMode !== 'power')
           .onChange(async (value) => {
-            await updateRenderAndPreview({ countLabelMinCount: value });
+            await updateRenderAndPreview({ emphasis: value });
           });
       });
 
-    const deterministicSetting = new Setting(containerEl)
+    const deterministicSetting = new Setting(renderSectionEl)
       .setName(t('settings.tab.render.deterministicLayout.name'))
       .setDesc(t('settings.tab.render.deterministicLayout.desc'))
       .addToggle((toggle) => {
@@ -464,7 +474,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       });
     }
 
-    new Setting(containerEl)
+    new Setting(renderSectionEl)
       .setName(t('settings.tab.render.mouseInteractions.name'))
       .setDesc(t('settings.tab.render.mouseInteractions.desc'))
       .addToggle((toggle) => {
@@ -475,7 +485,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(containerEl)
+    new Setting(renderSectionEl)
       .setName(t('settings.tab.render.controls.name'))
       .setDesc(t('settings.tab.render.controls.desc'))
       .addToggle((toggle) => {
@@ -486,7 +496,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(containerEl)
+    new Setting(renderSectionEl)
       .setName(t('settings.tab.render.exporting.name'))
       .setDesc(t('settings.tab.render.exporting.desc'))
       .addToggle((toggle) => {
@@ -497,43 +507,12 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    const advancedRenderDetailsEl = containerEl.createEl('details');
-    const advancedRenderSummaryEl = advancedRenderDetailsEl.createEl('summary');
-    advancedRenderSummaryEl.setText(t('settings.tab.render.advanced.summary'));
+    const filtersSectionEl = createSection('settings.tab.filters.heading');
+    renderFiltersSection(filtersSectionEl);
 
-    new Setting(advancedRenderDetailsEl)
-      .setName(t('settings.tab.render.scalingMode.name'))
-      .setDesc(t('settings.tab.render.scalingMode.desc'))
-      .addDropdown((dropdown) => {
-        dropdown
-          .addOption('linear', t('settings.tab.render.scalingMode.linear'))
-          .addOption('power', t('settings.tab.render.scalingMode.power'))
-          .addOption('log', t('settings.tab.render.scalingMode.log'))
-          .addOption('rank', t('settings.tab.render.scalingMode.rank'))
-          .setValue(settings.render.scalingMode)
-          .onChange(async (value) => {
-            await updateRenderAndPreview({ scalingMode: value as ScalingMode });
-            this.display();
-          });
-      });
+    const performanceSectionEl = createSection('settings.tab.performance.heading');
 
-    new Setting(advancedRenderDetailsEl)
-      .setName(t('settings.tab.render.scalingEmphasis.name'))
-      .setDesc(t('settings.tab.render.scalingEmphasis.desc'))
-      .addSlider((slider) => {
-        slider
-          .setLimits(0.5, 3, 0.1)
-          .setValue(settings.render.emphasis)
-          .setDynamicTooltip()
-          .setDisabled(settings.render.scalingMode !== 'power')
-          .onChange(async (value) => {
-            await updateRenderAndPreview({ emphasis: value });
-          });
-      });
-
-    containerEl.createEl('h3', { text: t('settings.tab.performance.heading') });
-
-    new Setting(containerEl)
+    new Setting(performanceSectionEl)
       .setName(t('settings.tab.performance.processingSpeed.name'))
       .setDesc(t('settings.tab.performance.processingSpeed.desc'))
       .addDropdown((dropdown) => {
@@ -547,14 +526,9 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    renderFiltersSection();
+    const resetSectionEl = createSection('settings.tab.reset.heading');
 
-    containerEl.createEl('h3', { text: t('settings.tab.reset.heading') });
-    containerEl.createEl('p', {
-      text: t('settings.tab.reset.description'),
-    });
-
-    new Setting(containerEl)
+    new Setting(resetSectionEl)
       .setName(t('settings.tab.reset.render.name'))
       .setDesc(t('settings.tab.reset.render.desc'))
       .addButton((button) => {
@@ -571,7 +545,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(containerEl)
+    new Setting(resetSectionEl)
       .setName(t('settings.tab.reset.excludedWords.name'))
       .setDesc(t('settings.tab.reset.excludedWords.desc'))
       .addButton((button) => {
@@ -588,7 +562,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    const supportContainerEl = containerEl.createDiv({ cls: 'vault-word-cloud-settings-support' });
+    const supportContainerEl = contentEl.createDiv({ cls: 'vault-word-cloud-settings-section vault-word-cloud-settings-support' });
     supportContainerEl.createEl('h3', {
       cls: 'vault-word-cloud-settings-support-title',
       text: t('settings.tab.support.title'),

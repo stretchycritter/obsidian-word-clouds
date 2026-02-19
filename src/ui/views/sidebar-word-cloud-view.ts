@@ -355,24 +355,28 @@ export class NoteWordCloudView extends ItemView {
     await renderWordCloudCanvas({
       nonceRef: this.renderNonce,
       containerEl,
+      preserveContainerDuringRender: true,
       services: this.services,
       filters: this.filters,
       errorLogPrefix: 'Note word cloud',
-      createStatusHandle: (initialText) => {
-        const stateEl = containerEl.createDiv({ cls: 'vault-word-cloud-state', text: initialText });
+      createStatusHandle: (initialText, targetEl) => {
+        const renderTargetEl = targetEl ?? containerEl;
+        const stateEl = renderTargetEl.createDiv({ cls: 'vault-word-cloud-state', text: initialText });
         return {
           setText: (text) => stateEl.setText(text),
           remove: () => stateEl.remove(),
         };
       },
-      renderEmptyState: (message) => {
-        containerEl.createDiv({
+      renderEmptyState: (message, targetEl) => {
+        const renderTargetEl = targetEl ?? containerEl;
+        renderTargetEl.createDiv({
           cls: 'vault-word-cloud-state',
           text: message,
         });
       },
-      renderErrorState: (message) => {
-        containerEl.createDiv({
+      renderErrorState: (message, targetEl) => {
+        const renderTargetEl = targetEl ?? containerEl;
+        renderTargetEl.createDiv({
           cls: 'vault-word-cloud-state',
           text: message,
         });

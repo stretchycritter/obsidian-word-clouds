@@ -139,20 +139,24 @@ export function registerEmbeddedWordCloudProcessor(
       await renderWordCloudCanvas({
         nonceRef,
         containerEl: canvasEl,
+        preserveContainerDuringRender: true,
         services,
         errorLogPrefix: 'Word clouds',
-        createStatusHandle: (initialText) => {
-          const stateEl = wrapperEl.createDiv({ cls: 'word-cloud-embed-state', text: initialText });
+        createStatusHandle: (initialText, targetEl) => {
+          const renderTargetEl = targetEl ?? canvasEl;
+          const stateEl = renderTargetEl.createDiv({ cls: 'word-cloud-embed-state', text: initialText });
           return {
             setText: (text) => stateEl.setText(text),
             remove: () => stateEl.remove(),
           };
         },
-        renderEmptyState: (message) => {
-          wrapperEl.createDiv({ cls: 'word-cloud-embed-state', text: message });
+        renderEmptyState: (message, targetEl) => {
+          const renderTargetEl = targetEl ?? canvasEl;
+          renderTargetEl.createDiv({ cls: 'word-cloud-embed-state', text: message });
         },
-        renderErrorState: (message) => {
-          wrapperEl.createDiv({ cls: 'word-cloud-embed-state', text: message });
+        renderErrorState: (message, targetEl) => {
+          const renderTargetEl = targetEl ?? canvasEl;
+          renderTargetEl.createDiv({ cls: 'word-cloud-embed-state', text: message });
         },
         resolveScopeFilePath: () => sourceScope.activeFilePath ?? '',
         resolveExtraContext: () => ({ sourceScope }),
@@ -568,18 +572,6 @@ function parseRenderSettingOption(
     }
     target.wordTextMetric = normalizedEnum as WordTextMetric;
     return true;
-  }
-
-  if (key === 'show-word-text-metric-toggle' || key === 'show-metric-toggle') {
-    return setBoolean((next) => {
-      target.showWordTextMetricToggle = next;
-    });
-  }
-
-  if (key === 'count-label-min-count' || key === 'min-count-label') {
-    return setInteger((next) => {
-      target.countLabelMinCount = next;
-    }, 1);
   }
 
   if (key === 'performance-mode' || key === 'performance') {

@@ -137,12 +137,6 @@ export function normalizeRenderSettings(rawValue: unknown): RenderSettings {
     ? raw.wordCaseMode
     : DEFAULT_SETTINGS.render.wordCaseMode;
 
-  const showWordTextMetricToggle = typeof raw.showWordTextMetricToggle === 'boolean'
-    ? raw.showWordTextMetricToggle
-    : DEFAULT_SETTINGS.render.showWordTextMetricToggle;
-
-  const countLabelMinCount = clampNumber(raw.countLabelMinCount, 1, 100, DEFAULT_SETTINGS.render.countLabelMinCount);
-
   const performanceMode = raw.performanceMode === 'full-speed'
     || raw.performanceMode === 'balanced'
     || raw.performanceMode === 'throttled'
@@ -179,8 +173,6 @@ export function normalizeRenderSettings(rawValue: unknown): RenderSettings {
     showCountInWordText,
     wordTextMetric,
     wordCaseMode,
-    showWordTextMetricToggle,
-    countLabelMinCount,
     performanceMode,
     scanBatchSize,
     layoutTimeIntervalMs,

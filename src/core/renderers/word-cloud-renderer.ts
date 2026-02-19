@@ -53,7 +53,7 @@ function formatWordMetricValue(
 
 function getWordLabel(word: WeightedWord, renderSettings: RenderSettings, totalCount: number, metric: WordTextMetric): string {
   const displayText = applyWordCaseMode(word.text, renderSettings);
-  if (!renderSettings.showCountInWordText || word.count < renderSettings.countLabelMinCount) {
+  if (!renderSettings.showCountInWordText) {
     return displayText;
   }
 
@@ -242,7 +242,7 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
             showRefreshControl,
             showZoomControls,
             showEditControl,
-            showWordMetricToggleControl: renderSettings.showCountInWordText && renderSettings.showWordTextMetricToggle,
+            showWordMetricToggleControl: false,
             getCurrentWordMetric: () => activeWordTextMetric,
             onToggleWordMetric: () => {
               applyWordTextMetric(activeWordTextMetric === 'count' ? 'frequency' : 'count');

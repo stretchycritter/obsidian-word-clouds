@@ -412,6 +412,30 @@
   font-size: var(--font-ui-medium);
 }
 
+.vault-word-cloud-settings-tab > .vault-word-cloud-settings-section {
+  margin-top: var(--size-4-4);
+}
+
+.vault-word-cloud-settings-tab > .vault-word-cloud-settings-section:first-child {
+  margin-top: 0;
+}
+
+.vault-word-cloud-settings-section > h3 {
+  margin: 0 0 var(--size-4-2) 0;
+}
+
+.vault-word-cloud-settings-section .setting-item {
+  margin-top: var(--size-4-2);
+}
+
+.vault-word-cloud-settings-section .setting-item:first-of-type {
+  margin-top: 0;
+}
+
+.vault-word-cloud-settings-section-description {
+  margin: 0;
+}
+
 .vault-word-cloud-settings-list {
   margin-top: var(--size-4-1);
 }
@@ -516,7 +540,7 @@
 }
 
 .vault-word-cloud-settings-preview {
-  margin-top: var(--size-4-2);
+  margin-top: 0;
 }
 
 .vault-word-cloud-settings-preview-canvas {
@@ -528,7 +552,6 @@
 }
 
 .vault-word-cloud-settings-support {
-  margin-top: var(--size-4-3);
   padding: var(--size-4-3);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-m);
@@ -596,6 +619,15 @@
   position: relative;
   display: block;
   line-height: 0;
+}
+
+.word-cloud-render-host {
+  position: relative;
+}
+
+.word-cloud-render-target {
+  position: absolute;
+  inset: 0;
 }
 
 .word-cloud-panzoom-surface {

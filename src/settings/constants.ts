@@ -59,8 +59,6 @@ export const DEFAULT_SETTINGS: WordCloudSettings = {
     showCountInWordText: false,
     wordTextMetric: 'count',
     wordCaseMode: 'normalized',
-    showWordTextMetricToggle: false,
-    countLabelMinCount: 1,
     performanceMode: 'balanced',
     scanBatchSize: 24,
     layoutTimeIntervalMs: 16,

@@ -23,12 +23,13 @@ type WordCloudStatusHandle = {
 type RenderWordCloudCanvasOptions<TExtra> = {
   nonceRef: RenderNonceRef;
   containerEl: HTMLDivElement;
+  preserveContainerDuringRender?: boolean;
   services: WordCloudServices;
   filters?: WordCloudFilterSettings;
   errorLogPrefix: string;
-  createStatusHandle: (initialText: string) => WordCloudStatusHandle;
-  renderEmptyState: (message: string) => void;
-  renderErrorState: (message: string) => void;
+  createStatusHandle: (initialText: string, targetEl?: HTMLDivElement) => WordCloudStatusHandle;
+  renderEmptyState: (message: string, targetEl?: HTMLDivElement) => void;
+  renderErrorState: (message: string, targetEl?: HTMLDivElement) => void;
   resolveScopeFilePath: () => string;
   resolveExtraContext: (scopeFilePath: string) => TExtra;
   getAriaLabel: (context: RenderContext<TExtra>) => string;
@@ -80,6 +81,7 @@ export async function renderWordCloudCanvas<TExtra>(
   const {
     nonceRef,
     containerEl,
+    preserveContainerDuringRender = false,
     services,
     filters,
     errorLogPrefix,
@@ -102,8 +104,37 @@ export async function renderWordCloudCanvas<TExtra>(
   } = options;
 
   const activeNonce = ++nonceRef.value;
-  containerEl.empty();
-  const statusHandle = createStatusHandle(t('ui.renderers.wordCloudCanvas.buildingCloud'));
+  if (!preserveContainerDuringRender) {
+    containerEl.empty();
+  }
+  const targetEl = preserveContainerDuringRender ? containerEl.createDiv({ cls: 'word-cloud-render-target' }) : containerEl;
+  if (preserveContainerDuringRender) {
+    containerEl.addClass('word-cloud-render-host');
+  }
+  const statusHandle = createStatusHandle(t('ui.renderers.wordCloudCanvas.buildingCloud'), targetEl);
+
+  const removeTargetIfStale = (): boolean => {
+    if (activeNonce === nonceRef.value) {
+      return false;
+    }
+    statusHandle.remove();
+    if (preserveContainerDuringRender) {
+      targetEl.remove();
+    }
+    return true;
+  };
+
+  const promoteTarget = (): void => {
+    if (!preserveContainerDuringRender) {
+      return;
+    }
+    for (const child of Array.from(containerEl.children)) {
+      if (child !== targetEl) {
+        child.remove();
+      }
+    }
+  };
+
   const updateProgress = (message: string, percent: number): void => {
     if (activeNonce !== nonceRef.value) {
       return;
@@ -131,12 +162,16 @@ export async function renderWordCloudCanvas<TExtra>(
         renderSettingsOverride,
         updateProgress,
       );
+    if (removeTargetIfStale()) {
+      return;
+    }
 
     onWordsResolved?.(words, context);
 
     if (words.length === 0) {
       statusHandle.remove();
-      renderEmptyState(getNoWordsMessage(context));
+      renderEmptyState(getNoWordsMessage(context), targetEl);
+      promoteTarget();
       onAfterEmpty?.(context);
       return;
     }
@@ -152,7 +187,7 @@ export async function renderWordCloudCanvas<TExtra>(
       };
 
     await services.drawWordCloud({
-      containerEl,
+      containerEl: targetEl,
       words,
       ariaLabel: getAriaLabel(context),
       onProgress: updateProgress,
@@ -179,15 +214,23 @@ export async function renderWordCloudCanvas<TExtra>(
       renderSettingsOverride,
     });
 
-    if (activeNonce !== nonceRef.value) {
+    if (removeTargetIfStale()) {
       return;
     }
 
     statusHandle.remove();
+    promoteTarget();
     onAfterRender?.(context);
   } catch (error) {
     statusHandle.remove();
+    if (preserveContainerDuringRender) {
+      for (const child of Array.from(containerEl.children)) {
+        if (child !== targetEl) {
+          child.remove();
+        }
+      }
+    }
     console.error(`${errorLogPrefix}: failed to render cloud`, error);
-    renderErrorState(t('ui.renderers.wordCloudCanvas.renderError'));
+    renderErrorState(t('ui.renderers.wordCloudCanvas.renderError'), targetEl);
   }
 }

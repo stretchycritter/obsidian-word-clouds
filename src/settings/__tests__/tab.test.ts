@@ -384,7 +384,7 @@ describe('VaultWordCloudSettingTab', () => {
     expect(mockedRenderWordCloudCanvas.mock.calls.length).toBeGreaterThanOrEqual(3);
   });
 
-  test('show-count toggle updates settings and dependent controls start disabled', async () => {
+  test('show-count toggle updates settings and rerenders preview without full tab redraw', async () => {
     const settings = createSettings();
     settings.render.showCountInWordText = false;
     const services = createServicesMock(settings);
@@ -393,18 +393,14 @@ describe('VaultWordCloudSettingTab', () => {
 
     tab.display();
 
-    const metricToggle = getControl('Show count/frequency toggle button', 0) as { disabled: boolean };
-    const countThresholdSlider = getControl('Count label minimum', 0) as { disabled: boolean };
-    expect(metricToggle.disabled).toBe(true);
-    expect(countThresholdSlider.disabled).toBe(true);
-
     const showCountToggle = getControl('Show count for words', 0) as {
       triggerChange: (value: boolean) => Promise<void>;
     };
     await showCountToggle.triggerChange(true);
 
     expect(services.updateRenderSettings).toHaveBeenCalledWith({ showCountInWordText: true });
-    expect(displaySpy).toHaveBeenCalledTimes(2);
+    expect(mockedRenderWordCloudCanvas).toHaveBeenCalledTimes(2);
+    expect(displaySpy).toHaveBeenCalledTimes(1);
   });
 
   test('disables emphasis slider when scaling mode is not power', () => {

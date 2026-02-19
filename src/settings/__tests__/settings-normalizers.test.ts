@@ -111,8 +111,6 @@ describe('settings-normalizers', () => {
       emphasis: 9,
       wordTextMetric: 'bad',
       wordCaseMode: 'bad',
-      showWordTextMetricToggle: 'bad',
-      countLabelMinCount: 500,
       performanceMode: 'bad',
       scanBatchSize: 3,
       layoutTimeIntervalMs: 100,
@@ -133,8 +131,6 @@ describe('settings-normalizers', () => {
     expect(normalized.emphasis).toBe(3);
     expect(normalized.wordTextMetric).toBe(DEFAULT_SETTINGS.render.wordTextMetric);
     expect(normalized.wordCaseMode).toBe(DEFAULT_SETTINGS.render.wordCaseMode);
-    expect(normalized.showWordTextMetricToggle).toBe(DEFAULT_SETTINGS.render.showWordTextMetricToggle);
-    expect(normalized.countLabelMinCount).toBe(100);
     expect(normalized.performanceMode).toBe(DEFAULT_SETTINGS.render.performanceMode);
     expect(normalized.scanBatchSize).toBe(8);
     expect(normalized.layoutTimeIntervalMs).toBe(40);

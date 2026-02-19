@@ -24,8 +24,6 @@ export type RenderSettings = {
   showCountInWordText: boolean;
   wordTextMetric: WordTextMetric;
   wordCaseMode: WordCaseMode;
-  showWordTextMetricToggle: boolean;
-  countLabelMinCount: number;
   performanceMode: PerformanceMode;
   scanBatchSize: number;
   layoutTimeIntervalMs: number;
