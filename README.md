@@ -90,7 +90,7 @@ From the `scripts` folder (fully parameterized):
 
 ```bash
 cd scripts
-node generate-load-testing-vault.mjs --small-count=100 --medium-count=50 --large-count=25
+node ./scripts/generate-load-testing-vault.mjs --small-count=100 --medium-count=50 --large-count=25
 ```
 
 Common parameters:

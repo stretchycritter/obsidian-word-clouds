@@ -1,5 +1,9 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(scriptDir, '..');
 
 const DEFAULT_PROFILES = [
   { label: 'small', count: 30, minWords: 80, maxWords: 180 },
@@ -52,7 +56,7 @@ const DEFAULT_SENTENCE_STARTS = [
 ];
 
 const DEFAULT_SETTINGS = {
-  outputDir: path.resolve(process.cwd(), 'demo-vault', 'load-testing'),
+  outputDir: path.resolve(projectRoot, 'demo-vault', 'load-testing'),
   filePrefix: 'load-test',
   paragraphMinWords: 80,
   paragraphMaxWords: 180,
