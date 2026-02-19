@@ -5,12 +5,14 @@ const ACRONYM_PATTERN = /^[A-Z]{2,}$/;
 const NUMERIC_PATTERN = /^\d+$/;
 
 export function tokenizeDocuments(documents: NormalizedDocument[]): Token[] {
-  const tokens: Token[] = [];
+  return Array.from(iterateDocumentTokens(documents));
+}
 
+export function* iterateDocumentTokens(documents: NormalizedDocument[]): IterableIterator<Token> {
   for (const document of documents) {
     const values = document.text.match(TOKEN_PATTERN) ?? [];
     for (const rawValue of values) {
-      tokens.push({
+      yield {
         rawValue,
         value: rawValue.toLowerCase(),
         documentId: document.id,
@@ -18,9 +20,7 @@ export function tokenizeDocuments(documents: NormalizedDocument[]): Token[] {
           isAcronym: ACRONYM_PATTERN.test(rawValue),
           isNumeric: NUMERIC_PATTERN.test(rawValue),
         },
-      });
+      };
     }
   }
-
-  return tokens;
 }

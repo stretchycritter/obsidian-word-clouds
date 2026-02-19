@@ -12,13 +12,15 @@ export function mapCountsToWeightedWords(
   const minFontSize = Math.max(8, Math.round(renderSettings.minFontSize));
   const maxFontSize = Math.max(minFontSize, Math.round(renderSettings.maxFontSize));
   const emphasis = Math.max(0.5, Math.min(3, renderSettings.emphasis));
+  const minCount = entries[entries.length - 1]?.[1] ?? 0;
+  const maxCount = entries[0]?.[1] ?? 0;
 
   const normalizedEntries = entries
     .map(([text, count], index) => ({
       text,
       count,
       index,
-      score: computeScaleScore(count, index, entries, renderSettings, emphasis),
+      score: computeScaleScore(count, index, entries.length, minCount, maxCount, renderSettings, emphasis),
     }))
     .sort((a, b) => b.count - a.count || a.index - b.index);
 
@@ -32,23 +34,21 @@ export function mapCountsToWeightedWords(
 function computeScaleScore(
   count: number,
   index: number,
-  entries: Array<[string, number]>,
+  entryCount: number,
+  minCount: number,
+  maxCount: number,
   renderSettings: RenderSettings,
   emphasis: number,
 ): number {
-  const counts = entries.map(([, entryCount]) => entryCount);
-  const minCount = counts[counts.length - 1];
-  const maxCount = counts[0];
-
   if (maxCount <= minCount) {
     return 0.5;
   }
 
   if (renderSettings.scalingMode === 'rank') {
-    if (entries.length === 1) {
+    if (entryCount === 1) {
       return 0.5;
     }
-    return 1 - index / (entries.length - 1);
+    return 1 - index / (entryCount - 1);
   }
 
   if (renderSettings.scalingMode === 'log') {
