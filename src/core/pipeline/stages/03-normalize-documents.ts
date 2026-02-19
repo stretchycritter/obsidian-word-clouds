@@ -1,4 +1,4 @@
-import type { PipelineDocument } from '@/core/types';
+import type { PipelineDocument } from '@/core';
 import type { NormalizedDocument } from '@/core/pipeline/types';
 
 const FRONTMATTER_PATTERN = /^---\s*\n[\s\S]*?\n---\s*(?:\n|$)/;

@@ -1,6 +1,5 @@
 import type { FrequencyThresholds, RenderSettings, SourceSelectionRules } from '@/settings/types';
-import type { WeightedWord } from '@/core/types';
-import type { PipelineDocument } from '@/core/types';
+import type { PipelineDocument, WeightedWord } from '@/core';
 
 export type PipelineInput = {
   documents: PipelineDocument[];
@@ -42,23 +41,3 @@ export type RenderModel = {
   totalTokens: number;
   distinctTokens: number;
 };
-
-export interface TokenizerStrategy {
-  tokenize(text: string): string[];
-}
-
-export interface FilterStrategy {
-  includeToken(token: string, stopWords: Set<string>): boolean;
-}
-
-export interface AggregatorStrategy {
-  aggregate(tokens: Token[]): AggregateResult;
-}
-
-export interface ScalingStrategy {
-  scale(entries: Array<[string, number]>, renderSettings: RenderSettings): WeightedWord[];
-}
-
-export interface RenderModelStrategy {
-  buildModel(words: WeightedWord[], aggregate: AggregateResult): RenderModel;
-}

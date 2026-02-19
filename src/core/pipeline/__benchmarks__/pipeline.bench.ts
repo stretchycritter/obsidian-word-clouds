@@ -128,8 +128,12 @@ function percentile(sortedValues: number[], p: number): number {
 }
 
 function writeBenchmarkResults(lines: string[]): void {
-  const outputPath = path.resolve(process.cwd(), 'benchmark-results.txt');
-  writeFileSync(outputPath, `${lines.join('\n')}\n`, 'utf8');
+  const outputPath = process.env.PIPELINE_BENCH_OUTPUT?.trim();
+  if (!outputPath) {
+    return;
+  }
+
+  writeFileSync(path.resolve(process.cwd(), outputPath), `${lines.join('\n')}\n`, 'utf8');
 }
 
 describe('pipeline benchmark harness', () => {

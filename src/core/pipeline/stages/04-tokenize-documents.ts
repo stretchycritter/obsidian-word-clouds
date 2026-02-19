@@ -1,10 +1,12 @@
-import type { NormalizedDocument, Token, TokenizerStrategy } from '@/core/pipeline/types';
+import type { NormalizedDocument, Token } from '@/core/pipeline/types';
 
-export function tokenizeDocuments(documents: NormalizedDocument[], strategy: TokenizerStrategy): Token[] {
+const TOKEN_PATTERN = /[a-z0-9][a-z0-9'-]*/g;
+
+export function tokenizeDocuments(documents: NormalizedDocument[]): Token[] {
   const tokens: Token[] = [];
 
   for (const document of documents) {
-    const values = strategy.tokenize(document.text);
+    const values = document.text.match(TOKEN_PATTERN) ?? [];
     for (const value of values) {
       tokens.push({
         value,

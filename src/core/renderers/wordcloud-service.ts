@@ -1,5 +1,5 @@
 import type { App, TFile } from 'obsidian';
-import type { WeightedWord } from '@/core/types';
+import type { WeightedWord } from '@/core';
 import type { FrequencyThresholds, RenderSettings, SourceSelectionRules } from '@/settings/types';
 import { filterSourceFilesByMetadata, getAvailableTags, readPipelineDocuments } from '@/core/ingestion';
 import { runTransformPipeline } from '@/core/pipeline';

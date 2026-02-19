@@ -1,5 +1,7 @@
-import type { FilterStrategy, Token } from '@/core/pipeline/types';
+import type { Token } from '@/core/pipeline/types';
 
-export function filterTokens(tokens: Token[], stopWords: Set<string>, strategy: FilterStrategy): Token[] {
-  return tokens.filter((token) => strategy.includeToken(token.value, stopWords));
+const MIN_WORD_LENGTH = 3;
+
+export function filterTokens(tokens: Token[], stopWords: Set<string>): Token[] {
+  return tokens.filter((token) => token.value.length >= MIN_WORD_LENGTH && !stopWords.has(token.value));
 }

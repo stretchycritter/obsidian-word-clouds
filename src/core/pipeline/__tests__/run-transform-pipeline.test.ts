@@ -1,5 +1,5 @@
 import { runTransformPipeline } from '@/core/pipeline';
-import type { PipelineDocument } from '@/core/types';
+import type { PipelineDocument } from '@/core';
 import { DEFAULT_SETTINGS } from '@/settings/constants';
 import type { RenderSettings } from '@/settings/types';
 
