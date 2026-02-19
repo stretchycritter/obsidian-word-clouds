@@ -67,6 +67,49 @@ describe('compileTagPredicate', () => {
     expect(predicate).not.toBeNull();
     expect(predicate?.(file)).toBe(false);
   });
+
+  it('matches tags defined only in frontmatter', () => {
+    const file = createFile('Projects/Alpha.md');
+    const app = createMockApp(
+      {},
+      {
+        'Projects/Alpha.md': {
+          tags: ['project/alpha', 'status/open'],
+        },
+      },
+    );
+    const rules: SourceSelectionRules = {
+      includeTagPrefixes: ['project/'],
+      excludeTags: ['status/closed'],
+    };
+
+    const predicate = compileTagPredicate(app, rules);
+    expect(predicate).not.toBeNull();
+    expect(predicate?.(file)).toBe(true);
+  });
+
+  it('reuses cached file tags across repeated predicate checks', () => {
+    const file = createFile('Projects/Alpha.md');
+    let cacheReadCount = 0;
+    const app = createMockApp(
+      {
+        'Projects/Alpha.md': ['#project', '#alpha'],
+      },
+      {},
+      () => {
+        cacheReadCount += 1;
+      },
+    );
+    const rules: SourceSelectionRules = {
+      includeTags: ['project'],
+    };
+
+    const predicate = compileTagPredicate(app, rules);
+    expect(predicate).not.toBeNull();
+    expect(predicate?.(file)).toBe(true);
+    expect(predicate?.(file)).toBe(true);
+    expect(cacheReadCount).toBe(1);
+  });
 });
 
 function createFile(path: string): TFile {
@@ -87,17 +130,24 @@ function createFile(path: string): TFile {
   } as TFile;
 }
 
-function createMockApp(tagsByPath: Record<string, string[]>): App {
+function createMockApp(
+  tagsByPath: Record<string, string[]>,
+  frontmatterByPath: Record<string, Record<string, unknown>> = {},
+  onGetFileCache?: () => void,
+): App {
   return {
     metadataCache: {
       getFileCache(file: TFile): CachedMetadata | null {
+        onGetFileCache?.();
         const tags = tagsByPath[file.path];
-        if (!tags) {
+        const frontmatter = frontmatterByPath[file.path];
+        if (!tags && !frontmatter) {
           return null;
         }
 
         return {
-          tags: tags.map((tag) => ({ tag })),
+          tags: tags?.map((tag) => ({ tag })),
+          frontmatter,
         } as unknown as CachedMetadata;
       },
     },

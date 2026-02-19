@@ -23,9 +23,10 @@ export function compileTagPredicate(app: App, rules: SourceSelectionRules): File
   const excludeSet = new Set(excludeTags);
   const tagMatchMode = rules.tagMatchMode ?? 'any';
   const tagPrefixMatchMode = rules.tagPrefixMatchMode ?? 'any';
+  const tagCache = new Map<string, Set<string>>();
 
   return (file: TFile) => {
-    const fileTags = getNormalizedFileTags(app, file);
+    const fileTags = getNormalizedFileTags(app, file, tagCache);
     if (includeSet.size > 0 && !matchesTagSet(fileTags, includeTags, tagMatchMode, false)) {
       return false;
     }
@@ -72,14 +73,48 @@ function matchesTagSet(fileTags: Set<string>, constraints: string[], mode: TagMa
   return constraints.some(matchesTag);
 }
 
-function getNormalizedFileTags(app: App, file: TFile): Set<string> {
-  const cache = app.metadataCache.getFileCache(file);
-  if (!cache?.tags) {
-    return new Set();
+function getNormalizedFileTags(app: App, file: TFile, tagCache: Map<string, Set<string>>): Set<string> {
+  const cached = tagCache.get(file.path);
+  if (cached) {
+    return cached;
   }
 
-  const normalized = cache.tags
+  const cache = app.metadataCache.getFileCache(file);
+  if (!cache) {
+    const emptyTagSet = new Set<string>();
+    tagCache.set(file.path, emptyTagSet);
+    return emptyTagSet;
+  }
+
+  const normalizedInlineTags = (cache.tags ?? [])
     .map((entry) => normalizeTag(entry.tag))
     .filter(Boolean);
-  return new Set(normalized);
+  const normalizedFrontmatterTags = extractFrontmatterTags(cache.frontmatter)
+    .map((entry) => normalizeTag(entry))
+    .filter(Boolean);
+
+  const normalized = [...normalizedInlineTags, ...normalizedFrontmatterTags];
+  const normalizedTagSet = new Set(normalized);
+  tagCache.set(file.path, normalizedTagSet);
+  return normalizedTagSet;
+}
+
+function extractFrontmatterTags(frontmatter: Record<string, unknown> | null | undefined): string[] {
+  if (!frontmatter || typeof frontmatter !== 'object') {
+    return [];
+  }
+
+  const rawTags = frontmatter.tags ?? frontmatter.tag;
+  if (typeof rawTags === 'string') {
+    return rawTags.split(/[\s,]+/).filter((entry) => entry.length > 0);
+  }
+
+  if (Array.isArray(rawTags)) {
+    return rawTags
+      .filter((entry): entry is string => typeof entry === 'string')
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
+  }
+
+  return [];
 }

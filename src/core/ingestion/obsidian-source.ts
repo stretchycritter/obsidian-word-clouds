@@ -1,4 +1,4 @@
-import type { App, TFile } from 'obsidian';
+import type { App, CachedMetadata, TFile } from 'obsidian';
 import { normalizeTag } from '@/utils/utils';
 import type { PipelineDocument } from '@/core/types';
 
@@ -19,7 +19,7 @@ export async function readPipelineDocuments(
       const file = batch[index];
       const rawText = contents[index];
       const cache = app.metadataCache.getFileCache(file);
-      const tags = getFileTags(app, file);
+      const tags = getFileTagsFromCache(cache);
       const fileIndex = batchStart + index;
 
       onProgress?.(`Scanning ${fileIndex + 1}/${files.length} files...`, Math.round((fileIndex / totalFiles) * 75));
@@ -42,6 +42,10 @@ export async function readPipelineDocuments(
 
 export function getFileTags(app: App, file: TFile): string[] {
   const cache = app.metadataCache.getFileCache(file);
+  return getFileTagsFromCache(cache);
+}
+
+function getFileTagsFromCache(cache: CachedMetadata | null): string[] {
   if (!cache) {
     return [];
   }
