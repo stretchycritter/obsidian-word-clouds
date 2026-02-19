@@ -788,11 +788,23 @@
   text-align: left;
 }
 
+.word-cloud-embed-wizard-modal .modal {
+  width: min(92vw, 920px);
+  height: min(86vh, 760px);
+}
+
+.word-cloud-embed-wizard-modal .modal-content {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .word-cloud-embed-wizard {
   display: flex;
   flex-direction: column;
   gap: var(--size-4-2);
-  min-height: min(72vh, 640px);
+  height: 100%;
+  min-height: 0;
 }
 
 .word-cloud-embed-wizard-settings {
@@ -869,5 +881,9 @@
   gap: var(--size-4-1);
   margin-top: auto;
   padding-top: var(--size-4-1);
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: var(--modal-background);
   border-top: 1px solid var(--background-modifier-border);
 }

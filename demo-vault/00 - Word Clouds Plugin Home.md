@@ -19,8 +19,7 @@ This vault is the living documentation and test bed for the **Word Clouds** plug
 id: 704353d6-e687-4d68-9a0e-b293f9f6c069
 scope: file
 size: medium
-min-count: 1
-max-count: 9999
+font-family: Arial, sans-serif
 ```
 
 ## Why this vault exists

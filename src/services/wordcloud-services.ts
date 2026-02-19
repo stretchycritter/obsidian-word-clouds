@@ -95,6 +95,7 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
     };
     const frequency = options.frequency ?? settings.filters.frequency;
     const nlpSettings = options.nlpSettings ?? settings.filters.nlp;
+    const minWordLength = options.minWordLength ?? settings.filters.minWordLength;
 
     return this.processor.collectFromFiles(
       this.obsidian.getMarkdownFiles(),
@@ -104,7 +105,7 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
       {
         sourceRules,
         frequency,
-        minWordLength: settings.filters.minWordLength,
+        minWordLength,
         nlpSettings,
         excludeWords: options.excludeWords,
       },

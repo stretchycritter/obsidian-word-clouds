@@ -2,6 +2,8 @@ import { MarkdownPostProcessorContext, MarkdownView, Notice, Plugin, TFile } fro
 import type {
   FrontmatterOperator,
   FrontmatterRule,
+  NlpMode,
+  NlpSettings,
   PerformanceMode,
   RenderSettings,
   RotationPreset,
@@ -9,12 +11,15 @@ import type {
   SourceScope,
   SpiralType,
   TagMatchMode,
+  WordCaseMode,
   WordTextMetric,
+  WordCloudSettings,
 } from '@/settings/types';
 import type { WordCloudServices } from '@/services/types';
+import { DEFAULT_SETTINGS } from '@/settings/constants';
 import { EmbedWordCloudModal } from '@/ui';
 import { normalizeTag } from '@/utils/utils';
-import { renderWordCloudCanvas } from '@/core';
+import { mergeRenderSettings, renderWordCloudCanvas } from '@/core';
 import { t } from '@/i18n';
 
 type EmbeddedWordCloudScope = 'file' | 'vault' | 'folder';
@@ -31,8 +36,9 @@ type EmbeddedWordCloudOptions = {
   frontmatterRules: FrontmatterRule[];
   minCount: number;
   maxCount: number;
+  minWordLength: number;
+  nlp: NlpSettings;
   excludeWords: string[];
-  interactions: boolean;
   renderSettingsOverride: Partial<RenderSettings>;
   specificFilePath?: string;
 };
@@ -47,22 +53,6 @@ type EmbeddedRenderState = {
 type EmbeddedCloudInstance = {
   sourcePath: string;
   rerender: () => void;
-};
-
-const DEFAULT_OPTIONS: EmbeddedWordCloudOptions = {
-  cloudId: '',
-  scope: 'file',
-  size: 'medium',
-  includeTags: [],
-  excludeTags: [],
-  tagMatchMode: 'any',
-  folderPaths: [],
-  frontmatterRules: [],
-  minCount: 1,
-  maxCount: 9999,
-  excludeWords: [],
-  interactions: true,
-  renderSettingsOverride: {},
 };
 
 const FRONTMATTER_OPERATORS = new Set<FrontmatterOperator>([
@@ -99,7 +89,9 @@ export function registerEmbeddedWordCloudProcessor(
     registerEmbeddedCloudInstance(el, ctx.sourcePath, () => {
       void render(source, el, ctx);
     });
-    const options = parseOptions(source);
+    const settingsDefaults = getSettingsDefaults(services);
+    const options = parseOptions(source, settingsDefaults);
+    const effectiveRenderSettings = mergeRenderSettings(settingsDefaults.render, options.renderSettingsOverride);
     const nonceRef = embeddedRenderNonces.get(el) ?? { value: 0 };
     embeddedRenderNonces.set(el, nonceRef);
 
@@ -176,6 +168,8 @@ export function registerEmbeddedWordCloudProcessor(
               minCount: options.minCount,
               maxCount: options.maxCount,
             },
+            minWordLength: options.minWordLength,
+            nlpSettings: options.nlp,
             excludeWords: options.excludeWords,
             renderSettingsOverride,
           }, updateProgress);
@@ -204,9 +198,9 @@ export function registerEmbeddedWordCloudProcessor(
             openEmbeddedWordCloudEditWizard(plugin, services, ctx, el, options);
           },
           enableOverlayControls: true,
-          enableViewportInteraction: options.interactions,
+          enableViewportInteraction: effectiveRenderSettings.enableMouseInteractions,
           showRefreshControl: true,
-          showZoomControls: options.interactions,
+          showZoomControls: effectiveRenderSettings.enableMouseInteractions,
           showEditControl: true,
         }),
         onRefresh: () => render(source, el, ctx),
@@ -284,8 +278,36 @@ function resolveSourceScope(
   };
 }
 
-function parseOptions(source: string): EmbeddedWordCloudOptions {
-  const options: EmbeddedWordCloudOptions = { ...DEFAULT_OPTIONS };
+function getSettingsDefaults(services: WordCloudServices): Readonly<WordCloudSettings> {
+  if ('getSettingsSnapshot' in services && typeof services.getSettingsSnapshot === 'function') {
+    const provider = services as WordCloudServices & { getSettingsSnapshot: () => Readonly<WordCloudSettings> };
+    return provider.getSettingsSnapshot();
+  }
+  return DEFAULT_SETTINGS;
+}
+
+function buildDefaultOptions(settings: Readonly<WordCloudSettings>): EmbeddedWordCloudOptions {
+  return {
+    cloudId: '',
+    scope: 'file',
+    size: 'medium',
+    includeTags: [...settings.filters.includeTags],
+    excludeTags: [...settings.filters.excludeTags],
+    tagMatchMode: settings.filters.tagMatchMode,
+    folderPaths: [...(settings.filters.scope.folderPaths ?? [])],
+    frontmatterRules: settings.filters.frontmatterRules.map((rule) => ({ ...rule })),
+    minCount: settings.filters.frequency.minCount,
+    maxCount: settings.filters.frequency.maxCount,
+    minWordLength: settings.filters.minWordLength,
+    nlp: { ...settings.filters.nlp },
+    excludeWords: [],
+    renderSettingsOverride: {},
+    specificFilePath: settings.filters.scope.activeFilePath ?? '',
+  };
+}
+
+function parseOptions(source: string, settingsDefaults: Readonly<WordCloudSettings>): EmbeddedWordCloudOptions {
+  const options: EmbeddedWordCloudOptions = buildDefaultOptions(settingsDefaults);
   let scopeWasExplicitlySet = false;
   const lines = source.split('\n');
 
@@ -385,6 +407,36 @@ function parseOptions(source: string): EmbeddedWordCloudOptions {
       continue;
     }
 
+    if (rawKey === 'min-word-length' || rawKey === 'min_word_length') {
+      options.minWordLength = parseBoundedInteger(rawValue, options.minWordLength, 1, 32);
+      continue;
+    }
+
+    if (rawKey === 'nlp-enabled' || rawKey === 'nlp_enabled') {
+      options.nlp.enabled = parseBooleanOption(rawValue, options.nlp.enabled);
+      continue;
+    }
+
+    if (rawKey === 'nlp-mode' || rawKey === 'nlp_mode') {
+      options.nlp.mode = parseNlpMode(rawValue, options.nlp.mode);
+      continue;
+    }
+
+    if (rawKey === 'nlp-preserve-acronyms' || rawKey === 'nlp_preserve_acronyms') {
+      options.nlp.preserveAcronyms = parseBooleanOption(rawValue, options.nlp.preserveAcronyms);
+      continue;
+    }
+
+    if (rawKey === 'nlp-min-lemma-length' || rawKey === 'nlp_min_lemma_length') {
+      options.nlp.minLemmaLength = parseBoundedInteger(rawValue, options.nlp.minLemmaLength, 2, 32);
+      continue;
+    }
+
+    if (rawKey === 'nlp-filter-numeric-tokens' || rawKey === 'nlp_filter_numeric_tokens') {
+      options.nlp.filterNumericTokens = parseBooleanOption(rawValue, options.nlp.filterNumericTokens);
+      continue;
+    }
+
     if (rawKey === 'height') {
       const parsed = Number.parseInt(rawValue, 10);
       if (!Number.isNaN(parsed)) {
@@ -394,7 +446,7 @@ function parseOptions(source: string): EmbeddedWordCloudOptions {
     }
 
     if (rawKey === 'interactions' || rawKey === 'interactable' || rawKey === 'controls') {
-      options.interactions = parseBooleanOption(rawValue, true);
+      options.renderSettingsOverride.enableMouseInteractions = parseBooleanOption(rawValue, settingsDefaults.render.enableMouseInteractions);
       continue;
     }
 
@@ -414,8 +466,27 @@ function parseOptions(source: string): EmbeddedWordCloudOptions {
   options.excludeTags = options.excludeTags.filter((tag) => !options.includeTags.includes(tag));
   options.minCount = Math.min(options.minCount, options.maxCount);
   options.maxCount = Math.max(options.minCount, options.maxCount);
+  if (options.nlp.enabled && options.nlp.mode === 'off') {
+    options.nlp.mode = 'light';
+  }
 
   return options;
+}
+
+function parseNlpMode(rawValue: string, fallback: NlpMode): NlpMode {
+  const normalized = rawValue.trim().toLowerCase();
+  if (normalized === 'off' || normalized === 'light' || normalized === 'aggressive') {
+    return normalized;
+  }
+  return fallback;
+}
+
+function parseBoundedInteger(rawValue: string, fallback: number, min: number, max: number): number {
+  const parsed = Number.parseInt(rawValue.trim(), 10);
+  if (Number.isNaN(parsed)) {
+    return fallback;
+  }
+  return Math.min(max, Math.max(min, parsed));
 }
 
 const ROTATION_PRESETS = new Set<RotationPreset>([
@@ -440,6 +511,11 @@ const SCALING_MODES = new Set<ScalingMode>([
 const WORD_TEXT_METRICS = new Set<WordTextMetric>([
   'count',
   'frequency',
+]);
+
+const WORD_CASE_MODES = new Set<WordCaseMode>([
+  'lowercase',
+  'normalized',
 ]);
 
 const PERFORMANCE_MODES = new Set<PerformanceMode>([
@@ -571,6 +647,14 @@ function parseRenderSettingOption(
       return false;
     }
     target.wordTextMetric = normalizedEnum as WordTextMetric;
+    return true;
+  }
+
+  if (key === 'word-case-mode' || key === 'case-mode') {
+    if (!WORD_CASE_MODES.has(normalizedEnum as WordCaseMode)) {
+      return false;
+    }
+    target.wordCaseMode = normalizedEnum as WordCaseMode;
     return true;
   }
 
@@ -898,6 +982,9 @@ function openEmbeddedWordCloudEditWizard(
   hostEl: HTMLElement,
   options: EmbeddedWordCloudOptions,
 ): void {
+  const settingsDefaults = getSettingsDefaults(services);
+  const effectiveRender = mergeRenderSettings(settingsDefaults.render, options.renderSettingsOverride);
+
   new EmbedWordCloudModal(
     plugin.app,
     services,
@@ -920,6 +1007,14 @@ function openEmbeddedWordCloudEditWizard(
           .join('; '),
         minCountRaw: `${options.minCount}`,
         maxCountRaw: `${options.maxCount}`,
+        excludeWordsRaw: options.excludeWords.join(', '),
+        minWordLength: options.minWordLength,
+        nlpEnabled: options.nlp.enabled,
+        nlpMode: options.nlp.mode,
+        preserveAcronyms: options.nlp.preserveAcronyms,
+        minLemmaLength: options.nlp.minLemmaLength,
+        filterNumericTokens: options.nlp.filterNumericTokens,
+        render: effectiveRender,
       },
     },
   ).open();

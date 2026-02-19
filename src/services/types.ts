@@ -21,6 +21,7 @@ export type VaultCollectionOptions = {
   sourceRules?: SourceSelectionRules;
   frequency?: FrequencyThresholds;
   nlpSettings?: NlpSettings;
+  minWordLength?: number;
   excludeWords?: string[];
   renderSettingsOverride?: Partial<RenderSettings>;
 };

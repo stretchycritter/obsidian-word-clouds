@@ -21,19 +21,8 @@
               "icon": "lucide-file",
               "title": "00 - Word Clouds Plugin Home"
             }
-          },
-          {
-            "id": "c7fa8fd43fa5a785",
-            "type": "leaf",
-            "state": {
-              "type": "vault-word-cloud-view",
-              "state": {},
-              "icon": "cloud",
-              "title": "Vault word cloud"
-            }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -161,7 +150,7 @@
       "word-clouds:Open word clouds": false
     }
   },
-  "active": "c7fa8fd43fa5a785",
+  "active": "b61b35ffa44335b7",
   "lastOpenFiles": [
     "load-testing/large/benchmark-test-data-large-010.md",
     "load-testing/large/benchmark-test-data-large-009.md",
