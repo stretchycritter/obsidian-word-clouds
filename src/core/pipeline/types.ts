@@ -4,6 +4,7 @@ import type { PipelineDocument, WeightedWord } from '@/core';
 export type PipelineInput = {
   documents: PipelineDocument[];
   stopWords: Set<string>;
+  minWordLength: number;
   renderSettings: RenderSettings;
   sourceRules?: SourceSelectionRules;
   frequency?: FrequencyThresholds;

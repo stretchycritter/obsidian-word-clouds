@@ -97,6 +97,7 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
       {
         sourceRules,
         frequency,
+        minWordLength: settings.filters.minWordLength,
         excludeWords: options.excludeWords,
       },
     );
@@ -114,6 +115,7 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
     const renderSettings = mergeRenderSettings(settings.render, options?.renderSettingsOverride);
 
     return this.processor.collectFromFiles([file], this.settingsService.getExclusionListSet(), renderSettings, onProgress, {
+      minWordLength: settings.filters.minWordLength,
       excludeWords: options?.excludeWords,
     });
   }

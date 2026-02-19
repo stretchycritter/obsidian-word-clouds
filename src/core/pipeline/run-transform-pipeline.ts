@@ -12,7 +12,7 @@ export function runTransformPipeline(input: PipelineInput): RenderModel {
   const selectedDocuments = selectDocuments(input.documents, input.sourceRules);
   const normalizedDocuments = normalizeDocuments(selectedDocuments);
   const tokens = tokenizeDocuments(normalizedDocuments);
-  const filteredTokens = filterTokens(tokens, input.stopWords);
+  const filteredTokens = filterTokens(tokens, input.stopWords, input.minWordLength);
   const aggregateResult = aggregateTokens(filteredTokens);
   const filteredEntries = applyFrequencyThresholds(aggregateResult.entries, input.frequency);
   const words = scaleEntries(filteredEntries, input.renderSettings);

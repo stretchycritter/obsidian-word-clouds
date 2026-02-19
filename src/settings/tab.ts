@@ -63,6 +63,19 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
     const renderFiltersSection = (): void => {
       containerEl.createEl('h3', { text: t('settings.tab.filters.heading') });
 
+      new Setting(containerEl)
+        .setName(t('settings.tab.filters.minimumWordLength.name'))
+        .setDesc(t('settings.tab.filters.minimumWordLength.desc'))
+        .addSlider((slider) => {
+          slider
+            .setLimits(1, 32, 1)
+            .setValue(settings.filters.minWordLength)
+            .setDynamicTooltip()
+            .onChange(async (value) => {
+              await this.services.updateFilterSettings({ minWordLength: value });
+            });
+        });
+
       let draftWord = '';
       const submitDraftWord = async (): Promise<void> => {
         const added = await this.services.addExclusionListWord(draftWord);

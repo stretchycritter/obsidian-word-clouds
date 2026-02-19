@@ -23,6 +23,7 @@ export class WordCloudService {
     options?: {
       sourceRules?: SourceSelectionRules;
       frequency?: FrequencyThresholds;
+      minWordLength?: number;
       excludeWords?: string[];
     },
   ): Promise<WeightedWord[]> {
@@ -55,6 +56,7 @@ export class WordCloudService {
     const model = runTransformPipeline({
       documents,
       stopWords: combinedStopWords,
+      minWordLength: options?.minWordLength ?? 3,
       renderSettings,
       sourceRules: options?.sourceRules,
       frequency: options?.frequency,

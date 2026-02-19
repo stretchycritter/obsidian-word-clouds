@@ -104,6 +104,7 @@ export type WordCloudFilterSettings = {
   excludeTags: string[];
   tagMatchMode: TagMatchMode;
   frontmatterRules: FrontmatterRule[];
+  minWordLength: number;
   frequency: Required<FrequencyThresholds>;
 };
 

@@ -18,6 +18,7 @@ describe('settings-normalizers', () => {
     cloned.filters.scope.folderPaths?.push('folder');
     cloned.filters.includeTags.push('#test');
     cloned.filters.frontmatterRules.push({ key: 'status', operator: 'equals', value: 'done' });
+    cloned.filters.minWordLength = 12;
     cloned.filters.frequency.minCount = 3;
 
     expect(original.exclusionListWords).not.toContain('extra');
@@ -25,6 +26,7 @@ describe('settings-normalizers', () => {
     expect(original.filters.scope.folderPaths).toEqual([]);
     expect(original.filters.includeTags).toEqual([]);
     expect(original.filters.frontmatterRules).toEqual([]);
+    expect(original.filters.minWordLength).toBe(DEFAULT_SETTINGS.filters.minWordLength);
     expect(original.filters.frequency.minCount).toBe(DEFAULT_SETTINGS.filters.frequency.minCount);
   });
 
@@ -54,6 +56,7 @@ describe('settings-normalizers', () => {
         { key: 'empty-op', operator: 'bad-op', value: 'x' },
         { key: '  ', operator: 'equals', value: 'skip' },
       ],
+      minWordLength: 0,
       frequency: {
         minCount: 20,
         maxCount: 5,
@@ -72,6 +75,7 @@ describe('settings-normalizers', () => {
       { key: 'status', operator: 'contains', value: 'done' },
       { key: 'empty-op', operator: 'equals', value: 'x' },
     ]);
+    expect(normalized.minWordLength).toBe(1);
     expect(normalized.frequency).toEqual({
       minCount: 5,
       maxCount: 20,

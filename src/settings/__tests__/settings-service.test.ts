@@ -42,6 +42,7 @@ describe('SettingsService', () => {
     await service.updateFilters({
       includeTags: ['One', '#two', ''],
       excludeTags: ['#two', '#three'],
+      minWordLength: 0,
       frequency: {
         minCount: 100,
         maxCount: 2,
@@ -55,6 +56,7 @@ describe('SettingsService', () => {
         filters: expect.objectContaining({
           includeTags: ['#one', '#two'],
           excludeTags: ['#three'],
+          minWordLength: 1,
           frequency: {
             minCount: 2,
             maxCount: 100,

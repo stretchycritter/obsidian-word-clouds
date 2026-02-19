@@ -79,6 +79,7 @@ export const DEFAULT_SETTINGS: WordCloudSettings = {
     excludeTags: [],
     tagMatchMode: 'any',
     frontmatterRules: [],
+    minWordLength: 3,
     frequency: {
       minCount: 1,
       maxCount: 9999,

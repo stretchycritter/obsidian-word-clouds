@@ -110,6 +110,7 @@ function runOnce(documents: PipelineDocument[]): void {
   const result = runTransformPipeline({
     documents,
     stopWords: new Set(DEFAULT_SETTINGS.exclusionListWords),
+    minWordLength: DEFAULT_SETTINGS.filters.minWordLength,
     renderSettings: { ...DEFAULT_SETTINGS.render },
   });
 

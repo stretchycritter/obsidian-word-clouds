@@ -494,6 +494,17 @@ describe('VaultWordCloudSettingTab', () => {
     expect(services.updateRenderSettings).toHaveBeenCalledWith({ performanceMode: 'throttled' });
   });
 
+  test('minimum word length slider updates filter settings', async () => {
+    const services = createServicesMock();
+    const tab = createTab(services);
+    tab.display();
+
+    const slider = getControl('Minimum word length', 0) as { triggerChange: (value: number) => Promise<void> };
+    await slider.triggerChange(7);
+
+    expect(services.updateFilterSettings).toHaveBeenCalledWith({ minWordLength: 7 });
+  });
+
   test('support buttons open template-specific GitHub issue forms', async () => {
     const services = createServicesMock();
     const tab = createTab(services);

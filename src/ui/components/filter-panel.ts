@@ -243,6 +243,7 @@ function sanitizeFilters(filters: WordCloudFilterSettings): WordCloudFilterSetti
     excludeTags: [],
     tagMatchMode: filters.tagMatchMode,
     frontmatterRules: [],
+    minWordLength: filters.minWordLength,
     frequency: {
       minCount: ALL_FREQUENCIES_MIN,
       maxCount: ALL_FREQUENCIES_MAX,
@@ -261,6 +262,7 @@ function cloneFilters(filters: WordCloudFilterSettings): WordCloudFilterSettings
     excludeTags: [...filters.excludeTags],
     tagMatchMode: filters.tagMatchMode,
     frontmatterRules: filters.frontmatterRules.map((rule) => ({ ...rule })),
+    minWordLength: filters.minWordLength,
     frequency: {
       minCount: filters.frequency.minCount,
       maxCount: filters.frequency.maxCount,

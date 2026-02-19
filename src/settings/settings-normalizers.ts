@@ -22,6 +22,7 @@ export function cloneSettings(settings: WordCloudSettings): WordCloudSettings {
       excludeTags: [...settings.filters.excludeTags],
       tagMatchMode: settings.filters.tagMatchMode,
       frontmatterRules: settings.filters.frontmatterRules.map((rule) => ({ ...rule })),
+      minWordLength: settings.filters.minWordLength,
       frequency: {
         ...settings.filters.frequency,
       },
@@ -66,6 +67,7 @@ export function normalizeFilterSettings(rawValue: unknown): WordCloudFilterSetti
   const excludeTags = normalizeTagList(raw.excludeTags).filter((tag) => !includeTags.includes(tag));
   const tagMatchMode: TagMatchMode = raw.tagMatchMode === 'all' ? 'all' : 'any';
   const frontmatterRules = normalizeFrontmatterRules(raw.frontmatterRules);
+  const minWordLength = clampNumber(raw.minWordLength, 1, 32, DEFAULT_SETTINGS.filters.minWordLength);
   const minCount = clampNumber(raw.frequency?.minCount, 1, 9999, DEFAULT_SETTINGS.filters.frequency.minCount);
   const maxCount = clampNumber(raw.frequency?.maxCount, 1, 9999, DEFAULT_SETTINGS.filters.frequency.maxCount);
 
@@ -75,6 +77,7 @@ export function normalizeFilterSettings(rawValue: unknown): WordCloudFilterSetti
     excludeTags,
     tagMatchMode,
     frontmatterRules,
+    minWordLength,
     frequency: {
       minCount: Math.min(minCount, maxCount),
       maxCount: Math.max(minCount, maxCount),

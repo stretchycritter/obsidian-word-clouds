@@ -112,6 +112,8 @@
   "ui.blocks.embed.blockNotFoundToUpdate": "Could not locate the embedded word cloud block to update.",
   "settings.tab.title": "Word clouds settings",
   "settings.tab.filters.heading": "Filters",
+  "settings.tab.filters.minimumWordLength.name": "Minimum word length",
+  "settings.tab.filters.minimumWordLength.desc": "Ignore words shorter than this length.",
   "settings.tab.filters.addExcludedWord.name": "Add excluded word",
   "settings.tab.filters.addExcludedWord.desc": "Excluded words are applied vault wide.",
   "settings.tab.filters.addExcludedWord.placeholder": "Word to exclude",
