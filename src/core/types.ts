@@ -6,3 +6,9 @@ export type PipelineDocument = {
   tags: string[];
   frontmatter: Record<string, unknown>;
 };
+
+export type WeightedWord = {
+  text: string;
+  count: number;
+  size: number;
+};

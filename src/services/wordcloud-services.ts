@@ -1,5 +1,5 @@
 import type { App, TFile } from 'obsidian';
-import { drawWordCloud } from '@/core';
+import { drawWordCloud } from '@/core/renderers/word-cloud-renderer';
 import { openSearchForWord } from '@/utils/apply-search';
 import type {
   SearchOptions,
@@ -11,7 +11,7 @@ import type { ObsidianService } from '@/services/obsidian-service';
 import type { SettingsService } from '@/settings/settings-service';
 import type { FontFamilyOption, RenderSettings, WordCloudFilterSettings, WordCloudSettings } from '@/settings/types';
 import type { WordCloudService } from '@/core';
-import type { WeightedWord } from '@/core';
+import type { WeightedWord } from '@/core/types';
 import { mergeRenderSettings } from '@/services/render-settings';
 
 export interface WordCloudSettingsControls {

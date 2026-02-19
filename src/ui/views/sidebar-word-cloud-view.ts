@@ -1,15 +1,15 @@
 import { ItemView, type TFile, WorkspaceLeaf } from 'obsidian';
 import { VIEW_TYPE_NOTE_WORD_CLOUD } from '@/ui/constants';
-import { drawFrequencyChart } from '@/core';
+import { drawFrequencyChart } from '@/core/renderers/frequency-chart-renderer';
 import type { RenderSettings, WordCloudFilterSettings } from '@/settings/types';
 import type { WordCloudServices } from '@/services/types';
-import type { WeightedWord } from '@/core';
+import type { WeightedWord } from '@/core/types';
 import { WordCloudFilterPanel } from '@/ui/components/filter-panel';
 import { t } from '@/i18n';
 import {
   renderWordCloudCanvas,
   resolveSelectedFileByPath,
-} from '@/core';
+} from '@/core/renderers/canvas-manager';
 
 type NoteViewTab = 'cloud' | 'frequency';
 

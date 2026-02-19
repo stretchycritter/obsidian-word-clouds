@@ -1,5 +1,5 @@
 import type { RenderSettings } from '@/settings/types';
-import type { WeightedWord } from '@/core';
+import type { WeightedWord } from '@/core/types';
 import { mapCountsToWeightedWords } from '@/shared/word-scaling';
 import type {
   AggregateResult,

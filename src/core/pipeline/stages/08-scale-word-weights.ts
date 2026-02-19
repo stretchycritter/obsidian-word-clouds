@@ -1,5 +1,5 @@
 import type { RenderSettings } from '@/settings/types';
-import type { WeightedWord } from '@/core';
+import type { WeightedWord } from '@/core/types';
 import type { ScalingStrategy } from '@/core/pipeline/types';
 
 export function scaleEntries(

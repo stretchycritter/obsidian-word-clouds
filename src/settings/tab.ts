@@ -9,7 +9,7 @@ import type {
 } from '@/settings/types';
 import type { WordCloudServices } from '@/services/types';
 import type { WordCloudSettingsControls } from '@/services/wordcloud-services';
-import { renderWordCloudCanvas } from '@/core';
+import { renderWordCloudCanvas } from '@/core/renderers/canvas-manager';
 import { t } from '@/i18n';
 
 type SettingsTabServices = WordCloudServices & WordCloudSettingsControls;
