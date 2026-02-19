@@ -11,13 +11,29 @@
             "id": "b61b35ffa44335b7",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "00 - Word Clouds Plugin Home.md",
+                "mode": "source",
+                "source": false,
+                "backlinks": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "00 - Word Clouds Plugin Home"
+            }
+          },
+          {
+            "id": "c7fa8fd43fa5a785",
+            "type": "leaf",
+            "state": {
+              "type": "vault-word-cloud-view",
+              "state": {},
+              "icon": "cloud",
+              "title": "Vault word cloud"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -36,7 +52,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "\"release\"",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -60,8 +76,7 @@
               "title": "Files"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "horizontal",
@@ -146,7 +161,7 @@
       "word-clouds:Open word clouds": false
     }
   },
-  "active": "b61b35ffa44335b7",
+  "active": "c7fa8fd43fa5a785",
   "lastOpenFiles": [
     "load-testing/large/benchmark-test-data-large-010.md",
     "load-testing/large/benchmark-test-data-large-009.md",

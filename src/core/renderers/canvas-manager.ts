@@ -206,6 +206,7 @@ export async function renderWordCloudCanvas<TExtra>(
       enableExport: drawOptions?.enableExport,
       enableOverlayControls: drawOptions?.enableOverlayControls,
       enableViewportInteraction: drawOptions?.enableViewportInteraction,
+      enableWordClickSearch: drawOptions?.enableWordClickSearch,
       showRefreshControl: drawOptions?.showRefreshControl,
       showZoomControls: drawOptions?.showZoomControls,
       showEditControl: drawOptions?.showEditControl,

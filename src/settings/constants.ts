@@ -65,6 +65,7 @@ export const DEFAULT_SETTINGS: WordCloudSettings = {
     deterministicLayout: false,
     randomSeed: 42,
     enableMouseInteractions: true,
+    enableWordClickSearch: true,
     enableControls: true,
     enableExporting: true,
   },

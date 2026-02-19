@@ -254,13 +254,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
 
     };
 
-    const renderSectionEl = createSection('settings.tab.render.heading');
-    renderSectionEl.createEl('p', { cls: 'vault-word-cloud-settings-section-description' }).createEl('em', {
-      text: t('settings.tab.render.description'),
-    });
-
-    const previewWrapperEl = renderSectionEl.createDiv({ cls: 'vault-word-cloud-settings-preview' });
-    const previewCanvasEl = previewWrapperEl.createDiv({ cls: 'vault-word-cloud-settings-preview-canvas' });
+    const layoutSectionEl = createSection('settings.tab.render.heading');
+    let previewCanvasEl!: HTMLDivElement;
 
     const previewNonce = { value: 0 };
     const rerenderPreview = async (): Promise<void> => {
@@ -300,9 +295,6 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
         onWordClick: () => {
           // no-op in settings preview
         },
-        getDrawOptions: () => ({
-          enableExport: false,
-        }),
         onRefresh: rerenderPreview,
       });
     };
@@ -312,7 +304,50 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       await rerenderPreview();
     };
 
-    new Setting(renderSectionEl)
+    new Setting(layoutSectionEl)
+      .setName(t('settings.tab.render.fontFamily.name'))
+      .setDesc(t('settings.tab.render.fontFamily.desc'))
+      .addDropdown((dropdown) => {
+        for (const font of this.services.getSupportedFontFamilyOptions()) {
+          dropdown.addOption(font.value, getFontLabel(font.value, font.label));
+        }
+        dropdown
+          .setValue(this.services.getSelectedSupportedFontFamily(settings.render.fontFamily))
+          .onChange(async (value) => {
+            await updateRenderAndPreview({ fontFamily: value });
+          });
+      });
+
+    new Setting(layoutSectionEl)
+      .setName(t('settings.tab.render.wordCaseMode.name'))
+      .setDesc(t('settings.tab.render.wordCaseMode.desc'))
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption('lowercase', t('settings.tab.render.wordCaseMode.lowercase'))
+          .addOption('normalized', t('settings.tab.render.wordCaseMode.normalized'))
+          .setValue(settings.render.wordCaseMode)
+          .onChange(async (value) => {
+            await updateRenderAndPreview({
+              wordCaseMode: value === 'normalized' ? 'normalized' : 'lowercase',
+            });
+          });
+      });
+
+    new Setting(layoutSectionEl)
+      .setName(t('settings.tab.render.showCount.name'))
+      .setDesc(t('settings.tab.render.showCount.desc'))
+      .addToggle((toggle) => {
+        toggle
+          .setValue(settings.render.showCountInWordText)
+          .onChange(async (value) => {
+            await updateRenderAndPreview({ showCountInWordText: value });
+          });
+      });
+
+    const previewWrapperEl = layoutSectionEl.createDiv({ cls: 'vault-word-cloud-settings-preview' });
+    previewCanvasEl = previewWrapperEl.createDiv({ cls: 'vault-word-cloud-settings-preview-canvas' });
+
+    new Setting(layoutSectionEl)
       .setName(t('settings.tab.render.rotation.name'))
       .setDesc(t('settings.tab.render.rotation.desc'))
       .addDropdown((dropdown) => {
@@ -329,7 +364,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(renderSectionEl)
+    new Setting(layoutSectionEl)
       .setName(t('settings.tab.render.spiral.name'))
       .setDesc(t('settings.tab.render.spiral.desc'))
       .addDropdown((dropdown) => {
@@ -344,7 +379,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(renderSectionEl)
+    new Setting(layoutSectionEl)
       .setName(t('settings.tab.render.wordPadding.name'))
       .setDesc(t('settings.tab.render.wordPadding.desc'))
       .addSlider((slider) => {
@@ -357,7 +392,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(renderSectionEl)
+    new Setting(layoutSectionEl)
       .setName(t('settings.tab.render.fontSizeRange.name'))
       .setDesc(t('settings.tab.render.fontSizeRange.desc'))
       .addSlider((slider) => {
@@ -387,47 +422,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(renderSectionEl)
-      .setName(t('settings.tab.render.fontFamily.name'))
-      .setDesc(t('settings.tab.render.fontFamily.desc'))
-      .addDropdown((dropdown) => {
-        for (const font of this.services.getSupportedFontFamilyOptions()) {
-          dropdown.addOption(font.value, getFontLabel(font.value, font.label));
-        }
-        dropdown
-          .setValue(this.services.getSelectedSupportedFontFamily(settings.render.fontFamily))
-          .onChange(async (value) => {
-            await updateRenderAndPreview({ fontFamily: value });
-          });
-      });
-
-    new Setting(renderSectionEl)
-      .setName(t('settings.tab.render.showCount.name'))
-      .setDesc(t('settings.tab.render.showCount.desc'))
-      .addToggle((toggle) => {
-        toggle
-          .setValue(settings.render.showCountInWordText)
-          .onChange(async (value) => {
-            await updateRenderAndPreview({ showCountInWordText: value });
-          });
-      });
-
-    new Setting(renderSectionEl)
-      .setName(t('settings.tab.render.wordCaseMode.name'))
-      .setDesc(t('settings.tab.render.wordCaseMode.desc'))
-      .addDropdown((dropdown) => {
-        dropdown
-          .addOption('lowercase', t('settings.tab.render.wordCaseMode.lowercase'))
-          .addOption('normalized', t('settings.tab.render.wordCaseMode.normalized'))
-          .setValue(settings.render.wordCaseMode)
-          .onChange(async (value) => {
-            await updateRenderAndPreview({
-              wordCaseMode: value === 'normalized' ? 'normalized' : 'lowercase',
-            });
-          });
-      });
-
-    new Setting(renderSectionEl)
+    new Setting(layoutSectionEl)
       .setName(t('settings.tab.render.scalingMode.name'))
       .setDesc(t('settings.tab.render.scalingMode.desc'))
       .addDropdown((dropdown) => {
@@ -443,7 +438,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(renderSectionEl)
+    new Setting(layoutSectionEl)
       .setName(t('settings.tab.render.scalingEmphasis.name'))
       .setDesc(t('settings.tab.render.scalingEmphasis.desc'))
       .addSlider((slider) => {
@@ -457,7 +452,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    const deterministicSetting = new Setting(renderSectionEl)
+    const deterministicSetting = new Setting(layoutSectionEl)
       .setName(t('settings.tab.render.deterministicLayout.name'))
       .setDesc(t('settings.tab.render.deterministicLayout.desc'))
       .addToggle((toggle) => {
@@ -483,7 +478,9 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       });
     }
 
-    new Setting(renderSectionEl)
+    const interactionsSectionEl = createSection('settings.tab.interactions.heading');
+
+    new Setting(interactionsSectionEl)
       .setName(t('settings.tab.render.mouseInteractions.name'))
       .setDesc(t('settings.tab.render.mouseInteractions.desc'))
       .addToggle((toggle) => {
@@ -494,7 +491,18 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(renderSectionEl)
+    new Setting(interactionsSectionEl)
+      .setName(t('settings.tab.render.clickToSearch.name'))
+      .setDesc(t('settings.tab.render.clickToSearch.desc'))
+      .addToggle((toggle) => {
+        toggle
+          .setValue(settings.render.enableWordClickSearch)
+          .onChange(async (value) => {
+            await updateRenderAndPreview({ enableWordClickSearch: value });
+          });
+      });
+
+    new Setting(interactionsSectionEl)
       .setName(t('settings.tab.render.controls.name'))
       .setDesc(t('settings.tab.render.controls.desc'))
       .addToggle((toggle) => {
@@ -505,7 +513,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(renderSectionEl)
+    new Setting(interactionsSectionEl)
       .setName(t('settings.tab.render.exporting.name'))
       .setDesc(t('settings.tab.render.exporting.desc'))
       .addToggle((toggle) => {

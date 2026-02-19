@@ -569,6 +569,17 @@ describe('VaultWordCloudSettingTab', () => {
     expect(services.updateRenderSettings).toHaveBeenCalledWith({ wordCaseMode: 'normalized' });
   });
 
+  test('click to search toggle updates render settings', async () => {
+    const services = createServicesMock();
+    const tab = createTab(services);
+    tab.display();
+
+    const toggle = getControl('Click to search', 0) as { triggerChange: (value: boolean) => Promise<void> };
+    await toggle.triggerChange(false);
+
+    expect(services.updateRenderSettings).toHaveBeenCalledWith({ enableWordClickSearch: false });
+  });
+
   test('nlp controls update filter settings and dependent controls start disabled', async () => {
     const settings = createSettings();
     settings.filters.nlp.enabled = false;

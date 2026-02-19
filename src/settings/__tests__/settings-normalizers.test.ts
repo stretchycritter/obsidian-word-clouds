@@ -117,6 +117,7 @@ describe('settings-normalizers', () => {
       deterministicLayout: true,
       randomSeed: 0,
       enableMouseInteractions: false,
+      enableWordClickSearch: false,
       enableControls: false,
       enableExporting: false,
     });
@@ -137,6 +138,7 @@ describe('settings-normalizers', () => {
     expect(normalized.deterministicLayout).toBe(true);
     expect(normalized.randomSeed).toBe(1);
     expect(normalized.enableMouseInteractions).toBe(false);
+    expect(normalized.enableWordClickSearch).toBe(false);
     expect(normalized.enableControls).toBe(false);
     expect(normalized.enableExporting).toBe(false);
   });

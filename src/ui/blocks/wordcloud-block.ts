@@ -612,6 +612,12 @@ function parseRenderSettingOption(
     });
   }
 
+  if (key === 'enable-click-to-search' || key === 'click-to-search' || key === 'word-click-search') {
+    return setBoolean((next) => {
+      target.enableWordClickSearch = next;
+    });
+  }
+
   if (key === 'enable-controls' || key === 'overlay-controls') {
     return setBoolean((next) => {
       target.enableControls = next;

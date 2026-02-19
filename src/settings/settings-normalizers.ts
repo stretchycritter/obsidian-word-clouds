@@ -154,6 +154,9 @@ export function normalizeRenderSettings(rawValue: unknown): RenderSettings {
   const enableMouseInteractions = typeof raw.enableMouseInteractions === 'boolean'
     ? raw.enableMouseInteractions
     : DEFAULT_SETTINGS.render.enableMouseInteractions;
+  const enableWordClickSearch = typeof raw.enableWordClickSearch === 'boolean'
+    ? raw.enableWordClickSearch
+    : DEFAULT_SETTINGS.render.enableWordClickSearch;
   const enableControls = typeof raw.enableControls === 'boolean'
     ? raw.enableControls
     : DEFAULT_SETTINGS.render.enableControls;
@@ -179,6 +182,7 @@ export function normalizeRenderSettings(rawValue: unknown): RenderSettings {
     deterministicLayout,
     randomSeed,
     enableMouseInteractions,
+    enableWordClickSearch,
     enableControls,
     enableExporting,
   };

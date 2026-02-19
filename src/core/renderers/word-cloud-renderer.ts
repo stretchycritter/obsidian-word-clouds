@@ -107,6 +107,7 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
   } = options;
   const exportBaseName = sanitizeWordCloudExportBaseName(options.exportBaseName ?? 'word-cloud');
   const enableMouseInteractions = options.enableViewportInteraction ?? renderSettings.enableMouseInteractions;
+  const enableWordClickSearch = options.enableWordClickSearch ?? renderSettings.enableWordClickSearch;
   const enableExport = options.enableExport ?? renderSettings.enableExporting;
   const enableOverlayControls = options.enableOverlayControls ?? renderSettings.enableControls;
   const enableViewportInteraction = enableMouseInteractions;
@@ -180,13 +181,13 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
           .style('font-size', (d) => `${d.size}px`)
           .style('font-family', renderSettings.fontFamily || 'sans-serif')
           .style('fill', (_, i) => color(String(i)))
-          .style('cursor', enableMouseInteractions ? 'pointer' : 'default')
+          .style('cursor', enableWordClickSearch ? 'pointer' : 'default')
           .attr('tabindex', 0)
           .attr('text-anchor', 'middle')
           .attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0}) rotate(${d.rotate ?? 0})`)
           .text((d) => d.layoutText)
           .on('click', (_, d) => {
-            if (!enableMouseInteractions) {
+            if (!enableWordClickSearch) {
               return;
             }
             if (viewportControls.shouldSuppressWordClick()) {
@@ -196,6 +197,9 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
           })
           .on('keydown', (event: KeyboardEvent, d) => {
             if (event.key === 'Enter' || event.key === ' ') {
+              if (!enableWordClickSearch) {
+                return;
+              }
               event.preventDefault();
               onWordClick(d.baseText);
               return;

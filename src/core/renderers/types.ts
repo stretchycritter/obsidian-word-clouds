@@ -15,6 +15,7 @@ export type WordCloudRenderOptions = {
   enableExport?: boolean;
   enableOverlayControls?: boolean;
   enableViewportInteraction?: boolean;
+  enableWordClickSearch?: boolean;
   showRefreshControl?: boolean;
   showZoomControls?: boolean;
   showEditControl?: boolean;

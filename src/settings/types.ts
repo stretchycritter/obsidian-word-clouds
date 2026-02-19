@@ -30,6 +30,7 @@ export type RenderSettings = {
   deterministicLayout: boolean;
   randomSeed: number;
   enableMouseInteractions: boolean;
+  enableWordClickSearch: boolean;
   enableControls: boolean;
   enableExporting: boolean;
 };
