@@ -1,5 +1,5 @@
 import type { App, TFile } from 'obsidian';
-import type { WeightedWord } from '@/core';
+import type { WordCloudCollectionResult } from '@/core/types';
 import type { FrequencyThresholds, NlpSettings, RenderSettings, SourceSelectionRules } from '@/settings/types';
 import { DEFAULT_SETTINGS } from '@/settings/constants';
 import { filterSourceFilesByMetadata, getAvailableTags, readPipelineDocuments } from '@/core/ingestion';
@@ -28,7 +28,8 @@ export class WordCloudService {
       excludeWords?: string[];
       nlpSettings?: NlpSettings;
     },
-  ): Promise<WeightedWord[]> {
+  ): Promise<WordCloudCollectionResult> {
+    const startedAt = Date.now();
     const filesForScan = filterSourceFilesByMetadata(this.app, files, options?.sourceRules);
 
     const performance = getPerformanceProfile(renderSettings.performanceMode);
@@ -67,7 +68,12 @@ export class WordCloudService {
 
     reportProgress('Preparing layout...', 95);
 
-    return model.wordCloudWords;
+    return {
+      words: model.wordCloudWords,
+      metrics: {
+        collectionMs: Date.now() - startedAt,
+      },
+    };
   }
 }
 

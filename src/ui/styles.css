@@ -551,6 +551,38 @@
   box-shadow: inset 0 0 0 1px var(--background-modifier-border-hover);
 }
 
+.vault-word-cloud-settings-benchmark-block {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  padding: var(--size-4-3);
+}
+
+.vault-word-cloud-settings-benchmark-block > .setting-item {
+  border: 0;
+  padding: 0;
+}
+
+.vault-word-cloud-settings-benchmark-results {
+  margin-top: var(--size-4-2);
+}
+
+.vault-word-cloud-settings-benchmark-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-ui-small);
+}
+
+.vault-word-cloud-settings-benchmark-table th,
+.vault-word-cloud-settings-benchmark-table td {
+  border: 1px solid var(--background-modifier-border);
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.vault-word-cloud-settings-benchmark-table th {
+  background: var(--background-secondary);
+}
+
 .vault-word-cloud-settings-support {
   padding: var(--size-4-3);
   border: 1px solid var(--background-modifier-border);

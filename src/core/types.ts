@@ -12,3 +12,12 @@ export type WeightedWord = {
   count: number;
   size: number;
 };
+
+export type WordCloudCollectionMetrics = {
+  collectionMs: number;
+};
+
+export type WordCloudCollectionResult = {
+  words: WeightedWord[];
+  metrics: WordCloudCollectionMetrics;
+};

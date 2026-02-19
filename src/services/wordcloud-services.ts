@@ -10,7 +10,7 @@ import type {
 import type { ObsidianService } from '@/services/obsidian-service';
 import type { SettingsService } from '@/settings/settings-service';
 import type { FontFamilyOption, RenderSettings, WordCloudFilterSettings, WordCloudSettings } from '@/settings/types';
-import type { WeightedWord, WordCloudService } from '@/core';
+import type { WeightedWord, WordCloudCollectionResult, WordCloudService } from '@/core';
 
 export interface WordCloudSettingsControls {
   getSettingsSnapshot(): Readonly<WordCloudSettings>;
@@ -77,6 +77,14 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
     options: VaultCollectionOptions = {},
     onProgress?: (message: string, percent: number) => void,
   ): Promise<WeightedWord[]> {
+    const result = await this.collectVaultWordsWithMetrics(options, onProgress);
+    return result.words;
+  }
+
+  async collectVaultWordsWithMetrics(
+    options: VaultCollectionOptions = {},
+    onProgress?: (message: string, percent: number) => void,
+  ): Promise<WordCloudCollectionResult> {
     const settings = this.settingsService.getSnapshot();
     const renderSettings = mergeRenderSettings(settings.render, options.renderSettingsOverride);
     const sourceRules = options.sourceRules ?? {
@@ -112,6 +120,18 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
       renderSettingsOverride?: Partial<RenderSettings>;
     },
   ): Promise<WeightedWord[]> {
+    const result = await this.collectFileWordsWithMetrics(file, onProgress, options);
+    return result.words;
+  }
+
+  async collectFileWordsWithMetrics(
+    file: TFile,
+    onProgress?: (message: string, percent: number) => void,
+    options?: {
+      excludeWords?: string[];
+      renderSettingsOverride?: Partial<RenderSettings>;
+    },
+  ): Promise<WordCloudCollectionResult> {
     const settings = this.settingsService.getSnapshot();
     const renderSettings = mergeRenderSettings(settings.render, options?.renderSettingsOverride);
 

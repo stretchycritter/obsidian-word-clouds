@@ -8,7 +8,7 @@ import type {
   TagMatchMode,
   WordCloudFilterSettings,
 } from '@/settings/types';
-import type { WeightedWord } from '@/core';
+import type { WeightedWord, WordCloudCollectionResult } from '@/core';
 
 export type SearchOptions = {
   includeTags?: string[];
@@ -36,6 +36,10 @@ export interface WordCloudServices {
     options?: VaultCollectionOptions,
     onProgress?: (message: string, percent: number) => void,
   ): Promise<WeightedWord[]>;
+  collectVaultWordsWithMetrics(
+    options?: VaultCollectionOptions,
+    onProgress?: (message: string, percent: number) => void,
+  ): Promise<WordCloudCollectionResult>;
   collectFileWords(
     file: TFile,
     onProgress?: (message: string, percent: number) => void,
@@ -44,6 +48,14 @@ export interface WordCloudServices {
       renderSettingsOverride?: Partial<RenderSettings>;
     },
   ): Promise<WeightedWord[]>;
+  collectFileWordsWithMetrics(
+    file: TFile,
+    onProgress?: (message: string, percent: number) => void,
+    options?: {
+      excludeWords?: string[];
+      renderSettingsOverride?: Partial<RenderSettings>;
+    },
+  ): Promise<WordCloudCollectionResult>;
   drawWordCloud(options: WordCloudRenderOptions): Promise<void>;
   openSearchForWord(word: string, options?: SearchOptions): Promise<void>;
   addExclusionListWord(rawWord: string): Promise<boolean>;

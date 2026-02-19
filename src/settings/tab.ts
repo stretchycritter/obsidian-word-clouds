@@ -7,16 +7,22 @@ import type {
   ScalingMode,
   SpiralType,
 } from '@/settings/types';
-import type { WordCloudServices } from '@/services/types';
+import type { VaultCollectionOptions, WordCloudServices } from '@/services/types';
 import type { WordCloudSettingsControls } from '@/services/wordcloud-services';
 import { renderWordCloudCanvas } from '@/core';
 import { t } from '@/i18n';
 
 type SettingsTabServices = WordCloudServices & WordCloudSettingsControls;
+type PerformanceModeRunResult = {
+  mode: PerformanceMode;
+  message: string;
+};
+type BenchmarkCollectionOptions = Omit<VaultCollectionOptions, 'renderSettingsOverride' | 'excludeWords'>;
 
 const GITHUB_ISSUE_BASE_URL = 'https://github.com/stretchycritter/obsidian-word-clouds/issues/new';
 const BUG_REPORT_ISSUE_URL = `${GITHUB_ISSUE_BASE_URL}?template=bug_report.yml`;
 const FEATURE_REQUEST_ISSUE_URL = `${GITHUB_ISSUE_BASE_URL}?template=feature_request.yml`;
+const BENCHMARK_MODES: PerformanceMode[] = ['full-speed', 'balanced', 'throttled'];
 
 function formatT(key: string, replacements: Record<string, string | number>): string {
   let value = t(key);
@@ -47,6 +53,8 @@ function getFontLabel(value: string, fallback: string): string {
 export class VaultWordCloudSettingTab extends PluginSettingTab {
   private readonly services: SettingsTabServices;
   private isExcludedWordsExpanded = false;
+  private isBenchmarkRunInProgress = false;
+  private benchmarkResults: PerformanceModeRunResult[] = [];
 
   constructor(plugin: Plugin, services: SettingsTabServices) {
     super(plugin.app, plugin);
@@ -526,6 +534,48 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
+    const benchmarkContainerEl = performanceSectionEl.createDiv({ cls: 'vault-word-cloud-settings-benchmark-container' });
+    const benchmarkBlockEl = benchmarkContainerEl.createDiv({ cls: 'vault-word-cloud-settings-benchmark-block' });
+
+    new Setting(benchmarkBlockEl)
+      .setName(t('settings.tab.performance.benchmark.name'))
+      .setDesc(t('settings.tab.performance.benchmark.desc'))
+      .addButton((button) => {
+        button
+          .setButtonText(this.isBenchmarkRunInProgress
+            ? t('settings.tab.performance.benchmark.buttonRunning')
+            : t('settings.tab.performance.benchmark.button'))
+          .setCta()
+          .onClick(async () => {
+            await this.runPerformanceModeBenchmarks();
+          });
+      });
+
+    const benchmarkResultsContainerEl = benchmarkBlockEl.createDiv({
+      cls: 'vault-word-cloud-settings-benchmark-results',
+    });
+
+    const benchmarkTableEl = benchmarkResultsContainerEl.createEl('table', {
+      cls: 'vault-word-cloud-settings-benchmark-table',
+    });
+    const benchmarkHeaderEl = benchmarkTableEl.createEl('thead');
+    const benchmarkHeaderRowEl = benchmarkHeaderEl.createEl('tr');
+    benchmarkHeaderRowEl.createEl('th', { text: t('settings.tab.performance.benchmark.results.columns.mode') });
+    benchmarkHeaderRowEl.createEl('th', { text: t('settings.tab.performance.benchmark.results.columns.result') });
+    const benchmarkBodyEl = benchmarkTableEl.createEl('tbody');
+
+    if (this.benchmarkResults.length === 0) {
+      const rowEl = benchmarkBodyEl.createEl('tr');
+      const cellEl = rowEl.createEl('td', { text: t('settings.tab.performance.benchmark.results.empty') });
+      cellEl.setAttr('colspan', '2');
+    } else {
+      for (const result of this.benchmarkResults) {
+        const rowEl = benchmarkBodyEl.createEl('tr');
+        rowEl.createEl('td', { text: t(`settings.tab.performance.processingSpeed.${this.performanceModeLabelKey(result.mode)}`) });
+        rowEl.createEl('td', { text: result.message });
+      }
+    }
+
     const resetSectionEl = createSection('settings.tab.reset.heading');
 
     new Setting(resetSectionEl)
@@ -595,5 +645,107 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
     });
 
     void rerenderPreview();
+  }
+
+  private async runPerformanceModeBenchmarks(): Promise<void> {
+    if (this.isBenchmarkRunInProgress) {
+      return;
+    }
+
+    this.isBenchmarkRunInProgress = true;
+    this.benchmarkResults = BENCHMARK_MODES.map((mode) => ({
+      mode,
+      message: t('settings.tab.performance.benchmark.results.running'),
+    }));
+    this.display();
+
+    const settings = this.services.getSettingsSnapshot();
+    const benchmarkOptions = {
+      sourceRules: {
+        scope: { mode: 'vault' as const },
+        includeTags: settings.filters.includeTags,
+        excludeTags: settings.filters.excludeTags,
+        tagMatchMode: settings.filters.tagMatchMode,
+        frontmatterRules: settings.filters.frontmatterRules,
+      },
+      frequency: settings.filters.frequency,
+      nlpSettings: settings.filters.nlp,
+    };
+
+    await this.runBenchmarkWarmup(settings.render.performanceMode, benchmarkOptions);
+
+    const results: PerformanceModeRunResult[] = [];
+    for (const mode of BENCHMARK_MODES) {
+      results.push(await this.runPerformanceMode(mode, benchmarkOptions));
+    }
+
+    this.benchmarkResults = results;
+    this.isBenchmarkRunInProgress = false;
+    this.display();
+  }
+
+  private async runBenchmarkWarmup(
+    mode: PerformanceMode,
+    options: BenchmarkCollectionOptions,
+  ): Promise<void> {
+    try {
+      await this.services.collectVaultWordsWithMetrics({
+        ...options,
+        renderSettingsOverride: {
+          performanceMode: mode,
+        },
+      });
+    } catch {
+      // Ignore warm-up errors and continue to measured benchmark runs.
+    }
+  }
+
+  private async runPerformanceMode(
+    mode: PerformanceMode,
+    options: BenchmarkCollectionOptions,
+  ): Promise<PerformanceModeRunResult> {
+    const startedAt = Date.now();
+
+    try {
+      const result = await this.services.collectVaultWordsWithMetrics({
+        ...options,
+        renderSettingsOverride: {
+          performanceMode: mode,
+        },
+      });
+      return {
+        mode,
+        message: formatT('settings.tab.performance.benchmark.results.success', {
+          words: result.words.length,
+          ms: result.metrics.collectionMs,
+        }),
+      };
+    } catch (error) {
+      const durationMs = Date.now() - startedAt;
+      return {
+        mode,
+        message: formatT('settings.tab.performance.benchmark.results.error', {
+          ms: durationMs,
+          message: this.formatErrorMessage(error),
+        }),
+      };
+    }
+  }
+
+  private formatErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message.trim().length > 0) {
+      return error.message;
+    }
+    return t('settings.tab.performance.benchmark.results.unknownError');
+  }
+
+  private performanceModeLabelKey(mode: PerformanceMode): 'fullSpeed' | 'balanced' | 'throttled' {
+    if (mode === 'full-speed') {
+      return 'fullSpeed';
+    }
+    if (mode === 'throttled') {
+      return 'throttled';
+    }
+    return 'balanced';
   }
 }

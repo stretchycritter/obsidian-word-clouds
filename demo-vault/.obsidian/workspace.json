@@ -13,16 +13,39 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "00 - Word Clouds Plugin Home.md",
+                "file": "load-testing/large/load-test-large-002.md",
                 "mode": "source",
                 "source": false,
                 "backlinks": false
               },
               "icon": "lucide-file",
-              "title": "00 - Word Clouds Plugin Home"
+              "title": "load-test-large-002"
+            }
+          },
+          {
+            "id": "db42c86336a36ffa",
+            "type": "leaf",
+            "state": {
+              "type": "release-notes",
+              "state": {
+                "currentVersion": "1.12.2"
+              },
+              "icon": "lucide-book-up",
+              "title": "Release Notes 1.12.2"
+            }
+          },
+          {
+            "id": "a0978b1f143af6df",
+            "type": "leaf",
+            "state": {
+              "type": "vault-word-cloud-view",
+              "state": {},
+              "icon": "cloud",
+              "title": "Vault word cloud"
             }
           }
-        ]
+        ],
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -86,12 +109,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "00 - Word Clouds Plugin Home.md",
+                "file": "load-testing/large/load-test-large-002.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from 00 - Word Clouds Plugin Home"
+              "title": "Outgoing links from load-test-large-002"
             }
           },
           {
@@ -151,8 +174,9 @@
       "word-clouds:Open word clouds": false
     }
   },
-  "active": "b61b35ffa44335b7",
+  "active": "a0978b1f143af6df",
   "lastOpenFiles": [
+    "00 - Word Clouds Plugin Home.md",
     "load-testing/large/load-test-large-300.md",
     "load-testing/large/load-test-large-299.md",
     "load-testing/large/load-test-large-298.md",
@@ -178,7 +202,6 @@
     "load-testing/large/load-test-large-278.md",
     "load-testing/large/load-test-large-277.md",
     "load-testing/large/load-test-large-276.md",
-    "load-testing/large/load-test-large-275.md",
     "load-testing/medium",
     "load-testing/small",
     "load-testing/large",

@@ -491,6 +491,70 @@ describe('VaultWordCloudSettingTab', () => {
     expect(mockedRenderWordCloudCanvas).toHaveBeenCalledTimes(2);
   });
 
+  test('performance benchmark runs whole-vault collection for each performance mode', async () => {
+    const services = createServicesMock();
+    services.collectVaultWordsWithMetrics
+      .mockResolvedValueOnce({
+        words: [{ text: 'warmup', count: 5, size: 17 }],
+        metrics: { collectionMs: 10 },
+      })
+      .mockResolvedValueOnce({
+        words: [{ text: 'fast', count: 4, size: 16 }],
+        metrics: { collectionMs: 11 },
+      })
+      .mockResolvedValueOnce({
+        words: [{ text: 'balanced', count: 3, size: 15 }],
+        metrics: { collectionMs: 12 },
+      })
+      .mockResolvedValueOnce({
+        words: [{ text: 'slow', count: 2, size: 14 }],
+        metrics: { collectionMs: 13 },
+      });
+    const tab = createTab(services);
+    tab.display();
+
+    const runButton = getControl('Benchmark all performance modes', 0) as { triggerClick: () => Promise<void> };
+    await runButton.triggerClick();
+
+    expect(services.collectVaultWordsWithMetrics).toHaveBeenCalledTimes(4);
+    expect(services.collectVaultWordsWithMetrics).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        sourceRules: expect.objectContaining({
+          scope: expect.objectContaining({ mode: 'vault' }),
+        }),
+        renderSettingsOverride: expect.objectContaining({ performanceMode: 'balanced' }),
+      }),
+    );
+    expect(services.collectVaultWordsWithMetrics).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        sourceRules: expect.objectContaining({
+          scope: expect.objectContaining({ mode: 'vault' }),
+        }),
+        renderSettingsOverride: expect.objectContaining({ performanceMode: 'full-speed' }),
+      }),
+    );
+    expect(services.collectVaultWordsWithMetrics).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        sourceRules: expect.objectContaining({
+          scope: expect.objectContaining({ mode: 'vault' }),
+        }),
+        renderSettingsOverride: expect.objectContaining({ performanceMode: 'balanced' }),
+      }),
+    );
+    expect(services.collectVaultWordsWithMetrics).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({
+        sourceRules: expect.objectContaining({
+          scope: expect.objectContaining({ mode: 'vault' }),
+        }),
+        renderSettingsOverride: expect.objectContaining({ performanceMode: 'throttled' }),
+      }),
+    );
+  });
+
   test('minimum word length slider updates filter settings', async () => {
     const services = createServicesMock();
     const tab = createTab(services);
@@ -587,7 +651,9 @@ function createServicesMock(settings = createSettings()) {
     getFilterSettings: jest.fn(() => settings.filters),
     updateFilterSettings: jest.fn().mockResolvedValue(undefined),
     collectVaultWords: jest.fn().mockResolvedValue([]),
+    collectVaultWordsWithMetrics: jest.fn().mockResolvedValue({ words: [], metrics: { collectionMs: 0 } }),
     collectFileWords: jest.fn().mockResolvedValue([]),
+    collectFileWordsWithMetrics: jest.fn().mockResolvedValue({ words: [], metrics: { collectionMs: 0 } }),
     drawWordCloud: jest.fn().mockResolvedValue(undefined),
     openSearchForWord: jest.fn().mockResolvedValue(undefined),
     getSettingsSnapshot: jest.fn(() => settings),
