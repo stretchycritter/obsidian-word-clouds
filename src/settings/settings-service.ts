@@ -22,6 +22,7 @@ export type SettingsChangeListener = (settings: Readonly<WordCloudSettings>) => 
 export class SettingsService {
   private settings: WordCloudSettings = cloneSettings(DEFAULT_SETTINGS);
   private readonly listeners = new Set<SettingsChangeListener>();
+  private updateQueue: Promise<void> = Promise.resolve();
 
   constructor(private readonly plugin: Plugin) {}
 
@@ -74,101 +75,127 @@ export class SettingsService {
   }
 
   async updateMinimumFontSize(minFontSize: number): Promise<RenderSettings> {
-    const current = this.settings.render;
-    const nextMin = Math.min(minFontSize, current.maxFontSize);
-    const nextMax = Math.max(current.maxFontSize, nextMin);
-    await this.updateRenderSettings({
-      minFontSize: nextMin,
-      maxFontSize: nextMax,
+    return this.enqueueUpdate(async () => {
+      const current = this.settings.render;
+      const nextMin = Math.min(minFontSize, current.maxFontSize);
+      const nextMax = Math.max(current.maxFontSize, nextMin);
+      const nextSettings: WordCloudSettings = {
+        ...this.settings,
+        render: normalizeRenderSettings({
+          ...this.settings.render,
+          minFontSize: nextMin,
+          maxFontSize: nextMax,
+        }),
+      };
+      await this.persist(nextSettings);
+      return { ...this.settings.render };
     });
-    return { ...this.settings.render };
   }
 
   async updateMaximumFontSize(maxFontSize: number): Promise<RenderSettings> {
-    const current = this.settings.render;
-    const nextMax = Math.max(maxFontSize, current.minFontSize);
-    const nextMin = Math.min(current.minFontSize, nextMax);
-    await this.updateRenderSettings({
-      minFontSize: nextMin,
-      maxFontSize: nextMax,
+    return this.enqueueUpdate(async () => {
+      const current = this.settings.render;
+      const nextMax = Math.max(maxFontSize, current.minFontSize);
+      const nextMin = Math.min(current.minFontSize, nextMax);
+      const nextSettings: WordCloudSettings = {
+        ...this.settings,
+        render: normalizeRenderSettings({
+          ...this.settings.render,
+          minFontSize: nextMin,
+          maxFontSize: nextMax,
+        }),
+      };
+      await this.persist(nextSettings);
+      return { ...this.settings.render };
     });
-    return { ...this.settings.render };
   }
 
   async updateFilters(patch: Partial<WordCloudFilterSettings>): Promise<void> {
-    const merged: WordCloudFilterSettings = {
-      ...this.settings.filters,
-      ...patch,
-      scope: {
-        ...this.settings.filters.scope,
-        ...patch.scope,
-      },
-      frequency: {
-        ...this.settings.filters.frequency,
-        ...patch.frequency,
-      },
-      includeTags: patch.includeTags ?? this.settings.filters.includeTags,
-      excludeTags: patch.excludeTags ?? this.settings.filters.excludeTags,
-      frontmatterRules: patch.frontmatterRules ?? this.settings.filters.frontmatterRules,
-    };
+    await this.enqueueUpdate(async () => {
+      const merged: WordCloudFilterSettings = {
+        ...this.settings.filters,
+        ...patch,
+        scope: {
+          ...this.settings.filters.scope,
+          ...patch.scope,
+        },
+        frequency: {
+          ...this.settings.filters.frequency,
+          ...patch.frequency,
+        },
+        includeTags: patch.includeTags ?? this.settings.filters.includeTags,
+        excludeTags: patch.excludeTags ?? this.settings.filters.excludeTags,
+        frontmatterRules: patch.frontmatterRules ?? this.settings.filters.frontmatterRules,
+      };
 
-    const nextSettings: WordCloudSettings = {
-      ...this.settings,
-      filters: normalizeFilterSettings(merged),
-    };
-    await this.persist(nextSettings);
+      const nextSettings: WordCloudSettings = {
+        ...this.settings,
+        filters: normalizeFilterSettings(merged),
+      };
+      await this.persist(nextSettings);
+    });
   }
 
   async updateRenderSettings(patch: Partial<RenderSettings>): Promise<void> {
-    const merged = {
-      ...this.settings.render,
-      ...patch,
-    };
+    await this.enqueueUpdate(async () => {
+      const merged = {
+        ...this.settings.render,
+        ...patch,
+      };
 
-    const nextSettings: WordCloudSettings = {
-      ...this.settings,
-      render: normalizeRenderSettings(merged),
-    };
-    await this.persist(nextSettings);
+      const nextSettings: WordCloudSettings = {
+        ...this.settings,
+        render: normalizeRenderSettings(merged),
+      };
+      await this.persist(nextSettings);
+    });
   }
 
   async resetRenderSettings(): Promise<void> {
-    const nextSettings: WordCloudSettings = {
-      ...this.settings,
-      render: { ...DEFAULT_SETTINGS.render },
-    };
-    await this.persist(nextSettings);
+    await this.enqueueUpdate(async () => {
+      const nextSettings: WordCloudSettings = {
+        ...this.settings,
+        render: { ...DEFAULT_SETTINGS.render },
+      };
+      await this.persist(nextSettings);
+    });
   }
 
   async addExclusionListWord(rawWord: string): Promise<boolean> {
-    const normalizedWord = normalizeExclusionListWord(rawWord);
-    if (!normalizedWord || this.settings.exclusionListWords.includes(normalizedWord)) {
-      return false;
-    }
+    return this.enqueueUpdate(async () => {
+      const normalizedWord = normalizeExclusionListWord(rawWord);
+      if (!normalizedWord || this.settings.exclusionListWords.includes(normalizedWord)) {
+        return false;
+      }
 
-    const nextSettings: WordCloudSettings = {
-      ...this.settings,
-      exclusionListWords: sortExclusionListWords([...this.settings.exclusionListWords, normalizedWord]),
-    };
-    await this.persist(nextSettings);
-    return true;
+      const nextSettings: WordCloudSettings = {
+        ...this.settings,
+        exclusionListWords: sortExclusionListWords([...this.settings.exclusionListWords, normalizedWord]),
+      };
+      await this.persist(nextSettings);
+      return true;
+    });
   }
 
   async removeExclusionListWord(rawWord: string): Promise<void> {
-    const normalizedWord = normalizeExclusionListWord(rawWord);
-    const nextSettings: WordCloudSettings = {
-      ...this.settings,
-      exclusionListWords: this.settings.exclusionListWords.filter((word) => word !== normalizedWord),
-    };
-    await this.persist(nextSettings);
+    await this.enqueueUpdate(async () => {
+      const normalizedWord = normalizeExclusionListWord(rawWord);
+      const nextSettings: WordCloudSettings = {
+        ...this.settings,
+        exclusionListWords: this.settings.exclusionListWords.filter((word) => word !== normalizedWord),
+      };
+      await this.persist(nextSettings);
+    });
   }
 
   async resetExclusionListWords(): Promise<void> {
-    const nextSettings: WordCloudSettings = {
-      ...this.settings,
-      exclusionListWords: sortExclusionListWords([...DEFAULT_SETTINGS.exclusionListWords]),
-    };
-    await this.persist(nextSettings);
+    await this.enqueueUpdate(async () => {
+      const nextSettings: WordCloudSettings = {
+        ...this.settings,
+        exclusionListWords: sortExclusionListWords([...DEFAULT_SETTINGS.exclusionListWords]),
+      };
+      await this.persist(nextSettings);
+    });
   }
 
   private async persist(nextSettings: WordCloudSettings): Promise<void> {
@@ -186,5 +213,14 @@ export class SettingsService {
         console.error('SettingsService listener failed', error);
       }
     }
+  }
+
+  private enqueueUpdate<T>(operation: () => Promise<T>): Promise<T> {
+    const queued = this.updateQueue.then(operation);
+    this.updateQueue = queued.then(
+      () => undefined,
+      () => undefined,
+    );
+    return queued;
   }
 }

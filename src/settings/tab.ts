@@ -522,7 +522,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           .addOption('throttled', t('settings.tab.performance.processingSpeed.throttled'))
           .setValue(settings.render.performanceMode)
           .onChange(async (value) => {
-            await this.services.updateRenderSettings({ performanceMode: value as PerformanceMode });
+            await updateRenderAndPreview({ performanceMode: value as PerformanceMode });
           });
       });
 

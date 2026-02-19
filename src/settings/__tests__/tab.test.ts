@@ -479,7 +479,7 @@ describe('VaultWordCloudSettingTab', () => {
     expect(displaySpy).toHaveBeenCalledTimes(3);
   });
 
-  test('processing speed dropdown updates performance mode', async () => {
+  test('processing speed dropdown updates performance mode and rerenders preview', async () => {
     const services = createServicesMock();
     const tab = createTab(services);
     tab.display();
@@ -488,6 +488,7 @@ describe('VaultWordCloudSettingTab', () => {
     await dropdown.triggerChange('throttled');
 
     expect(services.updateRenderSettings).toHaveBeenCalledWith({ performanceMode: 'throttled' });
+    expect(mockedRenderWordCloudCanvas).toHaveBeenCalledTimes(2);
   });
 
   test('minimum word length slider updates filter settings', async () => {

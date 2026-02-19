@@ -190,6 +190,61 @@ describe('SettingsService', () => {
     expect(listener).not.toHaveBeenCalled();
   });
 
+  test('serializes concurrent render updates to avoid lost writes', async () => {
+    const saveResolvers: Array<() => void> = [];
+    const saveDataMock = jest.fn().mockImplementation(() => new Promise<void>((resolve) => {
+      saveResolvers.push(resolve);
+    }));
+    const service = new SettingsService(createPluginMock({}, saveDataMock));
+    await service.load();
+
+    const first = service.updateRenderSettings({ performanceMode: 'throttled' });
+    const second = service.updateRenderSettings({ wordPadding: 6 });
+
+    await Promise.resolve();
+    expect(saveDataMock).toHaveBeenCalledTimes(1);
+    expect(saveDataMock).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        render: expect.objectContaining({
+          performanceMode: 'throttled',
+          wordPadding: DEFAULT_SETTINGS.render.wordPadding,
+        }),
+      }),
+    );
+
+    const resolveFirst = saveResolvers.shift();
+    if (!resolveFirst) {
+      throw new Error('Expected first save resolver');
+    }
+    resolveFirst();
+    await first;
+    await Promise.resolve();
+
+    expect(saveDataMock).toHaveBeenCalledTimes(2);
+    expect(saveDataMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        render: expect.objectContaining({
+          performanceMode: 'throttled',
+          wordPadding: 6,
+        }),
+      }),
+    );
+
+    const resolveSecond = saveResolvers.shift();
+    if (!resolveSecond) {
+      throw new Error('Expected second save resolver');
+    }
+    resolveSecond();
+    await Promise.all([first, second]);
+
+    expect(service.getSnapshot().render).toEqual(expect.objectContaining({
+      performanceMode: 'throttled',
+      wordPadding: 6,
+    }));
+  });
+
   test('listener failures are isolated and do not fail updates', async () => {
     const service = new SettingsService(createPluginMock({}));
     const failingListener = jest.fn(() => {
