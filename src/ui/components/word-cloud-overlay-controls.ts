@@ -1,5 +1,6 @@
 import { setIcon } from 'obsidian';
 import type { WordTextMetric } from '@/settings/types';
+import { t } from '@/i18n';
 
 export type WordCloudViewportControls = {
   zoomIn: () => void;
@@ -58,7 +59,7 @@ export function renderWordCloudOverlayControls(options: WordCloudOverlayControls
     });
     refreshButton.type = 'button';
     setIcon(refreshButton, 'rotate-cw');
-    refreshButton.setAttr('aria-label', 'Refresh word cloud');
+    refreshButton.setAttr('aria-label', t('ui.overlay.refreshWordCloud'));
 
     let isRefreshing = false;
     refreshButton.addEventListener('click', async (event) => {
@@ -90,7 +91,7 @@ export function renderWordCloudOverlayControls(options: WordCloudOverlayControls
     });
     editButton.type = 'button';
     setIcon(editButton, 'pencil');
-    editButton.setAttr('aria-label', 'Edit embedded word cloud');
+    editButton.setAttr('aria-label', t('ui.overlay.editEmbeddedWordCloud'));
 
     let isEditing = false;
     editButton.addEventListener('click', async (event) => {
@@ -126,9 +127,12 @@ export function renderWordCloudOverlayControls(options: WordCloudOverlayControls
       const currentMetric = getCurrentWordMetric();
       const nextMetric = currentMetric === 'count' ? 'frequency' : 'count';
       metricButton.setText(currentMetric === 'count' ? '123' : '%');
-      metricButton.setAttr('aria-label', `Switch inline labels to ${nextMetric}`);
+      metricButton.setAttr('aria-label', t(`ui.overlay.metric.switchTo.${nextMetric}`));
       metricButton.setAttr('data-tooltip-position', 'top');
-      metricButton.setAttr('data-tooltip', `Showing ${currentMetric}; click for ${nextMetric}`);
+      metricButton.setAttr(
+        'data-tooltip',
+        t('ui.overlay.metric.tooltip').replace('{current}', currentMetric).replace('{next}', nextMetric),
+      );
     };
 
     updateMetricButtonText();
@@ -145,7 +149,7 @@ export function renderWordCloudOverlayControls(options: WordCloudOverlayControls
     });
     zoomOutButton.type = 'button';
     setIcon(zoomOutButton, 'minus');
-    zoomOutButton.setAttr('aria-label', 'Zoom out');
+    zoomOutButton.setAttr('aria-label', t('ui.overlay.zoomOut'));
     zoomOutButton.addEventListener('click', () => viewportControls.zoomOut());
 
     const resetViewButton = viewControlsEl.createEl('button', {
@@ -153,7 +157,7 @@ export function renderWordCloudOverlayControls(options: WordCloudOverlayControls
     });
     resetViewButton.type = 'button';
     setIcon(resetViewButton, 'locate-fixed');
-    resetViewButton.setAttr('aria-label', 'Reset pan and zoom');
+    resetViewButton.setAttr('aria-label', t('ui.overlay.resetPanZoom'));
     resetViewButton.addEventListener('click', () => viewportControls.resetView());
 
     const zoomInButton = viewControlsEl.createEl('button', {
@@ -161,7 +165,7 @@ export function renderWordCloudOverlayControls(options: WordCloudOverlayControls
     });
     zoomInButton.type = 'button';
     setIcon(zoomInButton, 'plus');
-    zoomInButton.setAttr('aria-label', 'Zoom in');
+    zoomInButton.setAttr('aria-label', t('ui.overlay.zoomIn'));
     zoomInButton.addEventListener('click', () => viewportControls.zoomIn());
   }
 
@@ -180,7 +184,7 @@ export function renderWordCloudOverlayControls(options: WordCloudOverlayControls
     cls: 'word-cloud-menu-button',
     text: '⋯',
   });
-  menuButton.setAttr('aria-label', 'Word cloud options');
+  menuButton.setAttr('aria-label', t('ui.overlay.wordCloudOptions'));
 
   makeWordMetricToggleButton(exportControlsEl);
   makeRefreshButton(exportControlsEl);
@@ -217,8 +221,11 @@ export function renderWordCloudOverlayControls(options: WordCloudOverlayControls
   };
 
   const makeMenuItem = (label: string, format: 'svg' | 'png' | 'jpeg') => {
-    const button = menuEl.createEl('button', { cls: 'word-cloud-menu-item', text: `Export ${label}` });
-    button.setAttr('aria-label', `Export as ${label}`);
+    const button = menuEl.createEl('button', {
+      cls: 'word-cloud-menu-item',
+      text: t('ui.overlay.exportAs').replace('{format}', label),
+    });
+    button.setAttr('aria-label', t('ui.overlay.exportAs').replace('{format}', label));
     button.addEventListener('click', async (event) => {
       event.preventDefault();
       event.stopPropagation();

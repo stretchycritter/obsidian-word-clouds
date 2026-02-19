@@ -1,9 +1,10 @@
 import { MarkdownView, Notice, type App } from 'obsidian';
+import { t } from '@/i18n';
 
 export function insertEmbedAtCursor(app: App, embedBlock: string): boolean {
   const view = app.workspace.getActiveViewOfType(MarkdownView);
   if (!view) {
-    new Notice('Open a markdown note to insert a word cloud embed.');
+    new Notice(t('notices.openMarkdownNoteForEmbed'));
     return false;
   }
 

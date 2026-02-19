@@ -1,6 +1,7 @@
 import { setIcon } from 'obsidian';
 import type { SourceScopeMode, WordCloudFilterSettings } from '@/settings/types';
 import type { WordCloudServices } from '@/services/types';
+import { t } from '@/i18n';
 
 const ALL_FREQUENCIES_MIN = 1;
 const ALL_FREQUENCIES_MAX = 9999;
@@ -60,33 +61,33 @@ export class WordCloudFilterPanel {
       cls: 'vault-word-cloud-filter-reset',
     });
     resetButton.type = 'button';
-    resetButton.setAttr('aria-label', 'Reset filters');
+    resetButton.setAttr('aria-label', t('ui.filterPanel.resetFilters'));
     resetButton.setAttr('data-tooltip-position', 'left');
-    resetButton.setAttr('title', 'Reset filters');
+    resetButton.setAttr('title', t('ui.filterPanel.resetFilters'));
     setIcon(resetButton, 'rotate-ccw');
 
     const sectionEl = this.containerEl.createDiv({ cls: 'vault-word-cloud-filter-section' });
     const headerEl = sectionEl.createDiv({ cls: 'vault-word-cloud-controls-header' });
-    headerEl.createEl('span', { text: 'Filters', cls: 'vault-word-cloud-controls-title' });
+    headerEl.createEl('span', { text: t('ui.filterPanel.title'), cls: 'vault-word-cloud-controls-title' });
 
     const gridEl = sectionEl.createDiv({ cls: 'vault-word-cloud-filter-grid' });
 
     const scopeEl = gridEl.createDiv({ cls: 'vault-word-cloud-tag-filter' });
-    scopeEl.createEl('span', { text: 'Scope', cls: 'vault-word-cloud-tag-label' });
+    scopeEl.createEl('span', { text: t('ui.filterPanel.scope'), cls: 'vault-word-cloud-tag-label' });
     const scopeSelectEl = scopeEl.createEl('select', { cls: 'vault-word-cloud-mode-select' });
-    scopeSelectEl.createEl('option', { value: 'vault', text: 'Entire vault' });
-    scopeSelectEl.createEl('option', { value: 'active-file', text: 'Active note only' });
+    scopeSelectEl.createEl('option', { value: 'vault', text: t('ui.filterPanel.scopeVault') });
+    scopeSelectEl.createEl('option', { value: 'active-file', text: t('ui.filterPanel.scopeActiveFile') });
 
     const includeTagPickerEl = gridEl.createDiv({ cls: 'vault-word-cloud-tag-filter' });
-    includeTagPickerEl.createEl('span', { text: 'Include tag', cls: 'vault-word-cloud-tag-label' });
+    includeTagPickerEl.createEl('span', { text: t('ui.filterPanel.includeTag'), cls: 'vault-word-cloud-tag-label' });
     const includeTagSelectEl = includeTagPickerEl.createEl('select', { cls: 'vault-word-cloud-mode-select' });
-    includeTagSelectEl.createEl('option', { text: 'Add include tag...', value: '' });
+    includeTagSelectEl.createEl('option', { text: t('ui.filterPanel.addIncludeTag'), value: '' });
 
     const modeEl = gridEl.createDiv({ cls: 'vault-word-cloud-match-mode' });
-    modeEl.createEl('span', { text: 'Include match mode', cls: 'vault-word-cloud-tag-label' });
+    modeEl.createEl('span', { text: t('ui.filterPanel.includeMatchMode'), cls: 'vault-word-cloud-tag-label' });
     const modeSelectEl = modeEl.createEl('select', { cls: 'vault-word-cloud-mode-select' });
-    modeSelectEl.createEl('option', { text: 'Any include tag', value: 'any' });
-    modeSelectEl.createEl('option', { text: 'All include tags', value: 'all' });
+    modeSelectEl.createEl('option', { text: t('ui.filterPanel.matchModeAny'), value: 'any' });
+    modeSelectEl.createEl('option', { text: t('ui.filterPanel.matchModeAll'), value: 'all' });
 
     const includeTagsEl = sectionEl.createDiv({ cls: 'vault-word-cloud-applied-tags' });
 
@@ -168,7 +169,7 @@ export class WordCloudFilterPanel {
 
     const previous = selectEl.value;
     selectEl.empty();
-    selectEl.createEl('option', { text: 'Add include tag...', value: '' });
+    selectEl.createEl('option', { text: t('ui.filterPanel.addIncludeTag'), value: '' });
 
     for (const tag of tags) {
       const option = selectEl.createEl('option', { text: tag, value: tag });
@@ -184,7 +185,7 @@ export class WordCloudFilterPanel {
     if (this.filters.includeTags.length === 0) {
       chipsEl.createSpan({
         cls: 'vault-word-cloud-chip-empty',
-        text: 'No include tags applied.',
+        text: t('ui.filterPanel.noIncludeTags'),
       });
       return;
     }
@@ -195,10 +196,10 @@ export class WordCloudFilterPanel {
 
       const removeButton = chipEl.createEl('button', {
         cls: 'vault-word-cloud-chip-remove',
-        text: 'x',
+        text: t('ui.filterPanel.removeTagButton'),
       });
       removeButton.type = 'button';
-      removeButton.setAttr('aria-label', `Remove ${tag} include filter`);
+      removeButton.setAttr('aria-label', t('ui.filterPanel.removeIncludeFilter').replace('{tag}', tag));
 
       this.registerDomEvent(removeButton, 'click', () => {
         this.filters.includeTags = this.filters.includeTags.filter((value) => value !== tag);
@@ -209,13 +210,17 @@ export class WordCloudFilterPanel {
 
   private buildFilterSummary(): string {
     const parts: string[] = [];
-    parts.push(this.filters.scope.mode === 'vault' ? 'Scope: vault' : 'Scope: active note');
+    parts.push(
+      this.filters.scope.mode === 'vault'
+        ? t('ui.filterPanel.summary.scopeVault')
+        : t('ui.filterPanel.summary.scopeActiveNote'),
+    );
 
     if (this.filters.includeTags.length > 0) {
-      parts.push(`Include: ${this.filters.includeTags.length} tag(s)`);
+      parts.push(t('ui.filterPanel.summary.includeTags').replace('{count}', String(this.filters.includeTags.length)));
     }
 
-    parts.push('Frequency: all');
+    parts.push(t('ui.filterPanel.summary.frequencyAll'));
     return parts.join(' | ');
   }
 

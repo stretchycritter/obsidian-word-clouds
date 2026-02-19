@@ -5,6 +5,7 @@ import type { RenderSettings, WordCloudFilterSettings } from '@/settings/types';
 import type { WordCloudServices } from '@/services/types';
 import type { WeightedWord } from '@/domain/word-cloud';
 import { WordCloudFilterPanel } from '@/ui/components/filter-panel';
+import { t } from '@/i18n';
 import {
   renderWordCloudCanvas,
   resolveSelectedFileByPath,
@@ -18,7 +19,7 @@ export class NoteWordCloudView extends ItemView {
   private selectedFilePath = '';
   private activeTab: NoteViewTab = 'cloud';
   private latestWords: WeightedWord[] = [];
-  private latestContextLabel = 'current filters';
+  private latestContextLabel = t('ui.views.note.context.currentFilters');
   private frequencyRendered = false;
   private cloudCanvasEl: HTMLDivElement | null = null;
   private frequencyCanvasEl: HTMLDivElement | null = null;
@@ -37,7 +38,7 @@ export class NoteWordCloudView extends ItemView {
   }
 
   getDisplayText(): string {
-    return 'Note word clouds';
+    return t('ui.views.note.displayText');
   }
 
   getIcon(): string {
@@ -53,42 +54,42 @@ export class NoteWordCloudView extends ItemView {
 
     const topEl = contentEl.createDiv({ cls: 'vault-word-cloud-top' });
     const headerEl = topEl.createDiv({ cls: 'vault-word-cloud-header' });
-    headerEl.createEl('h2', { text: 'Note word clouds', cls: 'vault-word-cloud-title' });
+    headerEl.createEl('h2', { text: t('ui.views.note.title'), cls: 'vault-word-cloud-title' });
 
     const controlsEl = topEl.createDiv({ cls: 'vault-word-cloud-controls' });
 
     const noteControlsEl = controlsEl.createDiv({ cls: 'vault-word-cloud-filter-section' });
     const noteHeaderEl = noteControlsEl.createDiv({ cls: 'vault-word-cloud-controls-header' });
-    noteHeaderEl.createEl('span', { text: 'Note picker', cls: 'vault-word-cloud-controls-title' });
+    noteHeaderEl.createEl('span', { text: t('ui.views.note.picker.title'), cls: 'vault-word-cloud-controls-title' });
     noteHeaderEl.createEl('span', {
-      text: 'Used when scope is Active note only',
+      text: t('ui.views.note.picker.summary'),
       cls: 'vault-word-cloud-controls-summary',
     });
 
     const noteGridEl = noteControlsEl.createDiv({ cls: 'vault-word-cloud-filter-grid' });
     const fileFilterEl = noteGridEl.createDiv({ cls: 'vault-word-cloud-tag-filter' });
-    const fileLabelEl = fileFilterEl.createEl('label', { text: 'Open note', cls: 'vault-word-cloud-tag-label' });
+    const fileLabelEl = fileFilterEl.createEl('label', { text: t('ui.views.note.picker.openNote'), cls: 'vault-word-cloud-tag-label' });
     const fileSelectEl = fileFilterEl.createEl('select', { cls: 'vault-word-cloud-mode-select' });
     fileSelectEl.id = 'vault-word-cloud-note-select';
     fileLabelEl.setAttr('for', fileSelectEl.id);
-    fileSelectEl.setAttr('aria-label', 'Choose an open note');
+    fileSelectEl.setAttr('aria-label', t('ui.views.note.picker.ariaChooseOpenNote'));
 
     const noteActionsEl = noteGridEl.createDiv({ cls: 'vault-word-cloud-match-mode' });
-    noteActionsEl.createEl('span', { text: 'Actions', cls: 'vault-word-cloud-tag-label' });
+    noteActionsEl.createEl('span', { text: t('ui.views.note.actions.title'), cls: 'vault-word-cloud-tag-label' });
 
     const activeButton = noteActionsEl.createEl('button', {
-      text: 'Use active note',
+      text: t('ui.views.note.actions.useActiveNote'),
       cls: 'vault-word-cloud-refresh',
     });
     activeButton.type = 'button';
-    activeButton.setAttr('aria-label', 'Use active note');
+    activeButton.setAttr('aria-label', t('ui.views.note.actions.ariaUseActiveNote'));
 
     const refreshButton = noteActionsEl.createEl('button', {
-      text: 'Refresh',
+      text: t('ui.views.common.refresh'),
       cls: 'vault-word-cloud-refresh',
     });
     refreshButton.type = 'button';
-    refreshButton.setAttr('aria-label', 'Refresh note insights');
+    refreshButton.setAttr('aria-label', t('ui.views.note.actions.ariaRefreshInsights'));
     const registerElementEvent = (
       element: HTMLElement,
       type: keyof HTMLElementEventMap,
@@ -116,11 +117,11 @@ export class NoteWordCloudView extends ItemView {
 
     const tabsEl = contentEl.createDiv({ cls: 'note-word-cloud-tabs' });
     tabsEl.setAttr('role', 'tablist');
-    tabsEl.setAttr('aria-label', 'Note word cloud visualizations');
+    tabsEl.setAttr('aria-label', t('ui.views.note.tabs.ariaLabel'));
 
     const cloudTabButton = tabsEl.createEl('button', {
       cls: 'note-word-cloud-tab is-active',
-      text: 'Word cloud',
+      text: t('ui.views.note.tabs.wordCloud'),
     });
     cloudTabButton.type = 'button';
     cloudTabButton.id = 'note-word-cloud-tab-cloud';
@@ -131,7 +132,7 @@ export class NoteWordCloudView extends ItemView {
 
     const frequencyTabButton = tabsEl.createEl('button', {
       cls: 'note-word-cloud-tab',
-      text: 'Frequency',
+      text: t('ui.views.note.tabs.frequency'),
     });
     frequencyTabButton.type = 'button';
     frequencyTabButton.id = 'note-word-cloud-tab-frequency';
@@ -322,7 +323,7 @@ export class NoteWordCloudView extends ItemView {
     selectEl.empty();
 
     if (openFiles.length === 0) {
-      selectEl.createEl('option', { text: 'No open markdown notes', value: '' });
+      selectEl.createEl('option', { text: t('ui.views.note.picker.noOpenMarkdownNotes'), value: '' });
       this.selectedFilePath = '';
       return;
     }
@@ -386,13 +387,13 @@ export class NoteWordCloudView extends ItemView {
       }),
       getAriaLabel: ({ filters, extra }) => (
         filters?.scope.mode === 'active-file' && extra.selectedFile
-          ? `Word cloud for ${extra.selectedFile.basename}`
-          : 'Word cloud for selected filters'
+          ? t('ui.views.note.aria.wordCloudForFile').replace('{file}', extra.selectedFile.basename)
+          : t('ui.views.note.aria.wordCloudForSelectedFilters')
       ),
       getNoWordsMessage: ({ filters, scopeFilePath }) => (
         filters?.scope.mode === 'active-file' && !scopeFilePath
-          ? 'Open a markdown note and select it to view a note-specific word cloud.'
-          : 'No words found for the selected filters.'
+          ? t('ui.views.note.noWords.selectMarkdownNote')
+          : t('ui.views.common.noWordsForFilters')
       ),
       getSearchOptions: ({ filters, scopeFilePath }) => ({
         includeTags: filters?.includeTags ?? [],
@@ -406,7 +407,7 @@ export class NoteWordCloudView extends ItemView {
         this.latestWords = words;
         this.latestContextLabel = filters?.scope.mode === 'active-file' && extra.selectedFile
           ? extra.selectedFile.basename
-          : 'selected filters';
+          : t('ui.views.note.context.selectedFilters');
         this.frequencyRendered = false;
       },
       onAfterRender: () => {
@@ -434,7 +435,7 @@ export class NoteWordCloudView extends ItemView {
     if (this.latestWords.length === 0) {
       this.frequencyCanvasEl.createDiv({
         cls: 'vault-word-cloud-state',
-        text: 'No words found for the selected filters.',
+        text: t('ui.views.common.noWordsForFilters'),
       });
       this.frequencyRendered = true;
       return;
@@ -443,7 +444,7 @@ export class NoteWordCloudView extends ItemView {
     drawFrequencyChart({
       containerEl: this.frequencyCanvasEl,
       words: this.latestWords,
-      ariaLabel: `Word frequency chart for ${this.latestContextLabel}`,
+      ariaLabel: t('ui.views.note.aria.frequencyChartForContext').replace('{context}', this.latestContextLabel),
     });
 
     this.frequencyRendered = true;

@@ -4,6 +4,7 @@ import type { RenderSettings, WordCloudFilterSettings } from '@/settings/types';
 import type { WordCloudServices } from '@/services/types';
 import { WordCloudFilterPanel } from '@/ui/components/filter-panel';
 import { renderWordCloudCanvas } from '@/ui';
+import { t } from '@/i18n';
 
 export class VaultWordCloudView extends ItemView {
   private readonly services: WordCloudServices;
@@ -21,7 +22,7 @@ export class VaultWordCloudView extends ItemView {
   }
 
   getDisplayText(): string {
-    return 'Vault Word Cloud';
+    return t('ui.views.vault.displayText');
   }
 
   getIcon(): string {
@@ -37,7 +38,7 @@ export class VaultWordCloudView extends ItemView {
 
     const topEl = contentEl.createDiv({ cls: 'vault-word-cloud-top' });
     const headerEl = topEl.createDiv({ cls: 'vault-word-cloud-header' });
-    headerEl.createEl('h2', { text: 'Word clouds', cls: 'vault-word-cloud-title' });
+    headerEl.createEl('h2', { text: t('ui.views.vault.title'), cls: 'vault-word-cloud-title' });
 
     const controlsEl = topEl.createDiv({ cls: 'vault-word-cloud-controls' });
     const canvasEl = contentEl.createDiv({ cls: 'vault-word-cloud-canvas' });
@@ -104,8 +105,8 @@ export class VaultWordCloudView extends ItemView {
       },
       resolveScopeFilePath: () => this.services.getActiveFile()?.path ?? '',
       resolveExtraContext: () => null,
-      getAriaLabel: () => 'Word cloud based on markdown files in the vault',
-      getNoWordsMessage: () => 'No words found for the selected filters.',
+      getAriaLabel: () => t('ui.views.vault.ariaLabel'),
+      getNoWordsMessage: () => t('ui.views.common.noWordsForFilters'),
       getSearchOptions: ({ scopeFilePath, filters }) => ({
         includeTags: filters?.includeTags ?? [],
         excludeTags: filters?.excludeTags ?? [],

@@ -2,6 +2,7 @@ import { App, ButtonComponent, Modal, Notice, Setting } from 'obsidian';
 import type { WordCloudServices } from '@/services/types';
 import type { FrontmatterRule, FrontmatterOperator } from '@/settings/types';
 import { normalizeTag } from '@/utils/utils';
+import { t } from '@/i18n';
 
 export type EmbedScope = 'file' | 'vault' | 'folder';
 export type EmbedSize = 'small' | 'medium' | 'large';
@@ -85,9 +86,9 @@ export class EmbedWordCloudModal extends Modal {
     super(app);
     this.services = services;
     this.onInsert = onInsert;
-    this.title = options.title ?? 'Embed word cloud in document';
-    this.description = options.description ?? 'Configure options, then insert a word cloud embed at your cursor.';
-    this.submitButtonText = options.submitButtonText ?? 'Apply';
+    this.title = options.title ?? t('ui.modals.embed.title');
+    this.description = options.description ?? t('ui.modals.embed.description');
+    this.submitButtonText = options.submitButtonText ?? t('ui.modals.embed.apply');
 
     const initialState = options.initialState ?? {};
     this.state = {
@@ -117,12 +118,12 @@ export class EmbedWordCloudModal extends Modal {
     this.specificFileWrapperEl = contentEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
 
     new Setting(this.scopeWrapperEl)
-      .setName('Scope')
-      .setDesc('Choose whether this cloud uses the note file or the entire vault.')
+      .setName(t('ui.modals.embed.scope.name'))
+      .setDesc(t('ui.modals.embed.scope.desc'))
       .addDropdown((dropdown) => {
         dropdown
-          .addOption('file', 'File')
-          .addOption('vault', 'Vault')
+          .addOption('file', t('ui.modals.embed.scope.file'))
+          .addOption('vault', t('ui.modals.embed.scope.vault'))
           .setValue(this.state.scope === 'file' ? 'file' : 'vault')
           .onChange((value) => {
             this.state.scope = value === 'file' ? 'file' : 'vault';
@@ -134,11 +135,11 @@ export class EmbedWordCloudModal extends Modal {
 
     this.tabsEl = settingsShellEl.createDiv({ cls: 'word-cloud-embed-wizard-tabs' });
     this.tabsEl.setAttr('role', 'tablist');
-    this.tabsEl.setAttr('aria-label', 'Embedded word cloud settings tabs');
+    this.tabsEl.setAttr('aria-label', t('ui.modals.embed.tabs.ariaLabel'));
 
-    this.filtersTabButtonEl = this.buildTabButton('filters', 'Filters', true);
-    this.appearanceTabButtonEl = this.buildTabButton('appearance', 'Appearance', false);
-    this.advancedTabButtonEl = this.buildTabButton('advanced', 'Advanced', false);
+    this.filtersTabButtonEl = this.buildTabButton('filters', t('ui.modals.embed.tabs.filters'), true);
+    this.appearanceTabButtonEl = this.buildTabButton('appearance', t('ui.modals.embed.tabs.appearance'), false);
+    this.advancedTabButtonEl = this.buildTabButton('advanced', t('ui.modals.embed.tabs.advanced'), false);
 
     const panelsEl = settingsShellEl.createDiv({ cls: 'word-cloud-embed-wizard-panels' });
 
@@ -158,7 +159,7 @@ export class EmbedWordCloudModal extends Modal {
     this.advancedPanelEl.setAttr('aria-labelledby', this.advancedTabButtonEl.id);
     this.advancedPanelEl.createEl('p', {
       cls: 'word-cloud-embed-wizard-description',
-      text: 'No additional advanced settings are available.',
+      text: t('ui.modals.embed.advanced.noneAvailable'),
     });
 
     this.includeTagsWrapperEl = this.filtersPanelEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
@@ -167,13 +168,13 @@ export class EmbedWordCloudModal extends Modal {
     this.sizeWrapperEl = this.appearancePanelEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
 
     new Setting(this.sizeWrapperEl)
-      .setName('Size')
-      .setDesc('Select the embedded cloud size preset.')
+      .setName(t('ui.modals.embed.size.name'))
+      .setDesc(t('ui.modals.embed.size.desc'))
       .addDropdown((dropdown) => {
         dropdown
-          .addOption('small', 'Small')
-          .addOption('medium', 'Medium')
-          .addOption('large', 'Large')
+          .addOption('small', t('ui.modals.embed.size.small'))
+          .addOption('medium', t('ui.modals.embed.size.medium'))
+          .addOption('large', t('ui.modals.embed.size.large'))
           .setValue(this.state.size)
           .onChange((value) => {
             this.state.size = value === 'small' || value === 'large' ? value : 'medium';
@@ -187,7 +188,7 @@ export class EmbedWordCloudModal extends Modal {
     const buttonRowEl = contentEl.createDiv({ cls: 'word-cloud-embed-wizard-actions' });
 
     const cancelButton = new ButtonComponent(buttonRowEl)
-      .setButtonText('Cancel')
+      .setButtonText(t('ui.modals.embed.cancel'))
       .onClick(() => {
         this.close();
       });
@@ -205,7 +206,7 @@ export class EmbedWordCloudModal extends Modal {
           }
         } catch (error) {
           console.error('Word clouds: failed to apply embed changes', error);
-          new Notice('Could not apply word cloud changes.');
+          new Notice(t('ui.modals.embed.applyError'));
         }
         if (applyButton.buttonEl.isConnected) {
           applyButton.setDisabled(false);
@@ -231,10 +232,10 @@ export class EmbedWordCloudModal extends Modal {
     const hasCurrent = filePaths.includes(this.state.specificFilePath);
 
     new Setting(this.specificFileWrapperEl)
-      .setName('File')
-      .setDesc('Select the file used when scope is set to file. Choose Current note to use the note containing this embed.')
+      .setName(t('ui.modals.embed.file.name'))
+      .setDesc(t('ui.modals.embed.file.desc'))
       .addDropdown((dropdown) => {
-        dropdown.addOption('', 'Current note');
+        dropdown.addOption('', t('ui.modals.embed.file.currentNote'));
         for (const filePath of filePaths) {
           dropdown.addOption(filePath, filePath);
         }
@@ -255,15 +256,16 @@ export class EmbedWordCloudModal extends Modal {
 
     const availableTags = this.services.getAvailableTags();
     const tagHint = availableTags.length > 0
-      ? `Available: ${availableTags.slice(0, 12).join(', ')}${availableTags.length > 12 ? '…' : ''}`
-      : 'No tags detected yet.';
+      ? t('ui.modals.embed.includeTags.availableHint')
+        .replace('{tags}', `${availableTags.slice(0, 12).join(', ')}${availableTags.length > 12 ? '…' : ''}`)
+      : t('ui.modals.embed.includeTags.noneDetected');
 
     new Setting(this.includeTagsWrapperEl)
-      .setName('Include tags')
-      .setDesc(`Optional comma-separated tags to include. ${tagHint}`)
+      .setName(t('ui.modals.embed.includeTags.name'))
+      .setDesc(t('ui.modals.embed.includeTags.desc').replace('{hint}', tagHint))
       .addText((text) => {
         text
-          .setPlaceholder('#project, #meeting')
+          .setPlaceholder(t('ui.modals.embed.includeTags.placeholder'))
           .setValue(this.state.includeTagsRaw)
           .onChange((value) => {
             this.state.includeTagsRaw = value;
@@ -275,12 +277,12 @@ export class EmbedWordCloudModal extends Modal {
     this.matchModeWrapperEl.empty();
 
     new Setting(this.matchModeWrapperEl)
-      .setName('Include match mode')
-      .setDesc('How include tags should match when multiple tags are set.')
+      .setName(t('ui.modals.embed.matchMode.name'))
+      .setDesc(t('ui.modals.embed.matchMode.desc'))
       .addDropdown((dropdown) => {
         dropdown
-          .addOption('any', 'Any include tag')
-          .addOption('all', 'All include tags')
+          .addOption('any', t('ui.modals.embed.matchMode.any'))
+          .addOption('all', t('ui.modals.embed.matchMode.all'))
           .setValue(this.state.tagMatchMode)
           .onChange((value) => {
             this.state.tagMatchMode = value === 'all' ? 'all' : 'any';

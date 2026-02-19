@@ -2,6 +2,7 @@ import { Notice, type TFile } from 'obsidian';
 import type { SearchOptions, WordCloudRenderOptions, WordCloudServices } from '@/services/types';
 import type { RenderSettings, WordCloudFilterSettings } from '@/settings/types';
 import type { WeightedWord } from '@/domain/word-cloud';
+import { t } from '@/i18n';
 
 type RenderNonceRef = {
   value: number;
@@ -101,7 +102,7 @@ export async function renderWordCloudCanvas<TExtra>(
 
   const activeNonce = ++nonceRef.value;
   containerEl.empty();
-  const statusHandle = createStatusHandle('Building cloud...');
+  const statusHandle = createStatusHandle(t('ui.renderers.wordCloudCanvas.buildingCloud'));
   const updateProgress = (message: string, percent: number): void => {
     if (activeNonce !== nonceRef.value) {
       return;
@@ -157,7 +158,11 @@ export async function renderWordCloudCanvas<TExtra>(
       onRefresh,
       onExcludeInVault: drawOptions?.onExcludeInVault ?? (async (word) => {
         const added = await services.addExclusionListWord(word);
-        new Notice(added ? `Excluded "${word}" from word clouds.` : `"${word}" is already excluded.`);
+        new Notice(
+          added
+            ? t('notices.excludedFromWordClouds').replace('{word}', word)
+            : t('notices.wordAlreadyExcluded').replace('{word}', word),
+        );
         await onRefresh();
       }),
       onExcludeInCloud: drawOptions?.onExcludeInCloud,
@@ -182,7 +187,7 @@ export async function renderWordCloudCanvas<TExtra>(
   } catch (error) {
     statusHandle.remove();
     console.error(`${errorLogPrefix}: failed to render cloud`, error);
-    renderErrorState('Could not render the word cloud. Open developer console for details.');
+    renderErrorState(t('ui.renderers.wordCloudCanvas.renderError'));
   }
 }
 

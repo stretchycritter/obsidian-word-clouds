@@ -1,6 +1,7 @@
 import { scaleBand, scaleLinear } from 'd3-scale';
 import { select } from 'd3-selection';
 import type { WeightedWord } from '@/domain/word-cloud';
+import { t } from '@/i18n';
 
 type FrequencyChartRenderOptions = {
   containerEl: HTMLDivElement;
@@ -20,7 +21,7 @@ export function drawFrequencyChart(options: FrequencyChartRenderOptions): void {
   if (sortedWords.length === 0) {
     containerEl.createDiv({
       cls: 'vault-word-cloud-state',
-      text: 'No frequency data available.',
+      text: t('ui.renderers.frequencyChart.noData'),
     });
     return;
   }
@@ -94,6 +95,6 @@ export function drawFrequencyChart(options: FrequencyChartRenderOptions): void {
 
   containerEl.createDiv({
     cls: 'note-word-cloud-frequency-summary',
-    text: `${sortedWords.length} words, sorted by frequency`,
+    text: t('ui.renderers.frequencyChart.summary').replace('{count}', String(sortedWords.length)),
   });
 }

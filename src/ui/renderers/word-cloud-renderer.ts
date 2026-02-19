@@ -5,6 +5,7 @@ import { Menu } from 'obsidian';
 import type { RenderSettings, RotationPreset, WordTextMetric } from '@/settings/types';
 import type { WordCloudRenderOptions } from '@/services/types';
 import type { WeightedWord } from '@/domain/word-cloud';
+import { t } from '@/i18n';
 import {
   renderWordCloudOverlayControls,
   sanitizeWordCloudExportBaseName,
@@ -149,7 +150,12 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
         laidOutWords += 1;
         if (laidOutWords % performance.wordProgressStride === 0) {
           const layoutPercent = Math.min(99, Math.round((laidOutWords / totalWords) * 100));
-          reportProgress(`Laying out words... ${laidOutWords}/${layoutWords.length}`, layoutPercent);
+          reportProgress(
+            t('ui.renderers.wordCloud.layoutProgress')
+              .replace('{count}', String(laidOutWords))
+              .replace('{total}', String(layoutWords.length)),
+            layoutPercent,
+          );
         }
       })
       .on('end', (layoutWords) => {
@@ -209,7 +215,7 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
           textSelection.select('title').text((d) => formatWordTitle(d, totalWordCount));
         };
 
-        reportProgress('Rendering complete.', 100);
+        reportProgress(t('ui.renderers.wordCloud.renderingComplete'), 100);
         if (enableOverlayControls) {
           renderWordCloudOverlayControls({
             containerEl,
@@ -275,7 +281,7 @@ function addExcludeMenuItems(
   if (onExcludeInCloud) {
     menu.addItem((item) => {
       item
-        .setTitle('Exclude in cloud')
+        .setTitle(t('ui.renderers.wordCloud.menu.excludeInCloud'))
         .setIcon('list-x')
         .onClick(() => {
           void onExcludeInCloud(word);
@@ -286,7 +292,7 @@ function addExcludeMenuItems(
   if (onExcludeInVault) {
     menu.addItem((item) => {
       item
-        .setTitle('Exclude in vault')
+        .setTitle(t('ui.renderers.wordCloud.menu.excludeInVault'))
         .setIcon('cloud-off')
         .onClick(() => {
           void onExcludeInVault(word);
@@ -297,7 +303,7 @@ function addExcludeMenuItems(
   if (!onExcludeInCloud && !onExcludeInVault) {
     menu.addItem((item) => {
       item
-        .setTitle('Exclude unavailable')
+        .setTitle(t('ui.renderers.wordCloud.menu.excludeUnavailable'))
         .setIcon('slash')
         .setDisabled(true);
     });

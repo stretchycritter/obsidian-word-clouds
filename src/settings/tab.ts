@@ -10,12 +10,39 @@ import type {
 import type { WordCloudServices } from '@/services/types';
 import type { WordCloudSettingsControls } from '@/services/wordcloud-services';
 import { renderWordCloudCanvas } from '@/ui';
+import { t } from '@/i18n';
 
 type SettingsTabServices = WordCloudServices & WordCloudSettingsControls;
 
 const GITHUB_ISSUE_BASE_URL = 'https://github.com/stretchycritter/obsidian-word-clouds/issues/new';
 const BUG_REPORT_ISSUE_URL = `${GITHUB_ISSUE_BASE_URL}?template=bug_report.yml`;
 const FEATURE_REQUEST_ISSUE_URL = `${GITHUB_ISSUE_BASE_URL}?template=feature_request.yml`;
+
+function formatT(key: string, replacements: Record<string, string | number>): string {
+  let value = t(key);
+  for (const [token, replacement] of Object.entries(replacements)) {
+    value = value.replace(`{${token}}`, String(replacement));
+  }
+  return value;
+}
+
+function getFontLabel(value: string, fallback: string): string {
+  const keyByValue: Record<string, string> = {
+    'sans-serif': 'settings.tab.render.fontFamily.options.sansSerif',
+    'serif': 'settings.tab.render.fontFamily.options.serif',
+    'monospace': 'settings.tab.render.fontFamily.options.monospace',
+    'Arial, sans-serif': 'settings.tab.render.fontFamily.options.arial',
+    'Verdana, sans-serif': 'settings.tab.render.fontFamily.options.verdana',
+    '"Trebuchet MS", sans-serif': 'settings.tab.render.fontFamily.options.trebuchetMs',
+    '"Times New Roman", serif': 'settings.tab.render.fontFamily.options.timesNewRoman',
+    'Georgia, serif': 'settings.tab.render.fontFamily.options.georgia',
+    '"Palatino Linotype", serif': 'settings.tab.render.fontFamily.options.palatinoLinotype',
+    '"Courier New", monospace': 'settings.tab.render.fontFamily.options.courierNew',
+  };
+
+  const translationKey = keyByValue[value];
+  return translationKey ? t(translationKey) : fallback;
+}
 
 export class VaultWordCloudSettingTab extends PluginSettingTab {
   private readonly services: SettingsTabServices;
@@ -30,11 +57,11 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl('h2', { text: 'Word clouds settings' });
+    containerEl.createEl('h2', { text: t('settings.tab.title') });
     const settings = this.services.getSettingsSnapshot();
 
     const renderFiltersSection = (): void => {
-      containerEl.createEl('h3', { text: 'Filters' });
+      containerEl.createEl('h3', { text: t('settings.tab.filters.heading') });
 
       let draftWord = '';
       const submitDraftWord = async (): Promise<void> => {
@@ -45,10 +72,10 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       };
 
       new Setting(containerEl)
-        .setName('Add excluded word')
-        .setDesc('Excluded words are applied vault wide.')
+        .setName(t('settings.tab.filters.addExcludedWord.name'))
+        .setDesc(t('settings.tab.filters.addExcludedWord.desc'))
         .addText((text) => {
-          text.setPlaceholder('Word to exclude');
+          text.setPlaceholder(t('settings.tab.filters.addExcludedWord.placeholder'));
           text.onChange((value) => {
             draftWord = value;
           });
@@ -63,7 +90,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
         })
         .addButton((button) => {
-          button.setButtonText('Add').setCta().onClick(async () => {
+          button.setButtonText(t('settings.tab.filters.addExcludedWord.button')).setCta().onClick(async () => {
             await submitDraftWord();
           });
         });
@@ -80,13 +107,13 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       const excludedWordsSummaryEl = excludedWordsDetailsEl.createEl('summary', {
         cls: 'vault-word-cloud-settings-excluded-summary',
       });
-      excludedWordsSummaryEl.setText(`View excluded words (${sortedWords.length})`);
+      excludedWordsSummaryEl.setText(formatT('settings.tab.filters.excludedWords.summary', { count: sortedWords.length }));
 
       const listWrapperEl = excludedWordsDetailsEl.createDiv({ cls: 'vault-word-cloud-settings-list' });
       const listEl = listWrapperEl.createDiv({ cls: 'vault-word-cloud-settings-badges' });
 
       if (sortedWords.length === 0) {
-        listEl.createSpan({ cls: 'vault-word-cloud-settings-badges-empty', text: 'No excluded words configured.' });
+        listEl.createSpan({ cls: 'vault-word-cloud-settings-badges-empty', text: t('settings.tab.filters.excludedWords.empty') });
       } else {
         for (const word of sortedWords) {
           const badgeEl = listEl.createDiv({ cls: 'vault-word-cloud-settings-badge' });
@@ -97,9 +124,9 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
           setIcon(removeButton, 'x');
           removeButton.type = 'button';
-          removeButton.setAttr('aria-label', `Remove ${word} from exclusion list`);
+          removeButton.setAttr('aria-label', formatT('settings.tab.filters.excludedWords.removeAria', { word }));
           removeButton.setAttr('data-tooltip-position', 'top');
-          removeButton.setAttr('data-tooltip', `Remove ${word}`);
+          removeButton.setAttr('data-tooltip', formatT('settings.tab.filters.excludedWords.removeTooltip', { word }));
           removeButton.addEventListener('click', async () => {
             await this.services.removeExclusionListWord(word);
             this.display();
@@ -108,9 +135,9 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       }
     };
 
-    containerEl.createEl('h3', { text: 'Render defaults' });
+    containerEl.createEl('h3', { text: t('settings.tab.render.heading') });
     containerEl.createEl('p').createEl('em', {
-      text: 'These settings control what the default rendered view for any Word Cloud is across all pages. These defaults can be overriden for each Word Cloud.',
+      text: t('settings.tab.render.description'),
     });
 
     const previewWrapperEl = containerEl.createDiv({ cls: 'vault-word-cloud-settings-preview' });
@@ -139,13 +166,13 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
         renderErrorState: (_message) => {
           previewCanvasEl.createDiv({
             cls: 'vault-word-cloud-state',
-            text: 'Could not render preview.',
+            text: t('settings.tab.preview.renderError'),
           });
         },
         resolveScopeFilePath: () => '',
         resolveExtraContext: () => null,
-        getAriaLabel: () => 'Word cloud render preview',
-        getNoWordsMessage: () => 'No preview words available.',
+        getAriaLabel: () => t('settings.tab.preview.ariaLabel'),
+        getNoWordsMessage: () => t('settings.tab.preview.noWords'),
         getWords: async () => this.services.getSettingsPreviewWords(),
         onWordClick: () => {
           // no-op in settings preview
@@ -163,14 +190,14 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
     };
 
     new Setting(containerEl)
-      .setName('Rotation style')
-      .setDesc('How words are angled in the cloud.')
+      .setName(t('settings.tab.render.rotation.name'))
+      .setDesc(t('settings.tab.render.rotation.desc'))
       .addDropdown((dropdown) => {
         dropdown
-          .addOption('horizontal', 'Horizontal only')
-          .addOption('mostly-horizontal', 'Mostly horizontal')
-          .addOption('mixed', 'Mixed angles')
-          .addOption('vertical', 'Vertical heavy')
+          .addOption('horizontal', t('settings.tab.render.rotation.horizontal'))
+          .addOption('mostly-horizontal', t('settings.tab.render.rotation.mostlyHorizontal'))
+          .addOption('mixed', t('settings.tab.render.rotation.mixed'))
+          .addOption('vertical', t('settings.tab.render.rotation.vertical'))
           .setValue(settings.render.rotationPreset)
           .onChange(async (value) => {
             await updateRenderAndPreview({
@@ -180,12 +207,12 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Spiral layout')
-      .setDesc('Placement strategy for positioning words.')
+      .setName(t('settings.tab.render.spiral.name'))
+      .setDesc(t('settings.tab.render.spiral.desc'))
       .addDropdown((dropdown) => {
         dropdown
-          .addOption('archimedean', 'Archimedean')
-          .addOption('rectangular', 'Rectangular')
+          .addOption('archimedean', t('settings.tab.render.spiral.archimedean'))
+          .addOption('rectangular', t('settings.tab.render.spiral.rectangular'))
           .setValue(settings.render.spiral)
           .onChange(async (value) => {
             await updateRenderAndPreview({
@@ -195,8 +222,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Word padding')
-      .setDesc('Space between words in pixels.')
+      .setName(t('settings.tab.render.wordPadding.name'))
+      .setDesc(t('settings.tab.render.wordPadding.desc'))
       .addSlider((slider) => {
         slider
           .setLimits(0, 12, 1)
@@ -208,8 +235,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Font size range')
-      .setDesc('Set minimum and maximum font size. Minimum cannot exceed maximum.')
+      .setName(t('settings.tab.render.fontSizeRange.name'))
+      .setDesc(t('settings.tab.render.fontSizeRange.desc'))
       .addSlider((slider) => {
         slider
           .setLimits(8, 64, 1)
@@ -238,11 +265,11 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Font family')
-      .setDesc('Choose a supported font family for words.')
+      .setName(t('settings.tab.render.fontFamily.name'))
+      .setDesc(t('settings.tab.render.fontFamily.desc'))
       .addDropdown((dropdown) => {
         for (const font of this.services.getSupportedFontFamilyOptions()) {
-          dropdown.addOption(font.value, font.label);
+          dropdown.addOption(font.value, getFontLabel(font.value, font.label));
         }
         dropdown
           .setValue(this.services.getSelectedSupportedFontFamily(settings.render.fontFamily))
@@ -252,8 +279,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Show count for words')
-      .setDesc('Append count directly to rendered words.')
+      .setName(t('settings.tab.render.showCount.name'))
+      .setDesc(t('settings.tab.render.showCount.desc'))
       .addToggle((toggle) => {
         toggle
           .setValue(settings.render.showCountInWordText)
@@ -264,8 +291,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Show count/frequency toggle button')
-      .setDesc('Add a rendered-view button to switch inline labels between count and frequency.')
+      .setName(t('settings.tab.render.metricToggle.name'))
+      .setDesc(t('settings.tab.render.metricToggle.desc'))
       .addToggle((toggle) => {
         toggle
           .setValue(settings.render.showWordTextMetricToggle)
@@ -276,8 +303,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Count label minimum')
-      .setDesc('Show inline count only for words at or above this count.')
+      .setName(t('settings.tab.render.countLabelMinimum.name'))
+      .setDesc(t('settings.tab.render.countLabelMinimum.desc'))
       .addSlider((slider) => {
         slider
           .setLimits(1, 100, 1)
@@ -290,8 +317,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       });
 
     const deterministicSetting = new Setting(containerEl)
-      .setName('Deterministic layout')
-      .setDesc('Keep cloud layout stable across refreshes using a seed.')
+      .setName(t('settings.tab.render.deterministicLayout.name'))
+      .setDesc(t('settings.tab.render.deterministicLayout.desc'))
       .addToggle((toggle) => {
         toggle
           .setValue(settings.render.deterministicLayout)
@@ -303,7 +330,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
 
     if (settings.render.deterministicLayout) {
       deterministicSetting.addText((text) => {
-        text.setPlaceholder('Seed');
+        text.setPlaceholder(t('settings.tab.render.deterministicLayout.seedPlaceholder'));
         text
           .setValue(String(settings.render.randomSeed))
           .onChange(async (value) => {
@@ -316,8 +343,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
     }
 
     new Setting(containerEl)
-      .setName('Enable mouse interactions')
-      .setDesc('Allow click, context menu, pan, and zoom interactions with the cloud.')
+      .setName(t('settings.tab.render.mouseInteractions.name'))
+      .setDesc(t('settings.tab.render.mouseInteractions.desc'))
       .addToggle((toggle) => {
         toggle
           .setValue(settings.render.enableMouseInteractions)
@@ -327,8 +354,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Enable controls')
-      .setDesc('Show on-canvas controls such as refresh and zoom buttons.')
+      .setName(t('settings.tab.render.controls.name'))
+      .setDesc(t('settings.tab.render.controls.desc'))
       .addToggle((toggle) => {
         toggle
           .setValue(settings.render.enableControls)
@@ -338,8 +365,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Enable exporting')
-      .setDesc('Show export buttons for PNG and SVG downloads.')
+      .setName(t('settings.tab.render.exporting.name'))
+      .setDesc(t('settings.tab.render.exporting.desc'))
       .addToggle((toggle) => {
         toggle
           .setValue(settings.render.enableExporting)
@@ -350,17 +377,17 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
 
     const advancedRenderDetailsEl = containerEl.createEl('details');
     const advancedRenderSummaryEl = advancedRenderDetailsEl.createEl('summary');
-    advancedRenderSummaryEl.setText('Advanced render settings');
+    advancedRenderSummaryEl.setText(t('settings.tab.render.advanced.summary'));
 
     new Setting(advancedRenderDetailsEl)
-      .setName('Size scaling mode')
-      .setDesc('How numeric count differences map to font-size differences.')
+      .setName(t('settings.tab.render.scalingMode.name'))
+      .setDesc(t('settings.tab.render.scalingMode.desc'))
       .addDropdown((dropdown) => {
         dropdown
-          .addOption('linear', 'Linear')
-          .addOption('power', 'Power')
-          .addOption('log', 'Log')
-          .addOption('rank', 'Rank')
+          .addOption('linear', t('settings.tab.render.scalingMode.linear'))
+          .addOption('power', t('settings.tab.render.scalingMode.power'))
+          .addOption('log', t('settings.tab.render.scalingMode.log'))
+          .addOption('rank', t('settings.tab.render.scalingMode.rank'))
           .setValue(settings.render.scalingMode)
           .onChange(async (value) => {
             await updateRenderAndPreview({ scalingMode: value as ScalingMode });
@@ -369,8 +396,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       });
 
     new Setting(advancedRenderDetailsEl)
-      .setName('Size scaling emphasis')
-      .setDesc('Higher values exaggerate size differences (power scaling mode).')
+      .setName(t('settings.tab.render.scalingEmphasis.name'))
+      .setDesc(t('settings.tab.render.scalingEmphasis.desc'))
       .addSlider((slider) => {
         slider
           .setLimits(0.5, 3, 0.1)
@@ -382,16 +409,16 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    containerEl.createEl('h3', { text: 'Performance' });
+    containerEl.createEl('h3', { text: t('settings.tab.performance.heading') });
 
     new Setting(containerEl)
-      .setName('Processing speed')
-      .setDesc('Controls how aggressively scanning your vault and generating word clouds in on render.')
+      .setName(t('settings.tab.performance.processingSpeed.name'))
+      .setDesc(t('settings.tab.performance.processingSpeed.desc'))
       .addDropdown((dropdown) => {
         dropdown
-          .addOption('full-speed', 'Full speed')
-          .addOption('balanced', 'Balanced (default)')
-          .addOption('throttled', 'Throttled')
+          .addOption('full-speed', t('settings.tab.performance.processingSpeed.fullSpeed'))
+          .addOption('balanced', t('settings.tab.performance.processingSpeed.balanced'))
+          .addOption('throttled', t('settings.tab.performance.processingSpeed.throttled'))
           .setValue(settings.render.performanceMode)
           .onChange(async (value) => {
             await this.services.updateRenderSettings({ performanceMode: value as PerformanceMode });
@@ -400,20 +427,20 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
 
     renderFiltersSection();
 
-    containerEl.createEl('h3', { text: 'Reset settings' });
+    containerEl.createEl('h3', { text: t('settings.tab.reset.heading') });
     containerEl.createEl('p', {
-      text: 'Destructive actions. These replace your current settings with defaults.',
+      text: t('settings.tab.reset.description'),
     });
 
     new Setting(containerEl)
-      .setName('Reset render defaults')
-      .setDesc('Restore all render settings to defaults.')
+      .setName(t('settings.tab.reset.render.name'))
+      .setDesc(t('settings.tab.reset.render.desc'))
       .addButton((button) => {
         button
-          .setButtonText('Reset render settings')
+          .setButtonText(t('settings.tab.reset.render.button'))
           .setWarning()
           .onClick(async () => {
-            const confirmed = window.confirm('Reset all render settings to defaults? This cannot be undone.');
+            const confirmed = window.confirm(t('settings.tab.reset.render.confirm'));
             if (!confirmed) {
               return;
             }
@@ -423,14 +450,14 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Reset excluded words')
-      .setDesc('Restore the default exclusion list.')
+      .setName(t('settings.tab.reset.excludedWords.name'))
+      .setDesc(t('settings.tab.reset.excludedWords.desc'))
       .addButton((button) => {
         button
-          .setButtonText('Reset excluded words')
+          .setButtonText(t('settings.tab.reset.excludedWords.button'))
           .setWarning()
           .onClick(async () => {
-            const confirmed = window.confirm('Reset excluded words to the default list? This cannot be undone.');
+            const confirmed = window.confirm(t('settings.tab.reset.excludedWords.confirm'));
             if (!confirmed) {
               return;
             }
@@ -442,31 +469,31 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
     const supportContainerEl = containerEl.createDiv({ cls: 'vault-word-cloud-settings-support' });
     supportContainerEl.createEl('h3', {
       cls: 'vault-word-cloud-settings-support-title',
-      text: 'Support and feedback',
+      text: t('settings.tab.support.title'),
     });
     supportContainerEl.createEl('p', {
       cls: 'vault-word-cloud-settings-support-copy',
-      text: 'Open a GitHub issue to report a bug or suggest a feature.',
+      text: t('settings.tab.support.description'),
     });
 
     const supportButtonsEl = supportContainerEl.createDiv({ cls: 'vault-word-cloud-settings-support-actions' });
 
     const featureButtonEl = supportButtonsEl.createEl('button', {
       cls: 'mod-cta vault-word-cloud-settings-support-button vault-word-cloud-settings-support-button-feature',
-      text: 'Suggest a feature',
+      text: t('settings.tab.support.featureButton'),
     });
     featureButtonEl.type = 'button';
-    featureButtonEl.setAttr('aria-label', 'Suggest a feature');
+    featureButtonEl.setAttr('aria-label', t('settings.tab.support.featureButton'));
     featureButtonEl.addEventListener('click', () => {
       window.open(FEATURE_REQUEST_ISSUE_URL, '_blank', 'noopener,noreferrer');
     });
 
     const bugButtonEl = supportButtonsEl.createEl('button', {
       cls: 'vault-word-cloud-settings-support-button vault-word-cloud-settings-support-button-report',
-      text: 'Report a bug',
+      text: t('settings.tab.support.bugButton'),
     });
     bugButtonEl.type = 'button';
-    bugButtonEl.setAttr('aria-label', 'Report a bug');
+    bugButtonEl.setAttr('aria-label', t('settings.tab.support.bugButton'));
     bugButtonEl.addEventListener('click', () => {
       window.open(BUG_REPORT_ISSUE_URL, '_blank', 'noopener,noreferrer');
     });

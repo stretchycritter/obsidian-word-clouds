@@ -15,6 +15,7 @@ import type { WordCloudServices } from '@/services/types';
 import { EmbedWordCloudModal } from '@/ui';
 import { normalizeTag } from '@/utils/utils';
 import { renderWordCloudCanvas } from '@/ui';
+import { t } from '@/i18n';
 
 type EmbeddedWordCloudScope = 'file' | 'vault' | 'folder';
 type EmbeddedWordCloudSize = 'small' | 'medium' | 'large';
@@ -110,11 +111,17 @@ export function registerEmbeddedWordCloudProcessor(
     try {
       const sourceScope = resolveSourceScope(plugin, ctx, options);
       if (options.scope === 'file' && !sourceScope.activeFilePath) {
-        wrapperEl.createDiv({ cls: 'word-cloud-embed-state', text: 'Could not resolve the file for this embedded cloud.' });
+        wrapperEl.createDiv({
+          cls: 'word-cloud-embed-state',
+          text: t('ui.blocks.embed.resolveFileError'),
+        });
         return;
       }
       if (options.scope === 'folder' && (sourceScope.folderPaths?.length ?? 0) === 0) {
-        wrapperEl.createDiv({ cls: 'word-cloud-embed-state', text: 'Add at least one folder path for folder scope.' });
+        wrapperEl.createDiv({
+          cls: 'word-cloud-embed-state',
+          text: t('ui.blocks.embed.folderScopeNeedsPath'),
+        });
         return;
       }
 
@@ -149,8 +156,8 @@ export function registerEmbeddedWordCloudProcessor(
         },
         resolveScopeFilePath: () => sourceScope.activeFilePath ?? '',
         resolveExtraContext: () => ({ sourceScope }),
-        getAriaLabel: () => 'Embedded word cloud',
-        getNoWordsMessage: () => 'No words found for this embedded cloud.',
+        getAriaLabel: () => t('ui.blocks.embed.ariaLabel'),
+        getNoWordsMessage: () => t('ui.blocks.embed.noWords'),
         getRenderSettingsOverride: () => options.renderSettingsOverride,
         getWords: async (_context, updateProgress, renderSettingsOverride) => {
           return services.collectVaultWords({
@@ -176,14 +183,18 @@ export function registerEmbeddedWordCloudProcessor(
           onExcludeInCloud: async (word) => {
             const changed = await updateEmbeddedCloudExcludedWords(plugin, ctx, el, source, word);
             if (changed) {
-              new Notice(`Excluded "${word}" in this cloud.`);
+              new Notice(t('notices.excludedInThisCloud').replace('{word}', word));
             } else {
-              new Notice(`"${word}" is already excluded in this cloud.`);
+              new Notice(t('notices.wordAlreadyExcludedInThisCloud').replace('{word}', word));
             }
           },
           onExcludeInVault: async (word) => {
             const added = await services.addExclusionListWord(word);
-            new Notice(added ? `Excluded "${word}" from word clouds.` : `"${word}" is already excluded.`);
+            new Notice(
+              added
+                ? t('notices.excludedFromWordClouds').replace('{word}', word)
+                : t('notices.wordAlreadyExcluded').replace('{word}', word),
+            );
           },
           onEdit: () => {
             openEmbeddedWordCloudEditWizard(plugin, services, ctx, el, options);
@@ -201,7 +212,7 @@ export function registerEmbeddedWordCloudProcessor(
       });
     } catch (error) {
       console.error('Word clouds: failed to render embedded cloud', error);
-      wrapperEl.createDiv({ cls: 'word-cloud-embed-state', text: 'Could not render embedded word cloud.' });
+      wrapperEl.createDiv({ cls: 'word-cloud-embed-state', text: t('ui.blocks.embed.renderError') });
     }
   };
 
@@ -894,9 +905,9 @@ function openEmbeddedWordCloudEditWizard(
     services,
     async (embedBlock) => updateEmbeddedCodeBlock(plugin, ctx, hostEl, embedBlock, options.cloudId),
     {
-      title: 'Edit embedded word cloud',
-      description: 'Update options for this embedded cloud without editing markdown manually.',
-      submitButtonText: 'Apply',
+      title: t('ui.blocks.embed.editTitle'),
+      description: t('ui.blocks.embed.editDescription'),
+      submitButtonText: t('ui.modals.embed.apply'),
       initialState: {
         cloudId: options.cloudId,
         scope: options.scope,
@@ -925,7 +936,7 @@ async function updateEmbeddedCodeBlock(
 ): Promise<boolean> {
   const sourceFile = resolveCurrentFile(plugin, ctx);
   if (!sourceFile) {
-    new Notice('Could not locate the source note for this embedded word cloud.');
+    new Notice(t('ui.blocks.embed.sourceNoteNotFound'));
     return false;
   }
 
@@ -948,7 +959,7 @@ async function updateEmbeddedCodeBlock(
     return replaceSectionWithBlock(content, section.lineStart, section.lineEnd, embedBlock);
   });
   if (!updated) {
-    new Notice('Could not locate the embedded word cloud block to update.');
+    new Notice(t('ui.blocks.embed.blockNotFoundToUpdate'));
   }
   return updated;
 }
