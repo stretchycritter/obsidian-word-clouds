@@ -870,7 +870,10 @@ export class EmbedWordCloudModal extends Modal {
   }
 
   private buildEmbedBlock(): string {
-    const lines = ['```wordcloud', `id: ${this.state.cloudId}`, `scope: ${this.state.scope}`, `size: ${this.state.size}`];
+    const data: Record<string, string> = {};
+
+    data.scope = this.state.scope;
+    data.size = this.state.size;
 
     const includeTags = parseTagList(this.state.includeTagsRaw);
     const excludeTags = parseTagList(this.state.excludeTagsRaw).filter((tag) => !includeTags.includes(tag));
@@ -884,114 +887,121 @@ export class EmbedWordCloudModal extends Modal {
     if (this.state.scope === 'file') {
       const defaultFilePath = this.settingsDefaults.filters.scope.activeFilePath ?? '';
       if (specificFilePath !== defaultFilePath) {
-        lines.push(`file: ${specificFilePath}`);
+        data.file = specificFilePath;
       }
     }
 
-    if (this.state.scope === 'folder') {
-      pushListOptionIfChanged(lines, 'folder-paths', folderPaths, this.settingsDefaults.filters.scope.folderPaths ?? []);
+    if (this.state.scope === 'folder' && folderPaths.length > 0) {
+      data['folder-paths'] = folderPaths.join(', ');
     }
 
-    pushListOptionIfChanged(lines, 'include-tags', includeTags, this.settingsDefaults.filters.includeTags);
-    pushListOptionIfChanged(lines, 'exclude-tags', excludeTags, this.settingsDefaults.filters.excludeTags);
+    if (includeTags.length > 0) {
+      data['include-tags'] = includeTags.join(', ');
+    }
+    if (excludeTags.length > 0) {
+      data['exclude-tags'] = excludeTags.join(', ');
+    }
 
     if (this.state.tagMatchMode !== this.settingsDefaults.filters.tagMatchMode) {
-      lines.push(`tag-match: ${this.state.tagMatchMode}`);
+      data['tag-match'] = this.state.tagMatchMode;
     }
 
     if (!areFrontmatterRulesEqual(frontmatterRules, this.settingsDefaults.filters.frontmatterRules)) {
-      lines.push(`frontmatter-rules: ${frontmatterRules.map(serializeFrontmatterRule).join('; ')}`);
+      data['frontmatter-rules'] = frontmatterRules.map(serializeFrontmatterRule).join('; ');
     }
 
     if (minCount !== this.settingsDefaults.filters.frequency.minCount) {
-      lines.push(`min-count: ${minCount}`);
+      data['min-count'] = String(minCount);
     }
     if (maxCount !== this.settingsDefaults.filters.frequency.maxCount) {
-      lines.push(`max-count: ${maxCount}`);
+      data['max-count'] = String(maxCount);
     }
 
     if (excludeWords.length > 0) {
-      lines.push(`exclude-words: ${excludeWords.join(', ')}`);
+      data['exclude-words'] = excludeWords.join(', ');
     }
 
     if (this.state.minWordLength !== this.settingsDefaults.filters.minWordLength) {
-      lines.push(`min-word-length: ${this.state.minWordLength}`);
+      data['min-word-length'] = String(this.state.minWordLength);
     }
 
     if (this.state.nlpEnabled !== this.settingsDefaults.filters.nlp.enabled) {
-      lines.push(`nlp-enabled: ${this.state.nlpEnabled}`);
+      data['nlp-enabled'] = String(this.state.nlpEnabled);
     }
     if (this.state.nlpMode !== this.settingsDefaults.filters.nlp.mode) {
-      lines.push(`nlp-mode: ${this.state.nlpMode}`);
+      data['nlp-mode'] = this.state.nlpMode;
     }
     if (this.state.preserveAcronyms !== this.settingsDefaults.filters.nlp.preserveAcronyms) {
-      lines.push(`nlp-preserve-acronyms: ${this.state.preserveAcronyms}`);
+      data['nlp-preserve-acronyms'] = String(this.state.preserveAcronyms);
     }
     if (this.state.minLemmaLength !== this.settingsDefaults.filters.nlp.minLemmaLength) {
-      lines.push(`nlp-min-lemma-length: ${this.state.minLemmaLength}`);
+      data['nlp-min-lemma-length'] = String(this.state.minLemmaLength);
     }
     if (this.state.filterNumericTokens !== this.settingsDefaults.filters.nlp.filterNumericTokens) {
-      lines.push(`nlp-filter-numeric-tokens: ${this.state.filterNumericTokens}`);
+      data['nlp-filter-numeric-tokens'] = String(this.state.filterNumericTokens);
     }
 
-    this.appendRenderOverrides(lines);
+    this.appendRenderOverridesToData(data);
 
-    lines.push('```');
+    const dataEncoded = btoa(JSON.stringify(data));
 
-    return lines.join('\n');
+    return `\`\`\`wordcloud
+id: ${this.state.cloudId}
+data: ${dataEncoded}
+\`\`\``;
   }
 
-  private appendRenderOverrides(lines: string[]): void {
+  private appendRenderOverridesToData(data: Record<string, string>): void {
     const defaults = this.settingsDefaults.render;
     const render = this.state.render;
 
     if (render.rotationPreset !== defaults.rotationPreset) {
-      lines.push(`rotation-preset: ${render.rotationPreset}`);
+      data['rotation-preset'] = render.rotationPreset;
     }
     if (render.spiral !== defaults.spiral) {
-      lines.push(`spiral: ${render.spiral}`);
+      data.spiral = render.spiral;
     }
     if (render.wordPadding !== defaults.wordPadding) {
-      lines.push(`word-padding: ${render.wordPadding}`);
+      data['word-padding'] = String(render.wordPadding);
     }
     if (render.minFontSize !== defaults.minFontSize) {
-      lines.push(`min-font-size: ${render.minFontSize}`);
+      data['min-font-size'] = String(render.minFontSize);
     }
     if (render.maxFontSize !== defaults.maxFontSize) {
-      lines.push(`max-font-size: ${render.maxFontSize}`);
+      data['max-font-size'] = String(render.maxFontSize);
     }
     if (render.fontFamily !== defaults.fontFamily) {
-      lines.push(`font-family: ${render.fontFamily}`);
+      data['font-family'] = render.fontFamily;
     }
     if (render.scalingMode !== defaults.scalingMode) {
-      lines.push(`scaling-mode: ${render.scalingMode}`);
+      data['scaling-mode'] = render.scalingMode;
     }
     if (render.emphasis !== defaults.emphasis) {
-      lines.push(`emphasis: ${render.emphasis}`);
+      data.emphasis = String(render.emphasis);
     }
     if (render.showCountInWordText !== defaults.showCountInWordText) {
-      lines.push(`show-count-in-word-text: ${render.showCountInWordText}`);
+      data['show-count-in-word-text'] = String(render.showCountInWordText);
     }
     if (render.wordCaseMode !== defaults.wordCaseMode) {
-      lines.push(`word-case-mode: ${render.wordCaseMode}`);
+      data['word-case-mode'] = render.wordCaseMode;
     }
     if (render.deterministicLayout !== defaults.deterministicLayout) {
-      lines.push(`deterministic-layout: ${render.deterministicLayout}`);
+      data['deterministic-layout'] = String(render.deterministicLayout);
     }
     if (render.randomSeed !== defaults.randomSeed) {
-      lines.push(`random-seed: ${render.randomSeed}`);
+      data['random-seed'] = String(render.randomSeed);
     }
     if (render.enableMouseInteractions !== defaults.enableMouseInteractions) {
-      lines.push(`enable-mouse-interactions: ${render.enableMouseInteractions}`);
+      data['enable-mouse-interactions'] = String(render.enableMouseInteractions);
     }
     if (render.enableWordClickSearch !== defaults.enableWordClickSearch) {
-      lines.push(`enable-click-to-search: ${render.enableWordClickSearch}`);
+      data['enable-click-to-search'] = String(render.enableWordClickSearch);
     }
     if (render.enableControls !== defaults.enableControls) {
-      lines.push(`enable-controls: ${render.enableControls}`);
+      data['enable-controls'] = String(render.enableControls);
     }
     if (render.enableExporting !== defaults.enableExporting) {
-      lines.push(`enable-exporting: ${render.enableExporting}`);
+      data['enable-exporting'] = String(render.enableExporting);
     }
   }
 }
@@ -1065,25 +1075,6 @@ function serializeFrontmatterRule(rule: FrontmatterRule): string {
     return `${rule.key}|${rule.operator}|`;
   }
   return `${rule.key}|${rule.operator}|${rule.value ?? ''}`;
-}
-
-function pushListOptionIfChanged(
-  lines: string[],
-  key: string,
-  values: string[],
-  defaults: string[],
-): void {
-  if (areStringArraysEqual(values, defaults)) {
-    return;
-  }
-  lines.push(`${key}: ${values.join(', ')}`);
-}
-
-function areStringArraysEqual(left: string[], right: string[]): boolean {
-  if (left.length !== right.length) {
-    return false;
-  }
-  return left.every((value, index) => value === right[index]);
 }
 
 function areFrontmatterRulesEqual(left: FrontmatterRule[], right: FrontmatterRule[]): boolean {

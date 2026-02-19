@@ -311,6 +311,8 @@ function parseOptions(source: string, settingsDefaults: Readonly<WordCloudSettin
   let scopeWasExplicitlySet = false;
   const lines = source.split('\n');
 
+  let embeddedData: Record<string, string> | null = null;
+
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) {
@@ -325,141 +327,146 @@ function parseOptions(source: string, settingsDefaults: Readonly<WordCloudSettin
     const rawKey = trimmed.slice(0, separatorIndex).trim().toLowerCase();
     const rawValue = trimmed.slice(separatorIndex + 1).trim();
 
-    if (rawKey === 'scope') {
-      const parsedScope = parseScopeOption(rawValue);
-      if (parsedScope) {
-        options.scope = parsedScope;
-        scopeWasExplicitlySet = true;
-      }
-      continue;
-    }
-
     if (rawKey === 'id' || rawKey === 'cloud-id' || rawKey === 'cloud_id' || rawKey === 'guid') {
       options.cloudId = rawValue.trim();
       continue;
     }
 
-    if (rawKey === 'size') {
-      const parsedSize = parseSizeOption(rawValue);
-      if (parsedSize) {
-        options.size = parsedSize;
+    if (rawKey === 'data') {
+      try {
+        const decoded = atob(rawValue.trim());
+        embeddedData = JSON.parse(decoded) as Record<string, string>;
+      } catch {
+        console.warn('Failed to parse embedded wordcloud data:', rawValue);
       }
       continue;
     }
+  }
 
-    if (rawKey === 'mode') {
-      const parsedScope = parseLegacyModeOption(rawValue);
-      if (parsedScope) {
-        options.scope = parsedScope;
-        scopeWasExplicitlySet = true;
+  if (embeddedData) {
+    for (const [rawKey, rawValue] of Object.entries(embeddedData)) {
+      if (rawKey === 'scope' || rawKey === 'mode') {
+        const parsedScope = rawKey === 'mode' ? parseLegacyModeOption(rawValue) : parseScopeOption(rawValue);
+        if (parsedScope) {
+          options.scope = parsedScope;
+          scopeWasExplicitlySet = true;
+        }
+        continue;
       }
-      continue;
-    }
 
-    if (rawKey === 'tags' || rawKey === 'include-tags' || rawKey === 'include_tags') {
-      options.includeTags = parseTagList(rawValue);
-      continue;
-    }
-
-    if (rawKey === 'exclude-tags' || rawKey === 'exclude_tags') {
-      options.excludeTags = parseTagList(rawValue);
-      continue;
-    }
-
-    if (rawKey === 'match' || rawKey === 'tag-match' || rawKey === 'tag_match') {
-      options.tagMatchMode = rawValue.trim().toLowerCase() === 'all' ? 'all' : 'any';
-      continue;
-    }
-
-    if (rawKey === 'folder-paths' || rawKey === 'folder_paths' || rawKey === 'folders') {
-      options.folderPaths = parseList(rawValue);
-      if (!scopeWasExplicitlySet) {
-        options.scope = 'folder';
+      if (rawKey === 'size') {
+        const parsedSize = parseSizeOption(rawValue);
+        if (parsedSize) {
+          options.size = parsedSize;
+        }
+        continue;
       }
-      continue;
-    }
 
-    if (rawKey === 'frontmatter-rules' || rawKey === 'frontmatter_rules') {
-      options.frontmatterRules = parseFrontmatterRules(rawValue);
-      continue;
-    }
-
-    if (rawKey === 'min-count' || rawKey === 'min_count') {
-      options.minCount = parseFrequencyCount(rawValue, options.minCount);
-      continue;
-    }
-
-    if (rawKey === 'max-count' || rawKey === 'max_count') {
-      options.maxCount = parseFrequencyCount(rawValue, options.maxCount);
-      continue;
-    }
-
-    if (
-      rawKey === 'exclude'
-      || rawKey === 'exclude-words'
-      || rawKey === 'exclude_words'
-      || rawKey === 'excluded-words'
-    ) {
-      options.excludeWords = rawValue
-        .split(',')
-        .map((value) => normalizeWord(value))
-        .filter((value, index, arr) => value.length > 0 && arr.indexOf(value) === index);
-      continue;
-    }
-
-    if (rawKey === 'min-word-length' || rawKey === 'min_word_length') {
-      options.minWordLength = parseBoundedInteger(rawValue, options.minWordLength, 1, 32);
-      continue;
-    }
-
-    if (rawKey === 'nlp-enabled' || rawKey === 'nlp_enabled') {
-      options.nlp.enabled = parseBooleanOption(rawValue, options.nlp.enabled);
-      continue;
-    }
-
-    if (rawKey === 'nlp-mode' || rawKey === 'nlp_mode') {
-      options.nlp.mode = parseNlpMode(rawValue, options.nlp.mode);
-      continue;
-    }
-
-    if (rawKey === 'nlp-preserve-acronyms' || rawKey === 'nlp_preserve_acronyms') {
-      options.nlp.preserveAcronyms = parseBooleanOption(rawValue, options.nlp.preserveAcronyms);
-      continue;
-    }
-
-    if (rawKey === 'nlp-min-lemma-length' || rawKey === 'nlp_min_lemma_length') {
-      options.nlp.minLemmaLength = parseBoundedInteger(rawValue, options.nlp.minLemmaLength, 2, 32);
-      continue;
-    }
-
-    if (rawKey === 'nlp-filter-numeric-tokens' || rawKey === 'nlp_filter_numeric_tokens') {
-      options.nlp.filterNumericTokens = parseBooleanOption(rawValue, options.nlp.filterNumericTokens);
-      continue;
-    }
-
-    if (rawKey === 'height') {
-      const parsed = Number.parseInt(rawValue, 10);
-      if (!Number.isNaN(parsed)) {
-        options.size = sizeFromHeight(parsed);
+      if (rawKey === 'tags' || rawKey === 'include-tags' || rawKey === 'include_tags') {
+        options.includeTags = parseTagList(rawValue);
+        continue;
       }
-      continue;
-    }
 
-    if (rawKey === 'interactions' || rawKey === 'interactable' || rawKey === 'controls') {
-      options.renderSettingsOverride.enableMouseInteractions = parseBooleanOption(rawValue, settingsDefaults.render.enableMouseInteractions);
-      continue;
-    }
-
-    if (rawKey === 'file' || rawKey === 'note' || rawKey === 'path' || rawKey === 'filename') {
-      options.specificFilePath = rawValue;
-      if (!scopeWasExplicitlySet) {
-        options.scope = 'file';
+      if (rawKey === 'exclude-tags' || rawKey === 'exclude_tags') {
+        options.excludeTags = parseTagList(rawValue);
+        continue;
       }
-      continue;
-    }
 
-    if (parseRenderSettingOption(rawKey, rawValue, options.renderSettingsOverride)) {
-      continue;
+      if (rawKey === 'match' || rawKey === 'tag-match' || rawKey === 'tag_match') {
+        options.tagMatchMode = rawValue.toLowerCase() === 'all' ? 'all' : 'any';
+        continue;
+      }
+
+      if (rawKey === 'folder-paths' || rawKey === 'folder_paths' || rawKey === 'folders') {
+        options.folderPaths = parseList(rawValue);
+        if (!scopeWasExplicitlySet) {
+          options.scope = 'folder';
+        }
+        continue;
+      }
+
+      if (rawKey === 'frontmatter-rules' || rawKey === 'frontmatter_rules') {
+        options.frontmatterRules = parseFrontmatterRules(rawValue);
+        continue;
+      }
+
+      if (rawKey === 'min-count' || rawKey === 'min_count') {
+        options.minCount = parseFrequencyCount(rawValue, options.minCount);
+        continue;
+      }
+
+      if (rawKey === 'max-count' || rawKey === 'max_count') {
+        options.maxCount = parseFrequencyCount(rawValue, options.maxCount);
+        continue;
+      }
+
+      if (
+        rawKey === 'exclude'
+        || rawKey === 'exclude-words'
+        || rawKey === 'exclude_words'
+        || rawKey === 'excluded-words'
+      ) {
+        options.excludeWords = rawValue
+          .split(',')
+          .map((value) => normalizeWord(value))
+          .filter((value, index, arr) => value.length > 0 && arr.indexOf(value) === index);
+        continue;
+      }
+
+      if (rawKey === 'min-word-length' || rawKey === 'min_word_length') {
+        options.minWordLength = parseBoundedInteger(rawValue, options.minWordLength, 1, 32);
+        continue;
+      }
+
+      if (rawKey === 'nlp-enabled' || rawKey === 'nlp_enabled') {
+        options.nlp.enabled = parseBooleanOption(rawValue, options.nlp.enabled);
+        continue;
+      }
+
+      if (rawKey === 'nlp-mode' || rawKey === 'nlp_mode') {
+        options.nlp.mode = parseNlpMode(rawValue, options.nlp.mode);
+        continue;
+      }
+
+      if (rawKey === 'nlp-preserve-acronyms' || rawKey === 'nlp_preserve_acronyms') {
+        options.nlp.preserveAcronyms = parseBooleanOption(rawValue, options.nlp.preserveAcronyms);
+        continue;
+      }
+
+      if (rawKey === 'nlp-min-lemma-length' || rawKey === 'nlp_min_lemma_length') {
+        options.nlp.minLemmaLength = parseBoundedInteger(rawValue, options.nlp.minLemmaLength, 2, 32);
+        continue;
+      }
+
+      if (rawKey === 'nlp-filter-numeric-tokens' || rawKey === 'nlp_filter_numeric_tokens') {
+        options.nlp.filterNumericTokens = parseBooleanOption(rawValue, options.nlp.filterNumericTokens);
+        continue;
+      }
+
+      if (rawKey === 'height') {
+        const parsed = Number.parseInt(rawValue, 10);
+        if (!Number.isNaN(parsed)) {
+          options.size = sizeFromHeight(parsed);
+        }
+        continue;
+      }
+
+      if (rawKey === 'interactions' || rawKey === 'interactable' || rawKey === 'controls') {
+        options.renderSettingsOverride.enableMouseInteractions = parseBooleanOption(rawValue, settingsDefaults.render.enableMouseInteractions);
+        continue;
+      }
+
+      if (rawKey === 'file' || rawKey === 'note' || rawKey === 'path' || rawKey === 'filename') {
+        options.specificFilePath = rawValue;
+        if (!scopeWasExplicitlySet) {
+          options.scope = 'file';
+        }
+        continue;
+      }
+
+      if (parseRenderSettingOption(rawKey, rawValue, options.renderSettingsOverride)) {
+        continue;
+      }
     }
   }
 
