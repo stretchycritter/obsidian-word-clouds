@@ -29,11 +29,11 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "@typescript-eslint/parser": "^8.46.0",
     "@types/d3": "^7.4.3",
     "@types/d3-cloud": "^1.2.9",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.11.30",
+    "@typescript-eslint/parser": "^8.46.0",
     "esbuild": "^0.20.2",
     "eslint": "^9.39.1",
     "jest": "^30.2.0",
@@ -44,6 +44,8 @@
   },
   "dependencies": {
     "d3": "^7.9.0",
-    "d3-cloud": "^1.2.7"
+    "d3-cloud": "^1.2.7",
+    "wink-eng-lite-web-model": "^1.8.1",
+    "wink-nlp": "^2.4.0"
   }
 }
