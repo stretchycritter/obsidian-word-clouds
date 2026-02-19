@@ -62,11 +62,3 @@ export interface ScalingStrategy {
 export interface RenderModelStrategy {
   buildModel(words: WeightedWord[], aggregate: AggregateResult): RenderModel;
 }
-
-export type PipelineStrategies = {
-  tokenizer: TokenizerStrategy;
-  filter: FilterStrategy;
-  aggregator: AggregatorStrategy;
-  scaling: ScalingStrategy;
-  renderModel: RenderModelStrategy;
-};

@@ -4,7 +4,7 @@ import { registerCommands } from '@/commands/register';
 import { t } from '@/i18n';
 import { activateNoteWordCloudView, activateVaultWordCloudView } from '@/ui';
 import { EmbedWordCloudModal } from '@/ui';
-import { insertEmbedAtCursor } from '@/services/editor-insertion';
+import { insertEmbedAtCursor } from '@/services/note-service';
 
 const mockT = t as jest.MockedFunction<typeof t>;
 const mockedActivateVaultWordCloudView = activateVaultWordCloudView as jest.MockedFunction<typeof activateVaultWordCloudView>;
@@ -29,7 +29,7 @@ jest.mock('@/ui', () => ({
   }),
 }));
 
-jest.mock('@/services/editor-insertion', () => ({
+jest.mock('@/services/note-service', () => ({
   insertEmbedAtCursor: jest.fn(),
 }));
 

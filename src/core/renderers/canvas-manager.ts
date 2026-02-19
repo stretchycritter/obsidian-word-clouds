@@ -1,5 +1,6 @@
 import { Notice } from 'obsidian';
-import type { SearchOptions, WordCloudRenderOptions, WordCloudServices } from '@/services/types';
+import type { WordCloudRenderOptions } from '@/core/renderers';
+import type { SearchOptions, WordCloudServices } from '@/services/types';
 import type { RenderSettings, WordCloudFilterSettings } from '@/settings/types';
 import type { WeightedWord } from '@/core/types';
 import { t } from '@/i18n';

@@ -14,7 +14,7 @@ jest.mock(
 );
 
 import type { App } from 'obsidian';
-import { insertEmbedAtCursor } from '@/services/editor-insertion';
+import { insertEmbedAtCursor } from '@/services/note-service';
 
 describe('insertEmbedAtCursor', () => {
   beforeEach(() => {

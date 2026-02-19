@@ -3,13 +3,13 @@ import { schemeTableau10 } from 'd3-scale-chromatic';
 import { select } from 'd3-selection';
 import { Menu } from 'obsidian';
 import type { RenderSettings, RotationPreset, WordTextMetric } from '@/settings/types';
-import type { WordCloudRenderOptions } from '@/services/types';
 import type { WeightedWord } from '@/core/types';
 import { t } from '@/i18n';
 import {
   renderWordCloudOverlayControls,
   sanitizeWordCloudExportBaseName,
 } from '@/core/renderers/overlay-controls';
+import type { WordCloudRenderOptions } from '@/core/renderers/types';
 
 function buildDeterministicRandom(seed: number): () => number {
   let state = seed >>> 0;

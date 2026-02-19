@@ -4,7 +4,7 @@ import { compilePathPredicate } from '@/core/ingestion/filters/path-filter';
 import { compileTagPredicate } from '@/core/ingestion/filters/tag-filter';
 import { compileDatePredicate } from '@/core/ingestion/filters/date-filter';
 import { compileFrontmatterPredicate } from '@/core/ingestion/filters/frontmatter-filter';
-import { compileIncomingLinkPredicate, compileOutgoingLinkPredicate } from '@/core/ingestion/filters/link-filter';
+import { compileLinkPredicates } from '@/core/ingestion/filters/link-filter';
 
 type FilePredicate = (file: TFile) => boolean;
 
@@ -23,6 +23,11 @@ export function filterSourceFilesByMetadata(app: App, files: TFile[], rules?: So
 
 function compilePredicates(app: App, rules: SourceSelectionRules): FilePredicate[] {
   const predicates: FilePredicate[] = [];
+
+  const scopePredicate = compileScopePredicate(rules);
+  if (scopePredicate) {
+    predicates.push(scopePredicate);
+  }
 
   const pathPredicate = compilePathPredicate(rules);
   if (pathPredicate) {
@@ -44,15 +49,35 @@ function compilePredicates(app: App, rules: SourceSelectionRules): FilePredicate
     predicates.push(datePredicate);
   }
 
-  const outgoingLinkPredicate = compileOutgoingLinkPredicate(app, rules);
+  const { outgoing: outgoingLinkPredicate, incoming: incomingLinkPredicate } = compileLinkPredicates(app, rules);
   if (outgoingLinkPredicate) {
     predicates.push(outgoingLinkPredicate);
   }
 
-  const incomingLinkPredicate = compileIncomingLinkPredicate(app, rules);
   if (incomingLinkPredicate) {
     predicates.push(incomingLinkPredicate);
   }
 
   return predicates;
+}
+
+function compileScopePredicate(rules: SourceSelectionRules): FilePredicate | null {
+  const mode = rules.scope?.mode ?? 'vault';
+  if (mode === 'vault') {
+    return null;
+  }
+
+  if (mode === 'active-file') {
+    const activeFilePath = rules.scope?.activeFilePath?.trim() ?? '';
+    return (file: TFile) => activeFilePath.length > 0 && file.path === activeFilePath;
+  }
+
+  const folderPaths = (rules.scope?.folderPaths ?? [])
+    .map((path) => path.trim())
+    .filter((path) => path.length > 0);
+  if (folderPaths.length === 0) {
+    return () => false;
+  }
+
+  return (file: TFile) => folderPaths.some((folderPath) => file.path === folderPath || file.path.startsWith(`${folderPath}/`));
 }

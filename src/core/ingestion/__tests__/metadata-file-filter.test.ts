@@ -27,6 +27,42 @@ describe('filterSourceFilesByMetadata', () => {
     expect(result.map((file) => file.path)).toEqual(['Projects/Alpha.md']);
   });
 
+  it('filters by active file scope', () => {
+    const files = [
+      createFile('Projects/Alpha.md'),
+      createFile('Projects/Beta.md'),
+      createFile('Journal/Daily.md'),
+    ];
+    const app = createMockApp({}, {}, {});
+
+    const result = filterSourceFilesByMetadata(app, files, {
+      scope: {
+        mode: 'active-file',
+        activeFilePath: 'Projects/Beta.md',
+      },
+    });
+
+    expect(result.map((file) => file.path)).toEqual(['Projects/Beta.md']);
+  });
+
+  it('filters by folder scope', () => {
+    const files = [
+      createFile('Projects/Alpha.md'),
+      createFile('Projects/Sub/Beta.md'),
+      createFile('Journal/Daily.md'),
+    ];
+    const app = createMockApp({}, {}, {});
+
+    const result = filterSourceFilesByMetadata(app, files, {
+      scope: {
+        mode: 'folder',
+        folderPaths: ['Projects'],
+      },
+    });
+
+    expect(result.map((file) => file.path)).toEqual(['Projects/Alpha.md', 'Projects/Sub/Beta.md']);
+  });
+
   it('filters by include and exclude tags including tag prefixes', () => {
     const files = [
       createFile('Projects/Alpha.md'),
@@ -123,6 +159,46 @@ describe('filterSourceFilesByMetadata', () => {
 
     expect(result.map((file) => file.path)).toEqual(['Projects/Beta.md']);
   });
+
+  it('builds the link index once when both outgoing and incoming link rules are enabled', () => {
+    const files = [
+      createFile('Projects/Alpha.md'),
+      createFile('Projects/Beta.md'),
+      createFile('Journal/Daily.md'),
+    ];
+    let resolvedLinksReadCount = 0;
+    const app = createMockApp(
+      {
+        'Projects/Alpha.md': ['#project'],
+        'Projects/Beta.md': ['#beta'],
+        'Journal/Daily.md': ['#journal'],
+      },
+      {},
+      {
+        'Projects/Alpha.md': {
+          'Journal/Daily.md': 1,
+          'Projects/Beta.md': 1,
+        },
+        'Projects/Beta.md': {
+          'Journal/Daily.md': 1,
+        },
+      },
+      () => {
+        resolvedLinksReadCount += 1;
+      },
+    );
+
+    filterSourceFilesByMetadata(app, files, {
+      outgoingLinks: {
+        minCount: 1,
+      },
+      incomingLinks: {
+        minCount: 1,
+      },
+    });
+
+    expect(resolvedLinksReadCount).toBe(1);
+  });
 });
 
 function createFile(path: string, mtime = 0, ctime = 0): TFile {
@@ -147,23 +223,29 @@ function createMockApp(
   tagsByPath: Record<string, string[]>,
   frontmatterByPath: Record<string, Record<string, unknown>>,
   resolvedLinks: Record<string, Record<string, number>>,
+  onResolvedLinksRead?: () => void,
 ): App {
-  return {
-    metadataCache: {
-      resolvedLinks,
-      getFileCache(file: TFile): CachedMetadata | null {
-        const tags = tagsByPath[file.path];
-        const frontmatter = frontmatterByPath[file.path];
-        if (!tags && !frontmatter) {
-          return null;
-        }
-
-        return {
-          tags: tags?.map((tag) => ({ tag })),
-          frontmatter,
-        } as unknown as CachedMetadata;
-      },
+  const metadataCache = {
+    get resolvedLinks(): Record<string, Record<string, number>> {
+      onResolvedLinksRead?.();
+      return resolvedLinks;
     },
+    getFileCache(file: TFile): CachedMetadata | null {
+      const tags = tagsByPath[file.path];
+      const frontmatter = frontmatterByPath[file.path];
+      if (!tags && !frontmatter) {
+        return null;
+      }
+
+      return {
+        tags: tags?.map((tag) => ({ tag })),
+        frontmatter,
+      } as unknown as CachedMetadata;
+    },
+  };
+
+  return {
+    metadataCache,
     vault: {
       getAbstractFileByPath(path: string): TAbstractFile | null {
         if (!tagsByPath[path] && !frontmatterByPath[path]) {

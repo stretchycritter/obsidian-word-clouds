@@ -12,46 +12,50 @@ type LinkIndex = {
   totalByTarget: Map<string, number>;
 };
 
-export function compileOutgoingLinkPredicate(app: App, rules: SourceSelectionRules): FilePredicate | null {
+export function compileLinkPredicates(
+  app: App,
+  rules: SourceSelectionRules,
+): {
+  outgoing: FilePredicate | null;
+  incoming: FilePredicate | null;
+} {
   const constraints = normalizeLinkRules(rules.outgoingLinks);
-  if (!constraints) {
-    return null;
+  const incomingConstraints = normalizeLinkRules(rules.incomingLinks);
+  if (!constraints && !incomingConstraints) {
+    return {
+      outgoing: null,
+      incoming: null,
+    };
   }
 
   const linkIndex = buildLinkIndex(app);
-  const tagCache = new Map<string, Set<string>>();
+  const outgoingTagCache = new Map<string, Set<string>>();
+  const incomingTagCache = new Map<string, Set<string>>();
 
-  return (file: TFile) => {
-    const linkedTargets = linkIndex.targetsBySource.get(file.path) ?? [];
-    const totalLinkCount = linkIndex.totalBySource.get(file.path) ?? 0;
-
-    if (!matchesLinkConstraints(app, linkedTargets, totalLinkCount, constraints, tagCache)) {
-      return false;
-    }
-
-    return true;
+  return {
+    outgoing: constraints
+      ? (file: TFile) => {
+        const linkedTargets = linkIndex.targetsBySource.get(file.path) ?? [];
+        const totalLinkCount = linkIndex.totalBySource.get(file.path) ?? 0;
+        return matchesLinkConstraints(app, linkedTargets, totalLinkCount, constraints, outgoingTagCache);
+      }
+      : null,
+    incoming: incomingConstraints
+      ? (file: TFile) => {
+        const sourcePaths = linkIndex.sourcesByTarget.get(file.path) ?? [];
+        const totalLinkCount = linkIndex.totalByTarget.get(file.path) ?? 0;
+        return matchesLinkConstraints(app, sourcePaths, totalLinkCount, incomingConstraints, incomingTagCache);
+      }
+      : null,
   };
 }
 
+export function compileOutgoingLinkPredicate(app: App, rules: SourceSelectionRules): FilePredicate | null {
+  return compileLinkPredicates(app, rules).outgoing;
+}
+
 export function compileIncomingLinkPredicate(app: App, rules: SourceSelectionRules): FilePredicate | null {
-  const constraints = normalizeLinkRules(rules.incomingLinks);
-  if (!constraints) {
-    return null;
-  }
-
-  const linkIndex = buildLinkIndex(app);
-  const tagCache = new Map<string, Set<string>>();
-
-  return (file: TFile) => {
-    const sourcePaths = linkIndex.sourcesByTarget.get(file.path) ?? [];
-    const totalLinkCount = linkIndex.totalByTarget.get(file.path) ?? 0;
-
-    if (!matchesLinkConstraints(app, sourcePaths, totalLinkCount, constraints, tagCache)) {
-      return false;
-    }
-
-    return true;
-  };
+  return compileLinkPredicates(app, rules).incoming;
 }
 
 type NormalizedLinkRules = {

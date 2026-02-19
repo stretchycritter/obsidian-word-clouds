@@ -2,7 +2,7 @@ import type { Plugin } from 'obsidian';
 import type { Deps } from '@/types';
 import { t } from '@/i18n';
 import { EmbedWordCloudModal } from '@/ui';
-import { insertEmbedAtCursor } from '@/services/editor-insertion';
+import { insertEmbedAtCursor } from '@/services/note-service';
 import { activateNoteWordCloudView, activateVaultWordCloudView } from '@/ui';
 
 export function registerCommands(plugin: Plugin, deps: Deps): void {
