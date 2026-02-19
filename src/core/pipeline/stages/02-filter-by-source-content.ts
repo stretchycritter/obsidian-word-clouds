@@ -1,5 +1,5 @@
 import type { SourceSelectionRules } from '@/settings/types';
-import type { PipelineDocument } from '@/core/pipeline/types';
+import type { PipelineDocument } from '@/core/types';
 import { normalizeTag } from '@/utils/utils';
 
 export function selectDocuments(documents: PipelineDocument[], rules?: SourceSelectionRules): PipelineDocument[] {

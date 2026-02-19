@@ -1,6 +1,6 @@
 import type { App, TFile } from 'obsidian';
 import { normalizeTag } from '@/utils/utils';
-import type { PipelineDocument } from '@/core/pipeline/types';
+import type { PipelineDocument } from '@/core/types';
 
 export async function readPipelineDocuments(
   app: App,

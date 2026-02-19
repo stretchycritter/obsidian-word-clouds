@@ -1,4 +1,5 @@
-import type { NormalizedDocument, PipelineDocument } from '@/core/pipeline/types';
+import type { PipelineDocument } from '@/core/types';
+import type { NormalizedDocument } from '@/core/pipeline/types';
 
 const FRONTMATTER_PATTERN = /^---\s*\n[\s\S]*?\n---\s*(?:\n|$)/;
 const WORD_CLOUD_BLOCK_PATTERN = /```(?:wordcloud|word-cloud)\s*\n[\s\S]*?\n```/gi;

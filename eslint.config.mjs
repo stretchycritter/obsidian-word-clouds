@@ -47,4 +47,36 @@ export default [
       ],
     },
   },
+  {
+    files: ['src/core/ingestion/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/core/pipeline', '@/core/pipeline/*', '@/core/application', '@/core/application/*'],
+              message: 'Ingestion layer must not import pipeline or application.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/core/pipeline/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/core/ingestion', '@/core/ingestion/*', '@/core/application', '@/core/application/*'],
+              message: 'Pipeline layer must not import ingestion or application.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];

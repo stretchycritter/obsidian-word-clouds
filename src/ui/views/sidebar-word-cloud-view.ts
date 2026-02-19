@@ -3,7 +3,7 @@ import { VIEW_TYPE_NOTE_WORD_CLOUD } from '@/ui/constants';
 import { drawFrequencyChart } from '@/ui/renderers/frequency-chart-renderer';
 import type { RenderSettings, WordCloudFilterSettings } from '@/settings/types';
 import type { WordCloudServices } from '@/services/types';
-import type { WeightedWord } from '@/core';
+import type { WeightedWord } from '@/domain/word-cloud';
 import { WordCloudFilterPanel } from '@/ui/components/filter-panel';
 import {
   renderWordCloudCanvas,

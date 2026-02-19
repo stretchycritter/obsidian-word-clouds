@@ -32,78 +32,81 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
 
     containerEl.createEl('h2', { text: 'Word clouds settings' });
     const settings = this.services.getSettingsSnapshot();
-    containerEl.createEl('h3', { text: 'Filters' });
 
-    let draftWord = '';
-    const submitDraftWord = async (): Promise<void> => {
-      const added = await this.services.addExclusionListWord(draftWord);
-      if (added) {
-        this.display();
-      }
-    };
+    const renderFiltersSection = (): void => {
+      containerEl.createEl('h3', { text: 'Filters' });
 
-    new Setting(containerEl)
-      .setName('Add excluded word')
-      .setDesc('Excluded words are applied vault wide.')
-      .addText((text) => {
-        text.setPlaceholder('Word to exclude');
-        text.onChange((value) => {
-          draftWord = value;
+      let draftWord = '';
+      const submitDraftWord = async (): Promise<void> => {
+        const added = await this.services.addExclusionListWord(draftWord);
+        if (added) {
+          this.display();
+        }
+      };
+
+      new Setting(containerEl)
+        .setName('Add excluded word')
+        .setDesc('Excluded words are applied vault wide.')
+        .addText((text) => {
+          text.setPlaceholder('Word to exclude');
+          text.onChange((value) => {
+            draftWord = value;
+          });
+
+          text.inputEl.addEventListener('keydown', async (event) => {
+            if (event.key !== 'Enter') {
+              return;
+            }
+
+            event.preventDefault();
+            await submitDraftWord();
+          });
+        })
+        .addButton((button) => {
+          button.setButtonText('Add').setCta().onClick(async () => {
+            await submitDraftWord();
+          });
         });
 
-        text.inputEl.addEventListener('keydown', async (event) => {
-          if (event.key !== 'Enter') {
-            return;
-          }
-
-          event.preventDefault();
-          await submitDraftWord();
-        });
-      })
-      .addButton((button) => {
-        button.setButtonText('Add').setCta().onClick(async () => {
-          await submitDraftWord();
-        });
+      const sortedWords = settings.exclusionListWords;
+      const excludedWordsDetailsEl = containerEl.createEl('details', {
+        cls: 'vault-word-cloud-settings-excluded-details',
+      });
+      excludedWordsDetailsEl.open = this.isExcludedWordsExpanded;
+      excludedWordsDetailsEl.addEventListener('toggle', () => {
+        this.isExcludedWordsExpanded = excludedWordsDetailsEl.open;
       });
 
-    const sortedWords = settings.exclusionListWords;
-    const excludedWordsDetailsEl = containerEl.createEl('details', {
-      cls: 'vault-word-cloud-settings-excluded-details',
-    });
-    excludedWordsDetailsEl.open = this.isExcludedWordsExpanded;
-    excludedWordsDetailsEl.addEventListener('toggle', () => {
-      this.isExcludedWordsExpanded = excludedWordsDetailsEl.open;
-    });
+      const excludedWordsSummaryEl = excludedWordsDetailsEl.createEl('summary', {
+        cls: 'vault-word-cloud-settings-excluded-summary',
+      });
+      excludedWordsSummaryEl.setText(`View excluded words (${sortedWords.length})`);
 
-    const excludedWordsSummaryEl = excludedWordsDetailsEl.createEl('summary', {
-      cls: 'vault-word-cloud-settings-excluded-summary',
-    });
-    excludedWordsSummaryEl.setText(`View excluded words (${sortedWords.length})`);
+      const listWrapperEl = excludedWordsDetailsEl.createDiv({ cls: 'vault-word-cloud-settings-list' });
+      const listEl = listWrapperEl.createDiv({ cls: 'vault-word-cloud-settings-badges' });
 
-    const listWrapperEl = excludedWordsDetailsEl.createDiv({ cls: 'vault-word-cloud-settings-list' });
-    const listEl = listWrapperEl.createDiv({ cls: 'vault-word-cloud-settings-badges' });
+      if (sortedWords.length === 0) {
+        listEl.createSpan({ cls: 'vault-word-cloud-settings-badges-empty', text: 'No excluded words configured.' });
+      } else {
+        for (const word of sortedWords) {
+          const badgeEl = listEl.createDiv({ cls: 'vault-word-cloud-settings-badge' });
+          badgeEl.createSpan({ cls: 'vault-word-cloud-settings-badge-text', text: word });
 
-    if (sortedWords.length === 0) {
-      listEl.createSpan({ cls: 'vault-word-cloud-settings-badges-empty', text: 'No excluded words configured.' });
-    } else {
-      for (const word of sortedWords) {
-        const badgeEl = listEl.createDiv({ cls: 'vault-word-cloud-settings-badge' });
-        badgeEl.createSpan({ cls: 'vault-word-cloud-settings-badge-text', text: word });
-
-        const removeButton = badgeEl.createEl('button', {
-          cls: 'vault-word-cloud-settings-badge-remove clickable-icon',
-        });
-        setIcon(removeButton, 'x');
-        removeButton.type = 'button';
-        removeButton.setAttr('aria-label', `Remove ${word} from exclusion list`);
-        removeButton.setAttr('data-tooltip-position', 'top');
-        removeButton.setAttr('data-tooltip', `Remove ${word}`);
-        removeButton.addEventListener('click', async () => {
-          await this.services.removeExclusionListWord(word);
-          this.display();
-        });
+          const removeButton = badgeEl.createEl('button', {
+            cls: 'vault-word-cloud-settings-badge-remove clickable-icon',
+          });
+          setIcon(removeButton, 'x');
+          removeButton.type = 'button';
+          removeButton.setAttr('aria-label', `Remove ${word} from exclusion list`);
+          removeButton.setAttr('data-tooltip-position', 'top');
+          removeButton.setAttr('data-tooltip', `Remove ${word}`);
+          removeButton.addEventListener('click', async () => {
+            await this.services.removeExclusionListWord(word);
+            this.display();
+          });
+        }
       }
-    }
+    };
 
     containerEl.createEl('h3', { text: 'Render defaults' });
     containerEl.createEl('p').createEl('em', {
@@ -394,6 +397,8 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
             await this.services.updateRenderSettings({ performanceMode: value as PerformanceMode });
           });
       });
+
+    renderFiltersSection();
 
     containerEl.createEl('h3', { text: 'Reset settings' });
     containerEl.createEl('p', {

@@ -3,7 +3,7 @@ import { VIEW_TYPE_NOTE_WORD_CLOUD, VIEW_TYPE_VAULT_WORD_CLOUD } from '@/ui/cons
 import type { Deps } from '@/types';
 import { t } from '@/i18n';
 import { registerEmbeddedWordCloudProcessor } from '@/ui/blocks/wordcloud-block';
-import { activateVaultWordCloudView } from '@/ui';
+import { activateVaultWordCloudView } from '@/ui/views/activate';
 import { VaultWordCloudView } from '@/ui/views/document-word-cloud-view';
 import { NoteWordCloudView } from '@/ui/views/sidebar-word-cloud-view';
 

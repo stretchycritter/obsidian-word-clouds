@@ -11,7 +11,7 @@ import type { ObsidianService } from '@/services/obsidian-service';
 import type { SettingsService } from '@/settings/settings-service';
 import type { FontFamilyOption, RenderSettings, WordCloudFilterSettings, WordCloudSettings } from '@/settings/types';
 import type { WordCloudService } from '@/core';
-import type { WeightedWord } from '@/core';
+import type { WeightedWord } from '@/domain/word-cloud';
 import { mergeRenderSettings } from '@/services/render-settings';
 
 export interface WordCloudSettingsControls {

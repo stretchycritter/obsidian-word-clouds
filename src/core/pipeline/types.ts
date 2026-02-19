@@ -1,14 +1,6 @@
 import type { FrequencyThresholds, RenderSettings, SourceSelectionRules } from '@/settings/types';
-import type { WeightedWord } from '@/core/types';
-
-export type PipelineDocument = {
-  id: string;
-  path: string;
-  basename: string;
-  rawText: string;
-  tags: string[];
-  frontmatter: Record<string, unknown>;
-};
+import type { WeightedWord } from '@/domain/word-cloud';
+import type { PipelineDocument } from '@/core/types';
 
 export type PipelineInput = {
   documents: PipelineDocument[];

@@ -1,6 +1,6 @@
 import type { RenderSettings } from '@/settings/types';
-import type { WeightedWord } from '@/core/types';
-import { mapCountsToWeightedWords } from '@/core/pipeline/word-scaling';
+import type { WeightedWord } from '@/domain/word-cloud';
+import { mapCountsToWeightedWords } from '@/shared/word-scaling';
 import type {
   AggregateResult,
   AggregatorStrategy,

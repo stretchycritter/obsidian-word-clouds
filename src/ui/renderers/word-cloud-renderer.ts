@@ -4,7 +4,7 @@ import { select } from 'd3-selection';
 import { Menu } from 'obsidian';
 import type { RenderSettings, RotationPreset, WordTextMetric } from '@/settings/types';
 import type { WordCloudRenderOptions } from '@/services/types';
-import type { WeightedWord } from '@/core';
+import type { WeightedWord } from '@/domain/word-cloud';
 import {
   renderWordCloudOverlayControls,
   sanitizeWordCloudExportBaseName,

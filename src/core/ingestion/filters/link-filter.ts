@@ -1,6 +1,6 @@
 import type { App, TFile } from 'obsidian';
 import type { LinkRules, SourceSelectionRules, TagMatchMode } from '@/settings/types';
-import { getFileTags } from '@/core/ingestion/obsidian-source';
+import { getFileTags } from '@/core/ingestion';
 import { normalizeTag } from '@/utils/utils';
 
 type FilePredicate = (file: TFile) => boolean;

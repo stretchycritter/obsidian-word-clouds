@@ -1,3 +1,8 @@
+# Imports
+1. All imports must use the base @/
+2. No file, except for index.ts barrel files, should export an import to fix paths
+3. Any import from outside of a folder with a barrel file, must import using the barrel file
+
 # Translation usage
 
 Use the shared i18n helper for any user-facing text.

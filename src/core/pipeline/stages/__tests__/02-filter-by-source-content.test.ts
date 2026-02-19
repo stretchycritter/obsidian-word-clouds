@@ -1,5 +1,5 @@
 import { selectDocuments } from '@/core/pipeline/stages/02-filter-by-source-content';
-import type { PipelineDocument } from '@/core/pipeline/types';
+import type { PipelineDocument } from '@/core/types';
 
 const DOCS: PipelineDocument[] = [
   {

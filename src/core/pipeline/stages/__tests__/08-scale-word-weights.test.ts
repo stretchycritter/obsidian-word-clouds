@@ -1,7 +1,7 @@
 import { scaleEntries } from '@/core/pipeline/stages/08-scale-word-weights';
 import type { ScalingStrategy } from '@/core/pipeline/types';
 import type { RenderSettings } from '@/settings/types';
-import type { WeightedWord } from '@/core/types';
+import type { WeightedWord } from '@/domain/word-cloud';
 
 describe('scaleEntries', () => {
   it('delegates scaling to the configured strategy', () => {

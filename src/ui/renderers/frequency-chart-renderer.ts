@@ -1,6 +1,6 @@
 import { scaleBand, scaleLinear } from 'd3-scale';
 import { select } from 'd3-selection';
-import type { WeightedWord } from '@/core';
+import type { WeightedWord } from '@/domain/word-cloud';
 
 type FrequencyChartRenderOptions = {
   containerEl: HTMLDivElement;
