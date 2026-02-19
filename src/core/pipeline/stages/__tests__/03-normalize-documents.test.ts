@@ -5,7 +5,7 @@ describe('normalizeDocuments', () => {
     expect(normalizeDocuments([])).toEqual([]);
   });
 
-  it('removes leading frontmatter, lowercases text, and applies NFKC normalization', () => {
+  it('removes leading frontmatter and applies NFKC normalization', () => {
     const [normalized] = normalizeDocuments([{
       id: 'note-1',
       path: 'Notes/Example.md',
@@ -18,7 +18,7 @@ Hello ＡＢＣ`,
       frontmatter: { title: 'Demo' },
     }]);
 
-    expect(normalized?.text).toBe('hello abc');
+    expect(normalized?.text).toBe('Hello ABC');
   });
 
   it('preserves id, path, basename, and clones tags', () => {
@@ -38,7 +38,7 @@ Hello ＡＢＣ`,
       id: 'doc-id',
       path: 'Folder/Doc.md',
       basename: 'Doc',
-      text: 'body text',
+      text: 'Body text',
       tags: ['#one', '#two'],
     });
     expect(normalized?.tags).not.toBe(sourceTags);
@@ -56,7 +56,7 @@ Hello ＡＢＣ`,
       },
     ]);
 
-    expect(normalized?.text).toBe('intro\n---\ntitle: not frontmatter\n---\ntail');
+    expect(normalized?.text).toBe('Intro\n---\ntitle: Not frontmatter\n---\nTail');
   });
 
   it('removes all embedded wordcloud code blocks', () => {
@@ -81,6 +81,6 @@ Hello ＡＢＣ`,
       },
     ]);
 
-    expect(normalized?.text).toBe('before\n\nmiddle\n\nafter');
+    expect(normalized?.text).toBe('Before\n\nMiddle\n\nAfter');
   });
 });

@@ -1,6 +1,7 @@
 import { runTransformPipeline } from '@/core/pipeline';
 import type { PipelineDocument } from '@/core';
 import { DEFAULT_SETTINGS } from '@/settings/constants';
+import type { NlpSettings } from '@/settings/types';
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -106,12 +107,13 @@ function createDocuments(vaultPath: string, repeatFactor: number): PipelineDocum
   return documents;
 }
 
-function runOnce(documents: PipelineDocument[]): void {
+function runOnce(documents: PipelineDocument[], nlpSettings: NlpSettings): void {
   const result = runTransformPipeline({
     documents,
     stopWords: new Set(DEFAULT_SETTINGS.exclusionListWords),
     minWordLength: DEFAULT_SETTINGS.filters.minWordLength,
     renderSettings: { ...DEFAULT_SETTINGS.render },
+    nlpSettings,
   });
 
   expect(result.totalTokens).toBeGreaterThan(0);
@@ -150,25 +152,20 @@ describe('pipeline benchmark harness', () => {
       console.info(line);
     };
 
-    for (let run = 0; run < config.warmupRuns; run += 1) {
-      runOnce(documents);
-    }
-
-    const timingsMs: number[] = [];
-    for (let run = 0; run < config.measuredRuns; run += 1) {
-      const start = process.hrtime.bigint();
-      runOnce(documents);
-      const end = process.hrtime.bigint();
-      timingsMs.push(toMilliseconds(end - start));
-    }
-
-    const sortedTimings = [...timingsMs].sort((a, b) => a - b);
-    const totalMs = timingsMs.reduce((sum, value) => sum + value, 0);
-    const averageMs = totalMs / timingsMs.length;
-    const minMs = sortedTimings[0] ?? 0;
-    const p95Ms = percentile(sortedTimings, 0.95);
-    const maxMs = sortedTimings[sortedTimings.length - 1] ?? 0;
-    const docsPerSecond = (documents.length / averageMs) * 1000;
+    const profiles: Array<{ name: string; nlpSettings: NlpSettings }> = [
+      {
+        name: 'NLP off',
+        nlpSettings: { ...DEFAULT_SETTINGS.filters.nlp },
+      },
+      {
+        name: 'NLP light',
+        nlpSettings: {
+          ...DEFAULT_SETTINGS.filters.nlp,
+          enabled: true,
+          mode: 'light',
+        },
+      },
+    ];
 
     log('Pipeline benchmark results');
     log(`- Vault path: ${config.vaultPath}`);
@@ -176,11 +173,36 @@ describe('pipeline benchmark harness', () => {
     log(`- Repeat factor: ${config.repeatFactor}`);
     log(`- Warmup runs: ${config.warmupRuns}`);
     log(`- Measured runs: ${config.measuredRuns}`);
-    log(`- min: ${minMs.toFixed(2)} ms`);
-    log(`- avg: ${averageMs.toFixed(2)} ms`);
-    log(`- p95: ${p95Ms.toFixed(2)} ms`);
-    log(`- max: ${maxMs.toFixed(2)} ms`);
-    log(`- throughput: ${docsPerSecond.toFixed(2)} docs/sec`);
+
+    for (const profile of profiles) {
+      for (let run = 0; run < config.warmupRuns; run += 1) {
+        runOnce(documents, profile.nlpSettings);
+      }
+
+      const timingsMs: number[] = [];
+      for (let run = 0; run < config.measuredRuns; run += 1) {
+        const start = process.hrtime.bigint();
+        runOnce(documents, profile.nlpSettings);
+        const end = process.hrtime.bigint();
+        timingsMs.push(toMilliseconds(end - start));
+      }
+
+      const sortedTimings = [...timingsMs].sort((a, b) => a - b);
+      const totalMs = timingsMs.reduce((sum, value) => sum + value, 0);
+      const averageMs = totalMs / timingsMs.length;
+      const minMs = sortedTimings[0] ?? 0;
+      const p95Ms = percentile(sortedTimings, 0.95);
+      const maxMs = sortedTimings[sortedTimings.length - 1] ?? 0;
+      const docsPerSecond = (documents.length / averageMs) * 1000;
+
+      log(`- ${profile.name}:`);
+      log(`  min: ${minMs.toFixed(2)} ms`);
+      log(`  avg: ${averageMs.toFixed(2)} ms`);
+      log(`  p95: ${p95Ms.toFixed(2)} ms`);
+      log(`  max: ${maxMs.toFixed(2)} ms`);
+      log(`  throughput: ${docsPerSecond.toFixed(2)} docs/sec`);
+    }
+
     writeBenchmarkResults(outputLines);
   });
 });

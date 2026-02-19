@@ -17,6 +17,7 @@ describe('SettingsService', () => {
     snapshot.exclusionListWords.push('mutated');
     snapshot.render.performanceMode = 'throttled';
     snapshot.filters.frequency.minCount = 99;
+    snapshot.filters.nlp.mode = 'aggressive';
     snapshot.filters.scope.folderPaths?.push('some/path');
     snapshot.filters.frontmatterRules.push({
       key: 'status',
@@ -28,6 +29,7 @@ describe('SettingsService', () => {
     expect(after.exclusionListWords).not.toContain('mutated');
     expect(after.render.performanceMode).toBe(DEFAULT_SETTINGS.render.performanceMode);
     expect(after.filters.frequency.minCount).toBe(DEFAULT_SETTINGS.filters.frequency.minCount);
+    expect(after.filters.nlp.mode).toBe(DEFAULT_SETTINGS.filters.nlp.mode);
     expect(after.filters.scope.folderPaths).toEqual([]);
     expect(after.filters.frontmatterRules).toEqual([]);
   });
@@ -47,6 +49,13 @@ describe('SettingsService', () => {
         minCount: 100,
         maxCount: 2,
       },
+      nlp: {
+        enabled: true,
+        mode: 'aggressive',
+        preserveAcronyms: true,
+        minLemmaLength: 1,
+        filterNumericTokens: true,
+      },
     });
 
     expect(service.getSnapshot().exclusionListWords).toEqual(['alpha']);
@@ -60,6 +69,13 @@ describe('SettingsService', () => {
           frequency: {
             minCount: 2,
             maxCount: 100,
+          },
+          nlp: {
+            enabled: true,
+            mode: 'aggressive',
+            preserveAcronyms: true,
+            minLemmaLength: 2,
+            filterNumericTokens: true,
           },
         }),
       }),

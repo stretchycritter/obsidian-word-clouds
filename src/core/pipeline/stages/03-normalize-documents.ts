@@ -13,7 +13,6 @@ export function normalizeDocuments(documents: PipelineDocument[]): NormalizedDoc
     text: document.rawText
       .replace(FRONTMATTER_PATTERN, '')
       .replace(WORD_CLOUD_BLOCK_PATTERN, '')
-      .toLowerCase()
       .normalize('NFKC'),
   }));
 }

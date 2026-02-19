@@ -31,6 +31,7 @@ describe('runTransformPipeline', () => {
       stopWords: new Set(['the']),
       minWordLength: 3,
       renderSettings,
+      nlpSettings: DEFAULT_SETTINGS.filters.nlp,
     });
 
     expect(result.totalTokens).toBe(5);
@@ -59,8 +60,40 @@ describe('runTransformPipeline', () => {
       stopWords: new Set(),
       minWordLength: 3,
       renderSettings,
+      nlpSettings: DEFAULT_SETTINGS.filters.nlp,
     });
 
     expect(result.wordCloudWords.map((word) => word.text)).toEqual(['and', 'plan']);
+  });
+
+  it('applies NLP normalization when enabled', () => {
+    const documents: PipelineDocument[] = [{
+      id: 'a',
+      path: 'A.md',
+      basename: 'A',
+      rawText: 'running runs runner',
+      tags: [],
+      frontmatter: {},
+    }];
+
+    const result = runTransformPipeline({
+      documents,
+      stopWords: new Set(),
+      minWordLength: 3,
+      renderSettings,
+      nlpSettings: {
+        enabled: true,
+        mode: 'light',
+        preserveAcronyms: true,
+        minLemmaLength: 3,
+        filterNumericTokens: true,
+      },
+    });
+
+    expect(result.wordCloudWords.map((word) => [word.text, word.count])).toEqual([
+      ['runn', 1],
+      ['run', 1],
+      ['runner', 1],
+    ]);
   });
 });

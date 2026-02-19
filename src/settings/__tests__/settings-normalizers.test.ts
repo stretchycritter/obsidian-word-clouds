@@ -20,6 +20,8 @@ describe('settings-normalizers', () => {
     cloned.filters.frontmatterRules.push({ key: 'status', operator: 'equals', value: 'done' });
     cloned.filters.minWordLength = 12;
     cloned.filters.frequency.minCount = 3;
+    cloned.filters.nlp.mode = 'aggressive';
+    cloned.filters.nlp.enabled = true;
 
     expect(original.exclusionListWords).not.toContain('extra');
     expect(original.render.performanceMode).toBe(DEFAULT_SETTINGS.render.performanceMode);
@@ -28,6 +30,7 @@ describe('settings-normalizers', () => {
     expect(original.filters.frontmatterRules).toEqual([]);
     expect(original.filters.minWordLength).toBe(DEFAULT_SETTINGS.filters.minWordLength);
     expect(original.filters.frequency.minCount).toBe(DEFAULT_SETTINGS.filters.frequency.minCount);
+    expect(original.filters.nlp).toEqual(DEFAULT_SETTINGS.filters.nlp);
   });
 
   test('normalizeExclusionListWord and sortExclusionListWords normalize values', () => {
@@ -61,6 +64,13 @@ describe('settings-normalizers', () => {
         minCount: 20,
         maxCount: 5,
       },
+      nlp: {
+        enabled: true,
+        mode: 'aggressive',
+        preserveAcronyms: false,
+        minLemmaLength: 1,
+        filterNumericTokens: false,
+      },
     });
 
     expect(normalized.scope).toEqual({
@@ -80,6 +90,13 @@ describe('settings-normalizers', () => {
       minCount: 5,
       maxCount: 20,
     });
+    expect(normalized.nlp).toEqual({
+      enabled: true,
+      mode: 'aggressive',
+      preserveAcronyms: false,
+      minLemmaLength: 2,
+      filterNumericTokens: false,
+    });
   });
 
   test('normalizeRenderSettings clamps values and applies enum fallbacks', () => {
@@ -93,6 +110,7 @@ describe('settings-normalizers', () => {
       scalingMode: 'rank',
       emphasis: 9,
       wordTextMetric: 'bad',
+      wordCaseMode: 'bad',
       showWordTextMetricToggle: 'bad',
       countLabelMinCount: 500,
       performanceMode: 'bad',
@@ -114,6 +132,7 @@ describe('settings-normalizers', () => {
     expect(normalized.scalingMode).toBe('rank');
     expect(normalized.emphasis).toBe(3);
     expect(normalized.wordTextMetric).toBe(DEFAULT_SETTINGS.render.wordTextMetric);
+    expect(normalized.wordCaseMode).toBe(DEFAULT_SETTINGS.render.wordCaseMode);
     expect(normalized.showWordTextMetricToggle).toBe(DEFAULT_SETTINGS.render.showWordTextMetricToggle);
     expect(normalized.countLabelMinCount).toBe(100);
     expect(normalized.performanceMode).toBe(DEFAULT_SETTINGS.render.performanceMode);

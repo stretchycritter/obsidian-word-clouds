@@ -1,16 +1,23 @@
 import type { NormalizedDocument, Token } from '@/core/pipeline/types';
 
-const TOKEN_PATTERN = /[a-z0-9][a-z0-9'-]*/g;
+const TOKEN_PATTERN = /[a-z0-9][a-z0-9'-]*/gi;
+const ACRONYM_PATTERN = /^[A-Z]{2,}$/;
+const NUMERIC_PATTERN = /^\d+$/;
 
 export function tokenizeDocuments(documents: NormalizedDocument[]): Token[] {
   const tokens: Token[] = [];
 
   for (const document of documents) {
     const values = document.text.match(TOKEN_PATTERN) ?? [];
-    for (const value of values) {
+    for (const rawValue of values) {
       tokens.push({
-        value,
+        rawValue,
+        value: rawValue.toLowerCase(),
         documentId: document.id,
+        flags: {
+          isAcronym: ACRONYM_PATTERN.test(rawValue),
+          isNumeric: NUMERIC_PATTERN.test(rawValue),
+        },
       });
     }
   }

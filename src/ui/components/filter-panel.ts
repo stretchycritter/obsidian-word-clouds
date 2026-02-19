@@ -248,6 +248,9 @@ function sanitizeFilters(filters: WordCloudFilterSettings): WordCloudFilterSetti
       minCount: ALL_FREQUENCIES_MIN,
       maxCount: ALL_FREQUENCIES_MAX,
     },
+    nlp: {
+      ...filters.nlp,
+    },
   };
 }
 
@@ -266,6 +269,9 @@ function cloneFilters(filters: WordCloudFilterSettings): WordCloudFilterSettings
     frequency: {
       minCount: filters.frequency.minCount,
       maxCount: filters.frequency.maxCount,
+    },
+    nlp: {
+      ...filters.nlp,
     },
   };
 }

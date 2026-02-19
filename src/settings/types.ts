@@ -1,8 +1,10 @@
 export type TagMatchMode = 'any' | 'all';
+export type NlpMode = 'off' | 'light' | 'aggressive';
 export type RotationPreset = 'horizontal' | 'mostly-horizontal' | 'mixed' | 'vertical';
 export type SpiralType = 'archimedean' | 'rectangular';
 export type ScalingMode = 'linear' | 'power' | 'log' | 'rank';
 export type WordTextMetric = 'count' | 'frequency';
+export type WordCaseMode = 'lowercase' | 'normalized';
 export type PerformanceMode = 'full-speed' | 'balanced' | 'throttled';
 export type FontFamilyOption = {
   value: string;
@@ -21,6 +23,7 @@ export type RenderSettings = {
   emphasis: number;
   showCountInWordText: boolean;
   wordTextMetric: WordTextMetric;
+  wordCaseMode: WordCaseMode;
   showWordTextMetricToggle: boolean;
   countLabelMinCount: number;
   performanceMode: PerformanceMode;
@@ -81,6 +84,14 @@ export type FrequencyThresholds = {
   maxCount?: number;
 };
 
+export type NlpSettings = {
+  enabled: boolean;
+  mode: NlpMode;
+  preserveAcronyms: boolean;
+  minLemmaLength: number;
+  filterNumericTokens: boolean;
+};
+
 export type SourceSelectionRules = {
   scope?: SourceScope;
   pathRules?: PathRules;
@@ -106,6 +117,7 @@ export type WordCloudFilterSettings = {
   frontmatterRules: FrontmatterRule[];
   minWordLength: number;
   frequency: Required<FrequencyThresholds>;
+  nlp: NlpSettings;
 };
 
 export interface WordCloudSettings {

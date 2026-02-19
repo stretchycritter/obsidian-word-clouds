@@ -36,10 +36,7 @@ describe('selectDocuments', () => {
 
   it('returns original documents when rules have no query text', () => {
     const result = selectDocuments(DOCS, {
-      scope: { mode: 'active-file', activeFilePath: 'Projects/Beta.md' },
-      includeTags: ['#project'],
-      excludeTags: ['#beta'],
-      frontmatterRules: [{ key: 'status', operator: 'equals', value: 'published' }],
+      queryText: '   ',
     });
     expect(result).toBe(DOCS);
   });

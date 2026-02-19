@@ -58,6 +58,7 @@ export const DEFAULT_SETTINGS: WordCloudSettings = {
     emphasis: 1,
     showCountInWordText: false,
     wordTextMetric: 'count',
+    wordCaseMode: 'normalized',
     showWordTextMetricToggle: false,
     countLabelMinCount: 1,
     performanceMode: 'balanced',
@@ -83,6 +84,13 @@ export const DEFAULT_SETTINGS: WordCloudSettings = {
     frequency: {
       minCount: 1,
       maxCount: 9999,
+    },
+    nlp: {
+      enabled: false,
+      mode: 'off',
+      preserveAcronyms: true,
+      minLemmaLength: 3,
+      filterNumericTokens: true,
     },
   },
 };

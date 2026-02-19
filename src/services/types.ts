@@ -1,7 +1,8 @@
 import type { TFile } from 'obsidian';
-import type { WordCloudRenderOptions } from '@/core/renderers';
+import type { WordCloudRenderOptions } from '@/core';
 import type {
   FrequencyThresholds,
+  NlpSettings,
   RenderSettings,
   SourceSelectionRules,
   TagMatchMode,
@@ -19,6 +20,7 @@ export type SearchOptions = {
 export type VaultCollectionOptions = {
   sourceRules?: SourceSelectionRules;
   frequency?: FrequencyThresholds;
+  nlpSettings?: NlpSettings;
   excludeWords?: string[];
   renderSettingsOverride?: Partial<RenderSettings>;
 };

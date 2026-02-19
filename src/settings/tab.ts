@@ -76,6 +76,100 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
             });
         });
 
+      new Setting(containerEl)
+        .setName(t('settings.tab.filters.nlp.enabled.name'))
+        .setDesc(t('settings.tab.filters.nlp.enabled.desc'))
+        .addToggle((toggle) => {
+          toggle
+            .setValue(settings.filters.nlp.enabled)
+            .onChange(async (value) => {
+              const nextMode = value && settings.filters.nlp.mode === 'off'
+                ? 'light'
+                : settings.filters.nlp.mode;
+              await this.services.updateFilterSettings({
+                nlp: {
+                  ...settings.filters.nlp,
+                  enabled: value,
+                  mode: nextMode,
+                },
+              });
+              this.display();
+            });
+        });
+
+      new Setting(containerEl)
+        .setName(t('settings.tab.filters.nlp.mode.name'))
+        .setDesc(t('settings.tab.filters.nlp.mode.desc'))
+        .addDropdown((dropdown) => {
+          dropdown
+            .addOption('off', t('settings.tab.filters.nlp.mode.off'))
+            .addOption('light', t('settings.tab.filters.nlp.mode.light'))
+            .addOption('aggressive', t('settings.tab.filters.nlp.mode.aggressive'))
+            .setValue(settings.filters.nlp.mode)
+            .setDisabled(!settings.filters.nlp.enabled)
+            .onChange(async (value) => {
+              await this.services.updateFilterSettings({
+                nlp: {
+                  ...settings.filters.nlp,
+                  mode: value === 'light' || value === 'aggressive' ? value : 'off',
+                },
+              });
+            });
+        });
+
+      new Setting(containerEl)
+        .setName(t('settings.tab.filters.nlp.preserveAcronyms.name'))
+        .setDesc(t('settings.tab.filters.nlp.preserveAcronyms.desc'))
+        .addToggle((toggle) => {
+          toggle
+            .setValue(settings.filters.nlp.preserveAcronyms)
+            .setDisabled(!settings.filters.nlp.enabled)
+            .onChange(async (value) => {
+              await this.services.updateFilterSettings({
+                nlp: {
+                  ...settings.filters.nlp,
+                  preserveAcronyms: value,
+                },
+              });
+            });
+        });
+
+      new Setting(containerEl)
+        .setName(t('settings.tab.filters.nlp.minLemmaLength.name'))
+        .setDesc(t('settings.tab.filters.nlp.minLemmaLength.desc'))
+        .addSlider((slider) => {
+          slider
+            .setLimits(2, 32, 1)
+            .setValue(settings.filters.nlp.minLemmaLength)
+            .setDynamicTooltip()
+            .setDisabled(!settings.filters.nlp.enabled)
+            .onChange(async (value) => {
+              await this.services.updateFilterSettings({
+                nlp: {
+                  ...settings.filters.nlp,
+                  minLemmaLength: value,
+                },
+              });
+            });
+        });
+
+      new Setting(containerEl)
+        .setName(t('settings.tab.filters.nlp.filterNumericTokens.name'))
+        .setDesc(t('settings.tab.filters.nlp.filterNumericTokens.desc'))
+        .addToggle((toggle) => {
+          toggle
+            .setValue(settings.filters.nlp.filterNumericTokens)
+            .setDisabled(!settings.filters.nlp.enabled)
+            .onChange(async (value) => {
+              await this.services.updateFilterSettings({
+                nlp: {
+                  ...settings.filters.nlp,
+                  filterNumericTokens: value,
+                },
+              });
+            });
+        });
+
       let draftWord = '';
       const submitDraftWord = async (): Promise<void> => {
         const added = await this.services.addExclusionListWord(draftWord);
@@ -300,6 +394,21 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             await updateRenderAndPreview({ showCountInWordText: value });
             this.display();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName(t('settings.tab.render.wordCaseMode.name'))
+      .setDesc(t('settings.tab.render.wordCaseMode.desc'))
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption('lowercase', t('settings.tab.render.wordCaseMode.lowercase'))
+          .addOption('normalized', t('settings.tab.render.wordCaseMode.normalized'))
+          .setValue(settings.render.wordCaseMode)
+          .onChange(async (value) => {
+            await updateRenderAndPreview({
+              wordCaseMode: value === 'normalized' ? 'normalized' : 'lowercase',
+            });
           });
       });
 

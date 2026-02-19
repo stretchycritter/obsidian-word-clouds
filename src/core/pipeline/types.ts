@@ -1,4 +1,9 @@
-import type { FrequencyThresholds, RenderSettings, SourceSelectionRules } from '@/settings/types';
+import type {
+  FrequencyThresholds,
+  NlpSettings,
+  RenderSettings,
+  SourceSelectionRules,
+} from '@/settings/types';
 import type { PipelineDocument, WeightedWord } from '@/core';
 
 export type PipelineInput = {
@@ -6,9 +11,12 @@ export type PipelineInput = {
   stopWords: Set<string>;
   minWordLength: number;
   renderSettings: RenderSettings;
-  sourceRules?: SourceSelectionRules;
+  sourceRules?: PipelineSelectionRules;
   frequency?: FrequencyThresholds;
+  nlpSettings: NlpSettings;
 };
+
+export type PipelineSelectionRules = Pick<SourceSelectionRules, 'queryText'>;
 
 export type NormalizedDocument = {
   id: string;
@@ -19,8 +27,14 @@ export type NormalizedDocument = {
 };
 
 export type Token = {
+  rawValue: string;
   value: string;
   documentId: string;
+  flags?: {
+    isAcronym?: boolean;
+    isNumeric?: boolean;
+    normalizedByNlp?: boolean;
+  };
 };
 
 export type AggregateResult = {

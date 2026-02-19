@@ -505,6 +505,39 @@ describe('VaultWordCloudSettingTab', () => {
     expect(services.updateFilterSettings).toHaveBeenCalledWith({ minWordLength: 7 });
   });
 
+  test('word case mode dropdown updates render settings', async () => {
+    const services = createServicesMock();
+    const tab = createTab(services);
+    tab.display();
+
+    const dropdown = getControl('Word case mode', 0) as { triggerChange: (value: string) => Promise<void> };
+    await dropdown.triggerChange('normalized');
+
+    expect(services.updateRenderSettings).toHaveBeenCalledWith({ wordCaseMode: 'normalized' });
+  });
+
+  test('nlp controls update filter settings and dependent controls start disabled', async () => {
+    const settings = createSettings();
+    settings.filters.nlp.enabled = false;
+    const services = createServicesMock(settings);
+    const tab = createTab(services);
+    tab.display();
+
+    const modeDropdown = getControl('NLP mode', 0) as { disabled: boolean };
+    expect(modeDropdown.disabled).toBe(true);
+
+    const enabledToggle = getControl('Enable NLP processing', 0) as {
+      triggerChange: (value: boolean) => Promise<void>;
+    };
+    await enabledToggle.triggerChange(true);
+
+    expect(services.updateFilterSettings).toHaveBeenCalledWith({
+      nlp: expect.objectContaining({
+        enabled: true,
+      }),
+    });
+  });
+
   test('support buttons open template-specific GitHub issue forms', async () => {
     const services = createServicesMock();
     const tab = createTab(services);

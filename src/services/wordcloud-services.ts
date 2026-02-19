@@ -1,6 +1,6 @@
 import type { App, TFile } from 'obsidian';
-import { mergeRenderSettings, renderWordCloud } from '@/core/renderers';
-import type { WordCloudRenderOptions } from '@/core/renderers';
+import { mergeRenderSettings, renderWordCloud } from '@/core';
+import type { WordCloudRenderOptions } from '@/core';
 import { openSearchForWord } from '@/utils/apply-search';
 import type {
   SearchOptions,
@@ -10,8 +10,7 @@ import type {
 import type { ObsidianService } from '@/services/obsidian-service';
 import type { SettingsService } from '@/settings/settings-service';
 import type { FontFamilyOption, RenderSettings, WordCloudFilterSettings, WordCloudSettings } from '@/settings/types';
-import type { WordCloudService } from '@/core';
-import type { WeightedWord } from '@/core';
+import type { WeightedWord, WordCloudService } from '@/core';
 
 export interface WordCloudSettingsControls {
   getSettingsSnapshot(): Readonly<WordCloudSettings>;
@@ -88,6 +87,7 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
       frontmatterRules: settings.filters.frontmatterRules,
     };
     const frequency = options.frequency ?? settings.filters.frequency;
+    const nlpSettings = options.nlpSettings ?? settings.filters.nlp;
 
     return this.processor.collectFromFiles(
       this.obsidian.getMarkdownFiles(),
@@ -98,6 +98,7 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
         sourceRules,
         frequency,
         minWordLength: settings.filters.minWordLength,
+        nlpSettings,
         excludeWords: options.excludeWords,
       },
     );
@@ -116,6 +117,7 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
 
     return this.processor.collectFromFiles([file], this.settingsService.getExclusionListSet(), renderSettings, onProgress, {
       minWordLength: settings.filters.minWordLength,
+      nlpSettings: settings.filters.nlp,
       excludeWords: options?.excludeWords,
     });
   }

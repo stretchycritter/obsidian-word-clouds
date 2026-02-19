@@ -38,3 +38,6 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Build release artifacts
+        run: npm run build:release

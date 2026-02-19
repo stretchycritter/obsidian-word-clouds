@@ -1,7 +1,7 @@
-import type { SourceSelectionRules } from '@/settings/types';
+import type { PipelineSelectionRules } from '@/core/pipeline/types';
 import type { PipelineDocument } from '@/core';
 
-export function selectDocuments(documents: PipelineDocument[], rules?: SourceSelectionRules): PipelineDocument[] {
+export function selectDocuments(documents: PipelineDocument[], rules?: PipelineSelectionRules): PipelineDocument[] {
   if (!rules) {
     return documents;
   }

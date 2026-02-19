@@ -1,6 +1,7 @@
 import type { App, TFile } from 'obsidian';
 import type { WeightedWord } from '@/core';
-import type { FrequencyThresholds, RenderSettings, SourceSelectionRules } from '@/settings/types';
+import type { FrequencyThresholds, NlpSettings, RenderSettings, SourceSelectionRules } from '@/settings/types';
+import { DEFAULT_SETTINGS } from '@/settings/constants';
 import { filterSourceFilesByMetadata, getAvailableTags, readPipelineDocuments } from '@/core/ingestion';
 import { runTransformPipeline } from '@/core/pipeline';
 
@@ -25,6 +26,7 @@ export class WordCloudService {
       frequency?: FrequencyThresholds;
       minWordLength?: number;
       excludeWords?: string[];
+      nlpSettings?: NlpSettings;
     },
   ): Promise<WeightedWord[]> {
     const filesForScan = filterSourceFilesByMetadata(this.app, files, options?.sourceRules);
@@ -60,6 +62,7 @@ export class WordCloudService {
       renderSettings,
       sourceRules: options?.sourceRules,
       frequency: options?.frequency,
+      nlpSettings: options?.nlpSettings ?? DEFAULT_SETTINGS.filters.nlp,
     });
 
     reportProgress('Preparing layout...', 95);

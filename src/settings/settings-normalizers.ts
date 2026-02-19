@@ -1,6 +1,8 @@
 import { DEFAULT_SETTINGS } from '@/settings/constants';
 import type {
   FrontmatterRule,
+  NlpMode,
+  NlpSettings,
   RenderSettings,
   SourceScope,
   TagMatchMode,
@@ -25,6 +27,9 @@ export function cloneSettings(settings: WordCloudSettings): WordCloudSettings {
       minWordLength: settings.filters.minWordLength,
       frequency: {
         ...settings.filters.frequency,
+      },
+      nlp: {
+        ...settings.filters.nlp,
       },
     },
   };
@@ -70,6 +75,7 @@ export function normalizeFilterSettings(rawValue: unknown): WordCloudFilterSetti
   const minWordLength = clampNumber(raw.minWordLength, 1, 32, DEFAULT_SETTINGS.filters.minWordLength);
   const minCount = clampNumber(raw.frequency?.minCount, 1, 9999, DEFAULT_SETTINGS.filters.frequency.minCount);
   const maxCount = clampNumber(raw.frequency?.maxCount, 1, 9999, DEFAULT_SETTINGS.filters.frequency.maxCount);
+  const nlp = normalizeNlpSettings(raw.nlp);
 
   return {
     scope,
@@ -82,6 +88,7 @@ export function normalizeFilterSettings(rawValue: unknown): WordCloudFilterSetti
       minCount: Math.min(minCount, maxCount),
       maxCount: Math.max(minCount, maxCount),
     },
+    nlp,
   };
 }
 
@@ -126,6 +133,10 @@ export function normalizeRenderSettings(rawValue: unknown): RenderSettings {
     ? raw.wordTextMetric
     : DEFAULT_SETTINGS.render.wordTextMetric;
 
+  const wordCaseMode = raw.wordCaseMode === 'lowercase' || raw.wordCaseMode === 'normalized'
+    ? raw.wordCaseMode
+    : DEFAULT_SETTINGS.render.wordCaseMode;
+
   const showWordTextMetricToggle = typeof raw.showWordTextMetricToggle === 'boolean'
     ? raw.showWordTextMetricToggle
     : DEFAULT_SETTINGS.render.showWordTextMetricToggle;
@@ -167,6 +178,7 @@ export function normalizeRenderSettings(rawValue: unknown): RenderSettings {
     emphasis,
     showCountInWordText,
     wordTextMetric,
+    wordCaseMode,
     showWordTextMetricToggle,
     countLabelMinCount,
     performanceMode,
@@ -198,6 +210,25 @@ function normalizeScope(rawValue: unknown): SourceScope {
     mode,
     activeFilePath,
     folderPaths,
+  };
+}
+
+function normalizeNlpSettings(rawValue: unknown): NlpSettings {
+  const raw = (rawValue && typeof rawValue === 'object') ? rawValue as Partial<NlpSettings> : {};
+  const mode: NlpMode = raw.mode === 'off' || raw.mode === 'light' || raw.mode === 'aggressive'
+    ? raw.mode
+    : DEFAULT_SETTINGS.filters.nlp.mode;
+
+  return {
+    enabled: typeof raw.enabled === 'boolean' ? raw.enabled : DEFAULT_SETTINGS.filters.nlp.enabled,
+    mode,
+    preserveAcronyms: typeof raw.preserveAcronyms === 'boolean'
+      ? raw.preserveAcronyms
+      : DEFAULT_SETTINGS.filters.nlp.preserveAcronyms,
+    minLemmaLength: clampNumber(raw.minLemmaLength, 2, 32, DEFAULT_SETTINGS.filters.nlp.minLemmaLength),
+    filterNumericTokens: typeof raw.filterNumericTokens === 'boolean'
+      ? raw.filterNumericTokens
+      : DEFAULT_SETTINGS.filters.nlp.filterNumericTokens,
   };
 }
 

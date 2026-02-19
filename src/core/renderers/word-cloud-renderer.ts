@@ -51,18 +51,32 @@ function formatWordMetricValue(
   return String(word.count);
 }
 
-function formatWordTitle(word: WeightedWord, totalCount: number): string {
-  return `${word.text} (${word.count}, ${formatWordMetricValue(word, totalCount, 'frequency')})`;
-}
-
 function getWordLabel(word: WeightedWord, renderSettings: RenderSettings, totalCount: number, metric: WordTextMetric): string {
+  const displayText = applyWordCaseMode(word.text, renderSettings);
   if (!renderSettings.showCountInWordText || word.count < renderSettings.countLabelMinCount) {
-    return word.text;
+    return displayText;
   }
 
   const formattedValue = formatWordMetricValue(word, totalCount, metric);
 
-  return `${word.text} (${formattedValue})`;
+  return `${displayText} (${formattedValue})`;
+}
+
+function formatWordDisplayTitle(word: WeightedWord, totalCount: number, renderSettings: RenderSettings): string {
+  const displayText = applyWordCaseMode(word.text, renderSettings);
+  return `${displayText} (${word.count}, ${formatWordMetricValue(word, totalCount, 'frequency')})`;
+}
+
+function applyWordCaseMode(text: string, renderSettings: RenderSettings): string {
+  if (renderSettings.wordCaseMode === 'lowercase') {
+    return text.toLowerCase();
+  }
+
+  const [first, ...rest] = text;
+  if (!first) {
+    return text;
+  }
+  return `${first.toUpperCase()}${rest.join('')}`;
 }
 
 type LayoutWord = WeightedWord & {
@@ -207,12 +221,12 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
 
         textSelection
           .append('title')
-          .text((d) => formatWordTitle(d, totalWordCount));
+          .text((d) => formatWordDisplayTitle(d, totalWordCount, renderSettings));
 
         const applyWordTextMetric = (metric: WordTextMetric): void => {
           activeWordTextMetric = metric;
           textSelection.text((d) => getWordLabel(d, renderSettings, totalWordCount, metric));
-          textSelection.select('title').text((d) => formatWordTitle(d, totalWordCount));
+          textSelection.select('title').text((d) => formatWordDisplayTitle(d, totalWordCount, renderSettings));
         };
 
         reportProgress(t('ui.renderers.wordCloud.renderingComplete'), 100);
