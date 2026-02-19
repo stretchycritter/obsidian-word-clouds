@@ -1,15 +1,11 @@
 import { ItemView, type TFile, WorkspaceLeaf } from 'obsidian';
 import { VIEW_TYPE_NOTE_WORD_CLOUD } from '@/ui/constants';
-import { drawFrequencyChart } from '@/core/renderers/frequency-chart-renderer';
+import { renderFrequencyChart, renderWordCloudCanvas } from '@/core';
 import type { RenderSettings, WordCloudFilterSettings } from '@/settings/types';
 import type { WordCloudServices } from '@/services/types';
-import type { WeightedWord } from '@/core/types';
+import type { WeightedWord } from '@/core';
 import { WordCloudFilterPanel } from '@/ui/components/filter-panel';
 import { t } from '@/i18n';
-import {
-  renderWordCloudCanvas,
-  resolveSelectedFileByPath,
-} from '@/core/renderers/canvas-manager';
 
 type NoteViewTab = 'cloud' | 'frequency';
 
@@ -349,7 +345,7 @@ export class NoteWordCloudView extends ItemView {
   }
 
   private findSelectedOpenFile(scopeFilePath = this.resolveScopeFilePath()): TFile | null {
-    return resolveSelectedFileByPath(this.services.getOpenMarkdownFiles(), scopeFilePath);
+    return this.services.getOpenMarkdownFiles().find((file) => file.path === scopeFilePath) ?? null;
   }
 
   private async renderCloud(
@@ -441,7 +437,7 @@ export class NoteWordCloudView extends ItemView {
       return;
     }
 
-    drawFrequencyChart({
+    renderFrequencyChart({
       containerEl: this.frequencyCanvasEl,
       words: this.latestWords,
       ariaLabel: t('ui.views.note.aria.frequencyChartForContext').replace('{context}', this.latestContextLabel),

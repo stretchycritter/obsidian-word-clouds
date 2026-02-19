@@ -1,1 +1,2 @@
-export { WordCloudService } from '@/core/application/wordcloud-service';
+export * from '@/core/renderers';
+export type { PipelineDocument, WeightedWord } from '@/core/types';

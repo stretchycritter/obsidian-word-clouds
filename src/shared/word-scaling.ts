@@ -1,4 +1,4 @@
-import type { WeightedWord } from '@/core/types';
+import type { WeightedWord } from '@/core';
 import type { RenderSettings } from '@/settings/types';
 
 export function mapCountsToWeightedWords(

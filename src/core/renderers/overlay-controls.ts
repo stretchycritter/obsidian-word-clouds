@@ -2,13 +2,13 @@ import { setIcon } from 'obsidian';
 import type { WordTextMetric } from '@/settings/types';
 import { t } from '@/i18n';
 
-export type WordCloudViewportControls = {
+type WordCloudViewportControls = {
   zoomIn: () => void;
   zoomOut: () => void;
   resetView: () => void;
 };
 
-export type WordCloudOverlayControlsOptions = {
+type WordCloudOverlayControlsOptions = {
   containerEl: HTMLDivElement;
   svgEl: SVGSVGElement | null;
   exportBaseName: string;
@@ -24,11 +24,11 @@ export type WordCloudOverlayControlsOptions = {
   onToggleWordMetric: () => void;
 };
 
-export function sanitizeWordCloudExportBaseName(value: string): string {
+function sanitizeWordCloudExportBaseName(value: string): string {
   return value.trim().replace(/[^a-z0-9-_]+/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'word-cloud';
 }
 
-export function renderWordCloudOverlayControls(options: WordCloudOverlayControlsOptions): void {
+function renderWordCloudOverlayControls(options: WordCloudOverlayControlsOptions): void {
   const {
     containerEl,
     svgEl,
@@ -335,3 +335,5 @@ function triggerBlobDownload(blob: Blob, filename: string): void {
   anchor.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+export { renderWordCloudOverlayControls, sanitizeWordCloudExportBaseName };

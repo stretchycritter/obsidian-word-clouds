@@ -1,4 +1,4 @@
-import { Notice, type TFile } from 'obsidian';
+import { Notice } from 'obsidian';
 import type { SearchOptions, WordCloudRenderOptions, WordCloudServices } from '@/services/types';
 import type { RenderSettings, WordCloudFilterSettings } from '@/settings/types';
 import type { WeightedWord } from '@/core/types';
@@ -14,12 +14,12 @@ type RenderContext<TExtra> = {
   extra: TExtra;
 };
 
-export type WordCloudStatusHandle = {
+type WordCloudStatusHandle = {
   setText: (text: string) => void;
   remove: () => void;
 };
 
-export type RenderWordCloudCanvasOptions<TExtra> = {
+type RenderWordCloudCanvasOptions<TExtra> = {
   nonceRef: RenderNonceRef;
   containerEl: HTMLDivElement;
   services: WordCloudServices;
@@ -189,11 +189,4 @@ export async function renderWordCloudCanvas<TExtra>(
     console.error(`${errorLogPrefix}: failed to render cloud`, error);
     renderErrorState(t('ui.renderers.wordCloudCanvas.renderError'));
   }
-}
-
-export function resolveSelectedFileByPath(
-  openFiles: TFile[],
-  scopeFilePath: string,
-): TFile | null {
-  return openFiles.find((file) => file.path === scopeFilePath) ?? null;
 }
