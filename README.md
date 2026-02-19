@@ -44,29 +44,52 @@ The release workflow validates the version/tag match and publishes:
 - `main.js`
 - `styles.css`
 
-## Watch (auto rebuild + deploy to demo vault)
+## Watch
 
 ```bash
-npm run watch:demo
+npm run build:watch:dev
 ```
 
-## Pipeline benchmark (demo vault)
+## Pipeline benchmark
 
-Runs the pipeline benchmark against markdown files in `demo-vault` and writes output to `benchmark-results.txt` in the project root.
+Runs the pipeline benchmark against markdown files in `.temp/test-data/benchmark-vault` and writes output to `.temp/benchmarks/pipeline-results.md`.
+The `benchmark` script seeds fresh benchmark data automatically before each run.
+Each benchmark run is also persisted as a timestamped JSON file in `.temp/benchmarks/runs/<epoch>.json`.
 
 ```bash
-npm run bench:pipeline
+npm run benchmark
 ```
 
 You can pass run settings as npm parameters:
 
 ```bash
-npm run bench:pipeline --runs=25 --warmups=5 --repeat=10
+npm run benchmark -- --runs=25 --warmups=5 --repeat=10
 ```
 
 - `--runs`: measured benchmark iterations (default: `10`)
 - `--warmups`: warmup iterations before measuring (default: `3`)
 - `--repeat`: duplicates loaded vault documents to scale test size (default: `1`)
+- `--history`: averaging window for history summary in `pipeline-results.md` (default: `5`)
+
+Run by profile:
+
+```bash
+npm run benchmark:small
+npm run benchmark:medium
+npm run benchmark:large
+```
+
+Run with custom small/medium/large counts:
+
+```bash
+npm run benchmark:custom -- --small-count=100 --medium-count=50 --large-count=25
+```
+
+Custom counts with a 20-run rolling average window:
+
+```bash
+npm run benchmark:custom -- --small-count=100 --medium-count=50 --large-count=25 --history=20
+```
 
 Environment fallback (still supported):
 
@@ -74,28 +97,35 @@ Environment fallback (still supported):
 - `PIPELINE_BENCH_WARMUPS`
 - `PIPELINE_BENCH_REPEAT`
 - `PIPELINE_BENCH_VAULT`
+- `PIPELINE_BENCH_OUTPUT`
 
-## Generate load-testing notes
+## Generate benchmark test data files
 
-Generate randomized small/medium/large markdown notes in `demo-vault/load-testing`.
+Generate randomized small/medium/large markdown notes in `.temp/test-data/benchmark-vault`.
 The target output directory is fully cleared on every run.
 
 From the project root:
 
 ```bash
-npm run generate:load-test-vault
+npm run benchmark:seed
 ```
 
-From the `scripts` folder (fully parameterized):
+## Clean `.temp` artifacts
 
 ```bash
-cd scripts
-node ./scripts/generate-load-testing-vault.mjs --small-count=100 --medium-count=50 --large-count=25
+npm run clean:temp
+```
+
+From the project root (fully parameterized):
+
+```bash
+node scripts/generate-test-data.mjs --small-count=100 --medium-count=50 --large-count=25
 ```
 
 Common parameters:
 
 - `--small-count`, `--medium-count`, `--large-count`: number of documents per default profile
+- `--only-profile=small|medium|large`: generate only selected default profile(s)
 - `--profile=label:count:min:max`: define custom profiles (repeatable; replaces defaults when used)
 - `--output-dir=PATH`: change output location
 - `--file-prefix=PREFIX`: change generated filename prefix
@@ -105,8 +135,7 @@ Common parameters:
 Help:
 
 ```bash
-cd scripts
-node generate-load-testing-vault.mjs --help
+node scripts/generate-test-data.mjs --help
 ```
 
 ## Try it in the demo vault

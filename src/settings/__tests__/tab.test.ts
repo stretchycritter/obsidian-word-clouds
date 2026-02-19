@@ -351,6 +351,7 @@ describe('VaultWordCloudSettingTab', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     obsidianMock.__mocks.MockSetting.instances.length = 0;
+    (globalThis as { __DEV_BUILD__?: boolean }).__DEV_BUILD__ = true;
     (globalThis as any).window = { confirm: jest.fn(), open: jest.fn() };
   });
 
@@ -450,33 +451,24 @@ describe('VaultWordCloudSettingTab', () => {
     expect(displaySpy).toHaveBeenCalledTimes(4);
   });
 
-  test('reset buttons honor confirmation prompts and only reset when confirmed', async () => {
+  test('reset-all button honors confirmation prompt and only resets when confirmed', async () => {
     const services = createServicesMock();
     const tab = createTab(services);
     const displaySpy = jest.spyOn(tab, 'display');
 
     tab.display();
 
-    const resetRenderButton = getControl('Reset render defaults', 0) as { triggerClick: () => Promise<void> };
-    const resetExcludedWordsButton = getControl('Reset excluded words', 0) as { triggerClick: () => Promise<void> };
+    const resetAllButton = getControl('Reset settings to default', 0) as { triggerClick: () => Promise<void> };
     const confirmMock = (globalThis as any).window.confirm as jest.Mock;
 
     confirmMock.mockReturnValueOnce(false);
-    await resetRenderButton.triggerClick();
-    expect(services.resetRenderSettings).not.toHaveBeenCalled();
-
-    confirmMock.mockReturnValueOnce(false);
-    await resetExcludedWordsButton.triggerClick();
-    expect(services.resetExclusionListWords).not.toHaveBeenCalled();
+    await resetAllButton.triggerClick();
+    expect(services.resetAllSettings).not.toHaveBeenCalled();
 
     confirmMock.mockReturnValueOnce(true);
-    await resetRenderButton.triggerClick();
-    expect(services.resetRenderSettings).toHaveBeenCalledTimes(1);
-
-    confirmMock.mockReturnValueOnce(true);
-    await resetExcludedWordsButton.triggerClick();
-    expect(services.resetExclusionListWords).toHaveBeenCalledTimes(1);
-    expect(displaySpy).toHaveBeenCalledTimes(3);
+    await resetAllButton.triggerClick();
+    expect(services.resetAllSettings).toHaveBeenCalledTimes(1);
+    expect(displaySpy).toHaveBeenCalledTimes(2);
   });
 
   test('processing speed dropdown updates performance mode and rerenders preview', async () => {
@@ -663,10 +655,9 @@ function createServicesMock(settings = createSettings()) {
     updateMinimumFontSize: jest.fn().mockResolvedValue(settings.render),
     updateMaximumFontSize: jest.fn().mockResolvedValue(settings.render),
     updateRenderSettings: jest.fn().mockResolvedValue(undefined),
-    resetRenderSettings: jest.fn().mockResolvedValue(undefined),
+    resetAllSettings: jest.fn().mockResolvedValue(undefined),
     addExclusionListWord: jest.fn().mockResolvedValue(false),
     removeExclusionListWord: jest.fn().mockResolvedValue(undefined),
-    resetExclusionListWords: jest.fn().mockResolvedValue(undefined),
   };
 }
 

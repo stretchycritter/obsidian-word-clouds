@@ -23,6 +23,7 @@ const GITHUB_ISSUE_BASE_URL = 'https://github.com/stretchycritter/obsidian-word-
 const BUG_REPORT_ISSUE_URL = `${GITHUB_ISSUE_BASE_URL}?template=bug_report.yml`;
 const FEATURE_REQUEST_ISSUE_URL = `${GITHUB_ISSUE_BASE_URL}?template=feature_request.yml`;
 const BENCHMARK_MODES: PerformanceMode[] = ['full-speed', 'balanced', 'throttled'];
+declare const __DEV_BUILD__: boolean;
 
 function formatT(key: string, replacements: Record<string, string | number>): string {
   let value = t(key);
@@ -518,96 +519,81 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
     const filtersSectionEl = createSection('settings.tab.filters.heading');
     renderFiltersSection(filtersSectionEl);
 
-    const performanceSectionEl = createSection('settings.tab.performance.heading');
+    if (typeof __DEV_BUILD__ !== 'undefined' && __DEV_BUILD__) {
+      const performanceSectionEl = createSection('settings.tab.performance.heading');
 
-    new Setting(performanceSectionEl)
-      .setName(t('settings.tab.performance.processingSpeed.name'))
-      .setDesc(t('settings.tab.performance.processingSpeed.desc'))
-      .addDropdown((dropdown) => {
-        dropdown
-          .addOption('full-speed', t('settings.tab.performance.processingSpeed.fullSpeed'))
-          .addOption('balanced', t('settings.tab.performance.processingSpeed.balanced'))
-          .addOption('throttled', t('settings.tab.performance.processingSpeed.throttled'))
-          .setValue(settings.render.performanceMode)
-          .onChange(async (value) => {
-            await updateRenderAndPreview({ performanceMode: value as PerformanceMode });
-          });
+      new Setting(performanceSectionEl)
+        .setName(t('settings.tab.performance.processingSpeed.name'))
+        .setDesc(t('settings.tab.performance.processingSpeed.desc'))
+        .addDropdown((dropdown) => {
+          dropdown
+            .addOption('full-speed', t('settings.tab.performance.processingSpeed.fullSpeed'))
+            .addOption('balanced', t('settings.tab.performance.processingSpeed.balanced'))
+            .addOption('throttled', t('settings.tab.performance.processingSpeed.throttled'))
+            .setValue(settings.render.performanceMode)
+            .onChange(async (value) => {
+              await updateRenderAndPreview({ performanceMode: value as PerformanceMode });
+            });
+        });
+
+      const benchmarkContainerEl = performanceSectionEl.createDiv({ cls: 'vault-word-cloud-settings-benchmark-container' });
+      const benchmarkBlockEl = benchmarkContainerEl.createDiv({ cls: 'vault-word-cloud-settings-benchmark-block' });
+
+      new Setting(benchmarkBlockEl)
+        .setName(t('settings.tab.performance.benchmark.name'))
+        .setDesc(t('settings.tab.performance.benchmark.desc'))
+        .addButton((button) => {
+          button
+            .setButtonText(this.isBenchmarkRunInProgress
+              ? t('settings.tab.performance.benchmark.buttonRunning')
+              : t('settings.tab.performance.benchmark.button'))
+            .setCta()
+            .onClick(async () => {
+              await this.runPerformanceModeBenchmarks();
+            });
+        });
+
+      const benchmarkResultsContainerEl = benchmarkBlockEl.createDiv({
+        cls: 'vault-word-cloud-settings-benchmark-results',
       });
 
-    const benchmarkContainerEl = performanceSectionEl.createDiv({ cls: 'vault-word-cloud-settings-benchmark-container' });
-    const benchmarkBlockEl = benchmarkContainerEl.createDiv({ cls: 'vault-word-cloud-settings-benchmark-block' });
-
-    new Setting(benchmarkBlockEl)
-      .setName(t('settings.tab.performance.benchmark.name'))
-      .setDesc(t('settings.tab.performance.benchmark.desc'))
-      .addButton((button) => {
-        button
-          .setButtonText(this.isBenchmarkRunInProgress
-            ? t('settings.tab.performance.benchmark.buttonRunning')
-            : t('settings.tab.performance.benchmark.button'))
-          .setCta()
-          .onClick(async () => {
-            await this.runPerformanceModeBenchmarks();
-          });
+      const benchmarkTableEl = benchmarkResultsContainerEl.createEl('table', {
+        cls: 'vault-word-cloud-settings-benchmark-table',
       });
+      const benchmarkHeaderEl = benchmarkTableEl.createEl('thead');
+      const benchmarkHeaderRowEl = benchmarkHeaderEl.createEl('tr');
+      benchmarkHeaderRowEl.createEl('th', { text: t('settings.tab.performance.benchmark.results.columns.mode') });
+      benchmarkHeaderRowEl.createEl('th', { text: t('settings.tab.performance.benchmark.results.columns.result') });
+      const benchmarkBodyEl = benchmarkTableEl.createEl('tbody');
 
-    const benchmarkResultsContainerEl = benchmarkBlockEl.createDiv({
-      cls: 'vault-word-cloud-settings-benchmark-results',
-    });
-
-    const benchmarkTableEl = benchmarkResultsContainerEl.createEl('table', {
-      cls: 'vault-word-cloud-settings-benchmark-table',
-    });
-    const benchmarkHeaderEl = benchmarkTableEl.createEl('thead');
-    const benchmarkHeaderRowEl = benchmarkHeaderEl.createEl('tr');
-    benchmarkHeaderRowEl.createEl('th', { text: t('settings.tab.performance.benchmark.results.columns.mode') });
-    benchmarkHeaderRowEl.createEl('th', { text: t('settings.tab.performance.benchmark.results.columns.result') });
-    const benchmarkBodyEl = benchmarkTableEl.createEl('tbody');
-
-    if (this.benchmarkResults.length === 0) {
-      const rowEl = benchmarkBodyEl.createEl('tr');
-      const cellEl = rowEl.createEl('td', { text: t('settings.tab.performance.benchmark.results.empty') });
-      cellEl.setAttr('colspan', '2');
-    } else {
-      for (const result of this.benchmarkResults) {
+      if (this.benchmarkResults.length === 0) {
         const rowEl = benchmarkBodyEl.createEl('tr');
-        rowEl.createEl('td', { text: t(`settings.tab.performance.processingSpeed.${this.performanceModeLabelKey(result.mode)}`) });
-        rowEl.createEl('td', { text: result.message });
+        const cellEl = rowEl.createEl('td', { text: t('settings.tab.performance.benchmark.results.empty') });
+        cellEl.setAttr('colspan', '2');
+      } else {
+        for (const result of this.benchmarkResults) {
+          const rowEl = benchmarkBodyEl.createEl('tr');
+          rowEl.createEl('td', { text: t(`settings.tab.performance.processingSpeed.${this.performanceModeLabelKey(result.mode)}`) });
+          rowEl.createEl('td', { text: result.message });
+        }
       }
     }
 
     const resetSectionEl = createSection('settings.tab.reset.heading');
 
     new Setting(resetSectionEl)
-      .setName(t('settings.tab.reset.render.name'))
-      .setDesc(t('settings.tab.reset.render.desc'))
+      .setName(t('settings.tab.reset.all.name'))
+      .setDesc(t('settings.tab.reset.all.desc'))
       .addButton((button) => {
         button
-          .setButtonText(t('settings.tab.reset.render.button'))
+          .setButtonText(t('settings.tab.reset.all.button'))
           .setWarning()
           .onClick(async () => {
-            const confirmed = window.confirm(t('settings.tab.reset.render.confirm'));
+            const confirmed = window.confirm(t('settings.tab.reset.all.confirm'));
             if (!confirmed) {
               return;
             }
-            await this.services.resetRenderSettings();
-            this.display();
-          });
-      });
-
-    new Setting(resetSectionEl)
-      .setName(t('settings.tab.reset.excludedWords.name'))
-      .setDesc(t('settings.tab.reset.excludedWords.desc'))
-      .addButton((button) => {
-        button
-          .setButtonText(t('settings.tab.reset.excludedWords.button'))
-          .setWarning()
-          .onClick(async () => {
-            const confirmed = window.confirm(t('settings.tab.reset.excludedWords.confirm'));
-            if (!confirmed) {
-              return;
-            }
-            await this.services.resetExclusionListWords();
+            await this.services.resetAllSettings();
             this.display();
           });
       });

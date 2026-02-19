@@ -4,11 +4,11 @@ import path from 'node:path';
 import process from 'process';
 
 const mode = process.argv[2] ?? 'watch';
-if (!['dev', 'watch', 'release'].includes(mode)) {
-  throw new Error(`Unknown build mode "${mode}". Use dev, watch, or release.`);
+if (!['dev', 'watch', 'watch-release', 'release'].includes(mode)) {
+  throw new Error(`Unknown build mode "${mode}". Use dev, watch, watch-release, or release.`);
 }
-const isRelease = mode === 'release';
-const isWatch = mode === 'watch';
+const isRelease = mode === 'release' || mode === 'watch-release';
+const isWatch = mode === 'watch' || mode === 'watch-release';
 const distDir = path.join(process.cwd(), 'dist');
 const packageJsonPath = path.join(process.cwd(), 'package.json');
 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
@@ -55,6 +55,9 @@ const context = await esbuild.context({
   legalComments: isRelease ? 'eof' : 'none',
   banner: isRelease ? { js: bannerText } : undefined,
   treeShaking: true,
+  define: {
+    __DEV_BUILD__: JSON.stringify(!isRelease),
+  },
   outfile: 'dist/main.js',
   plugins: [
     {

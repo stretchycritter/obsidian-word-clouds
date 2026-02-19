@@ -198,6 +198,16 @@ export class SettingsService {
     });
   }
 
+  async resetAllSettings(): Promise<void> {
+    await this.enqueueUpdate(async () => {
+      const nextSettings: WordCloudSettings = {
+        ...cloneSettings(DEFAULT_SETTINGS),
+        exclusionListWords: sortExclusionListWords([...DEFAULT_SETTINGS.exclusionListWords]),
+      };
+      await this.persist(nextSettings);
+    });
+  }
+
   private async persist(nextSettings: WordCloudSettings): Promise<void> {
     await this.plugin.saveData(nextSettings);
     this.settings = nextSettings;

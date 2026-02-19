@@ -174,6 +174,27 @@ describe('SettingsService', () => {
     expect(listener).toHaveBeenCalledTimes(2);
   });
 
+  test('resetAllSettings restores all settings sections and emits change', async () => {
+    const service = new SettingsService(createPluginMock({}));
+    const listener = jest.fn();
+    await service.load();
+    service.onChange(listener);
+
+    await service.updateRenderSettings({ performanceMode: 'throttled', minFontSize: 22 });
+    await service.updateFilters({
+      minWordLength: 9,
+      includeTags: ['#project'],
+    });
+    await service.addExclusionListWord('custom-word');
+    await service.resetAllSettings();
+
+    expect(service.getSnapshot()).toEqual({
+      ...DEFAULT_SETTINGS,
+      exclusionListWords: [...DEFAULT_SETTINGS.exclusionListWords].sort((a, b) => a.localeCompare(b)),
+    });
+    expect(listener).toHaveBeenCalledTimes(4);
+  });
+
   test('failed persistence does not mutate in-memory settings or emit change', async () => {
     const saveError = new Error('save failed');
     const plugin = createPluginMock({}, jest.fn().mockRejectedValue(saveError));

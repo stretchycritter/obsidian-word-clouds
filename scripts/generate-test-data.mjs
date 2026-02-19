@@ -56,7 +56,7 @@ const DEFAULT_SENTENCE_STARTS = [
 ];
 
 const DEFAULT_SETTINGS = {
-  outputDir: path.resolve(projectRoot, 'demo-vault', 'load-testing'),
+  outputDir: path.resolve(projectRoot, '.temp', 'test-data', 'benchmark-vault'),
   filePrefix: 'load-test',
   paragraphMinWords: 80,
   paragraphMaxWords: 180,
@@ -70,12 +70,13 @@ const DEFAULT_SETTINGS = {
 };
 
 function printHelp() {
-  console.log('Usage: node generate-load-testing-vault.mjs [options]');
+  console.log('Usage: node generate-test-data.mjs [options]');
   console.log('');
   console.log('Options:');
-  console.log('  --output-dir=PATH              Output directory (default: demo-vault/load-testing)');
+  console.log('  --output-dir=PATH              Output directory (default: .temp/test-data/benchmark-vault)');
   console.log('  (output directory is fully cleared on every run)');
   console.log('  --file-prefix=PREFIX           File prefix (default: load-test)');
+  console.log('  --only-profile=LIST            Comma-separated profile labels to generate (e.g. small or small,medium)');
   console.log('  --profile=label:count:min:max  Add a profile (repeatable). Replaces defaults when used.');
   console.log('  --small-count=N                Set count for the "small" profile');
   console.log('  --medium-count=N               Set count for the "medium" profile');
@@ -90,10 +91,10 @@ function printHelp() {
   console.log('  --help                         Show this help');
   console.log('');
   console.log('Examples:');
-  console.log('  node generate-load-testing-vault.mjs');
-  console.log('  node generate-load-testing-vault.mjs --small-count=100 --medium-count=50 --large-count=25');
-  console.log('  node generate-load-testing-vault.mjs --profile=tiny:200:20:60 --profile=huge:5:8000:12000');
-  console.log('  node generate-load-testing-vault.mjs --output-dir=../demo-vault/load-testing');
+  console.log('  node generate-test-data.mjs');
+  console.log('  node generate-test-data.mjs --small-count=100 --medium-count=50 --large-count=25');
+  console.log('  node generate-test-data.mjs --profile=tiny:200:20:60 --profile=huge:5:8000:12000');
+  console.log('  node generate-test-data.mjs --output-dir=../.temp/test-data/benchmark-vault');
 }
 
 function parseArgs(argv) {
@@ -134,6 +135,19 @@ function parsePositiveInteger(rawValue, fallback) {
 
   const value = Number.parseInt(String(rawValue), 10);
   return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function parseOptionalNonNegativeInteger(rawValue, name) {
+  if (rawValue === undefined) {
+    return undefined;
+  }
+
+  const value = Number.parseInt(String(rawValue), 10);
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`${name} must be a non-negative integer.`);
+  }
+
+  return value;
 }
 
 function normalizeWordBank(rawWordBank) {
@@ -240,15 +254,21 @@ function normalizeSettings(options) {
   );
 
   const countOverrides = {
-    small: parsePositiveInteger(options['small-count'], parsePositiveInteger(config.smallCount, 0)),
-    medium: parsePositiveInteger(options['medium-count'], parsePositiveInteger(config.mediumCount, 0)),
-    large: parsePositiveInteger(options['large-count'], parsePositiveInteger(config.largeCount, 0)),
+    small: parseOptionalNonNegativeInteger(options['small-count'] ?? config.smallCount, 'small-count'),
+    medium: parseOptionalNonNegativeInteger(options['medium-count'] ?? config.mediumCount, 'medium-count'),
+    large: parseOptionalNonNegativeInteger(options['large-count'] ?? config.largeCount, 'large-count'),
   };
+
+  const selectedProfileLabels = String(options['only-profile'] ?? config.onlyProfile ?? '')
+    .split(',')
+    .map((label) => label.trim())
+    .filter(Boolean);
+  const selectedProfileSet = selectedProfileLabels.length > 0 ? new Set(selectedProfileLabels) : undefined;
 
   const profiles = (cliProfiles ?? configProfiles).map((profile) => {
     const label = String(profile.label);
     const overrideCount = countOverrides[label];
-    if (!overrideCount) {
+    if (overrideCount === undefined) {
       return profile;
     }
 
@@ -256,6 +276,12 @@ function normalizeSettings(options) {
       ...profile,
       count: overrideCount,
     };
+  }).filter((profile) => {
+    if (!selectedProfileSet) {
+      return true;
+    }
+
+    return selectedProfileSet.has(String(profile.label));
   });
   const wordBank = normalizeWordBank(config.wordBank);
   const sentenceStarts = Array.isArray(config.sentenceStarts) && config.sentenceStarts.length > 0
@@ -264,6 +290,10 @@ function normalizeSettings(options) {
 
   if (!Array.isArray(profiles) || profiles.length === 0) {
     throw new Error('At least one profile is required.');
+  }
+  if (selectedProfileSet && profiles.length !== selectedProfileSet.size) {
+    const available = (cliProfiles ?? configProfiles).map((profile) => String(profile.label)).join(', ');
+    throw new Error(`Unknown profile in --only-profile. Available profiles: ${available}`);
   }
   if (paragraphMaxWords < paragraphMinWords) {
     throw new Error('paragraph-max must be >= paragraph-min.');
@@ -274,7 +304,14 @@ function normalizeSettings(options) {
   if (closingMaxWords < closingMinWords) {
     throw new Error('closing-max must be >= closing-min.');
   }
-  if (wordBank.length === 0) {
+  const allWords = [
+    ...wordBank.nouns,
+    ...wordBank.verbs,
+    ...wordBank.adjectives,
+    ...wordBank.domains,
+    ...wordBank.values,
+  ];
+  if (allWords.length === 0) {
     throw new Error('wordBank cannot be empty.');
   }
   if (sentenceStarts.length === 0) {
@@ -378,7 +415,12 @@ function createNotes(settings) {
 
   let createdFiles = 0;
 
-  for (const profile of settings.profiles) {
+  const profilesToGenerate = settings.profiles.filter((profile) => parseOptionalNonNegativeInteger(profile.count, 'profile count') !== 0);
+  if (profilesToGenerate.length === 0) {
+    throw new Error('At least one profile must have a count greater than 0.');
+  }
+
+  for (const profile of profilesToGenerate) {
     const normalizedProfile = {
       label: String(profile.label),
       count: parsePositiveInteger(profile.count, 1),
@@ -403,7 +445,7 @@ function createNotes(settings) {
   }
 
   console.log(`Generated ${createdFiles} files in ${settings.outputDir}`);
-  console.log(`Profiles: ${settings.profiles.map((profile) => profile.label).join(', ')}`);
+  console.log(`Profiles: ${profilesToGenerate.map((profile) => profile.label).join(', ')}`);
 }
 
 function main() {

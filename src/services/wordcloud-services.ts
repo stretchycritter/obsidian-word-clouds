@@ -20,9 +20,8 @@ export interface WordCloudSettingsControls {
   updateMinimumFontSize(minFontSize: number): Promise<RenderSettings>;
   updateMaximumFontSize(maxFontSize: number): Promise<RenderSettings>;
   updateRenderSettings(patch: Partial<RenderSettings>): Promise<void>;
-  resetRenderSettings(): Promise<void>;
+  resetAllSettings(): Promise<void>;
   removeExclusionListWord(rawWord: string): Promise<void>;
-  resetExclusionListWords(): Promise<void>;
 }
 
 export class WordCloudAppService implements WordCloudServices, WordCloudSettingsControls {
@@ -160,10 +159,6 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
     await this.settingsService.removeExclusionListWord(rawWord);
   }
 
-  async resetExclusionListWords(): Promise<void> {
-    await this.settingsService.resetExclusionListWords();
-  }
-
   async updateRenderSettings(patch: Partial<RenderSettings>): Promise<void> {
     await this.settingsService.updateRenderSettings(patch);
   }
@@ -176,7 +171,7 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
     return this.settingsService.updateMaximumFontSize(maxFontSize);
   }
 
-  async resetRenderSettings(): Promise<void> {
-    await this.settingsService.resetRenderSettings();
+  async resetAllSettings(): Promise<void> {
+    await this.settingsService.resetAllSettings();
   }
 }

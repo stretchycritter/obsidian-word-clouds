@@ -33,19 +33,9 @@
               "icon": "lucide-book-up",
               "title": "Release Notes 1.12.2"
             }
-          },
-          {
-            "id": "a0978b1f143af6df",
-            "type": "leaf",
-            "state": {
-              "type": "vault-word-cloud-view",
-              "state": {},
-              "icon": "cloud",
-              "title": "Vault word cloud"
-            }
           }
         ],
-        "currentTab": 2
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -174,34 +164,34 @@
       "word-clouds:Open word clouds": false
     }
   },
-  "active": "a0978b1f143af6df",
+  "active": "db42c86336a36ffa",
   "lastOpenFiles": [
-    "00 - Word Clouds Plugin Home.md",
-    "load-testing/large/load-test-large-300.md",
-    "load-testing/large/load-test-large-299.md",
-    "load-testing/large/load-test-large-298.md",
-    "load-testing/large/load-test-large-297.md",
-    "load-testing/large/load-test-large-296.md",
-    "load-testing/large/load-test-large-295.md",
-    "load-testing/large/load-test-large-294.md",
-    "load-testing/large/load-test-large-293.md",
-    "load-testing/large/load-test-large-292.md",
-    "load-testing/large/load-test-large-291.md",
-    "load-testing/large/load-test-large-290.md",
-    "load-testing/large/load-test-large-289.md",
-    "load-testing/large/load-test-large-288.md",
-    "load-testing/large/load-test-large-287.md",
-    "load-testing/large/load-test-large-286.md",
-    "load-testing/large/load-test-large-285.md",
-    "load-testing/large/load-test-large-284.md",
-    "load-testing/large/load-test-large-283.md",
-    "load-testing/large/load-test-large-282.md",
-    "load-testing/large/load-test-large-281.md",
-    "load-testing/large/load-test-large-280.md",
-    "load-testing/large/load-test-large-279.md",
-    "load-testing/large/load-test-large-278.md",
-    "load-testing/large/load-test-large-277.md",
-    "load-testing/large/load-test-large-276.md",
+    "load-testing/large/benchmark-test-data-large-010.md",
+    "load-testing/large/benchmark-test-data-large-009.md",
+    "load-testing/large/benchmark-test-data-large-008.md",
+    "load-testing/large/benchmark-test-data-large-007.md",
+    "load-testing/large/benchmark-test-data-large-006.md",
+    "load-testing/large/benchmark-test-data-large-005.md",
+    "load-testing/large/benchmark-test-data-large-004.md",
+    "load-testing/large/benchmark-test-data-large-003.md",
+    "load-testing/large/benchmark-test-data-large-002.md",
+    "load-testing/large/benchmark-test-data-large-001.md",
+    "load-testing/medium/benchmark-test-data-medium-020.md",
+    "load-testing/medium/benchmark-test-data-medium-019.md",
+    "load-testing/medium/benchmark-test-data-medium-018.md",
+    "load-testing/medium/benchmark-test-data-medium-017.md",
+    "load-testing/medium/benchmark-test-data-medium-016.md",
+    "load-testing/medium/benchmark-test-data-medium-015.md",
+    "load-testing/medium/benchmark-test-data-medium-014.md",
+    "load-testing/medium/benchmark-test-data-medium-013.md",
+    "load-testing/medium/benchmark-test-data-medium-012.md",
+    "load-testing/medium/benchmark-test-data-medium-011.md",
+    "load-testing/medium/benchmark-test-data-medium-010.md",
+    "load-testing/medium/benchmark-test-data-medium-009.md",
+    "load-testing/medium/benchmark-test-data-medium-008.md",
+    "load-testing/medium/benchmark-test-data-medium-007.md",
+    "load-testing/medium/benchmark-test-data-medium-006.md",
+    "load-testing/medium/benchmark-test-data-medium-005.md",
     "load-testing/medium",
     "load-testing/small",
     "load-testing/large",
