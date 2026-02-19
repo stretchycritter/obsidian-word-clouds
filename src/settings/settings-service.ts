@@ -6,7 +6,7 @@ import type {
   WordCloudFilterSettings,
 } from '@/settings/types';
 import { DEFAULT_SETTINGS, SETTINGS_PREVIEW_TEMPLATE, SUPPORTED_FONT_FAMILIES } from '@/settings/constants';
-import type { WeightedWord } from '@/domain/word-cloud';
+import type { WeightedWord } from '@/core';
 import { mapCountsToWeightedWords } from '@/shared/word-scaling';
 import {
   cloneSettings,

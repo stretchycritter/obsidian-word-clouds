@@ -3,7 +3,7 @@ import { VIEW_TYPE_VAULT_WORD_CLOUD } from '@/ui/constants';
 import type { RenderSettings, WordCloudFilterSettings } from '@/settings/types';
 import type { WordCloudServices } from '@/services/types';
 import { WordCloudFilterPanel } from '@/ui/components/filter-panel';
-import { renderWordCloudCanvas } from '@/ui';
+import { renderWordCloudCanvas } from '@/core';
 import { t } from '@/i18n';
 
 export class VaultWordCloudView extends ItemView {

@@ -14,7 +14,7 @@ import type {
 import type { WordCloudServices } from '@/services/types';
 import { EmbedWordCloudModal } from '@/ui';
 import { normalizeTag } from '@/utils/utils';
-import { renderWordCloudCanvas } from '@/ui';
+import { renderWordCloudCanvas } from '@/core';
 import { t } from '@/i18n';
 
 type EmbeddedWordCloudScope = 'file' | 'vault' | 'folder';
