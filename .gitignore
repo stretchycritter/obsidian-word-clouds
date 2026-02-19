@@ -4,6 +4,7 @@ dist/
 .DS_Store
 
 .deploy.local
+demo-vault/load-testing/
 demo-vault/.obsidian/plugins/word-clouds/
 
 /coverage
