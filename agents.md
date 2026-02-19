@@ -1,3 +1,11 @@
+# Run options
+- Dev build (one-off): `npm run build:dev`
+- Release build (includes typecheck): `npm run build:release`
+- Tests: `npm test` | coverage: `npm run test:coverage`
+- Lint: `npm run lint`
+- Typecheck only: `npm run typecheck`
+- Benchmarks: `npm run benchmark` (or `benchmark:small|medium|large|custom`)
+
 # Imports
 1. All imports must use the base @/
 2. No file, except for index.ts barrel files, should export an import to fix paths
