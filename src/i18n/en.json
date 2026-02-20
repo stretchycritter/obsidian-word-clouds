@@ -127,6 +127,7 @@
   "ui.blocks.embed.editDescription": "Update options for this embedded cloud without editing markdown manually.",
   "ui.blocks.embed.sourceNoteNotFound": "Could not locate the source note for this embedded word cloud.",
   "ui.blocks.embed.blockNotFoundToUpdate": "Could not locate the embedded word cloud block to update.",
+  "settings.tab.description": "These settings represent the default values for embedded word clouds. You can override any setting for a specific word cloud by editing it on the given page.",
   "settings.tab.filters.heading": "Filters",
   "settings.tab.filters.minimumWordLength.name": "Minimum word length",
   "settings.tab.filters.minimumWordLength.desc": "Ignore words shorter than this length.",

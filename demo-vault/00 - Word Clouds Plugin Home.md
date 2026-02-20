@@ -47,12 +47,12 @@ Embedded blocks support three modes:
 - `mode: specific-file` uses a file path from `file:`.
 - `mode: tag-based` scans vault files filtered by `tags:` and optional `match: any|all`.
 
+/word
 ### Note cloud: this home note
 
 ```wordcloud
-mode: current-file
-height: 780
-interactions: true
+id: 1e41e92a-8819-4e33-82d6-08b3b161ee64
+data: eyJzY29wZSI6ImZpbGUiLCJzaXplIjoibWVkaXVtIiwibmxwLWVuYWJsZWQiOiJ0cnVlIn0=
 ```
 
 ### Note cloud: architecture note
@@ -66,10 +66,8 @@ height: 280
 ### Note cloud: static (no controls, no pan/zoom)
 
 ```wordcloud
-scope: file
-size: medium
-min-count: 1
-max-count: 9999
+id: acf9a8a5-f1a3-4aaa-89fc-114f9b74215f
+data: eyJzY29wZSI6ImZpbGUiLCJzaXplIjoibWVkaXVtIiwibmxwLWVuYWJsZWQiOiJ0cnVlIiwibmxwLWZpbHRlci1udW1lcmljLXRva2VucyI6ImZhbHNlIn0=
 ```
 
 ```wordcloud
@@ -105,4 +103,4 @@ max-count: 9999
 interactions: true
 ```
 
-This renders inline frequencies (for example `word (4.3%)`) and adds a `123`/`%` button in the cloud controls to switch between count and frequency.
+This renders inline frequencies (for example `word (4.f3%)`) and adds a `123`/`%` button in the cloud controls to switch between count and frequency.

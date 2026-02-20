@@ -66,6 +66,10 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     const contentEl = containerEl.createDiv({ cls: 'vault-word-cloud-settings-tab' });
+    contentEl.createEl('p', {
+      cls: 'vault-word-cloud-settings-description',
+      text: t('settings.tab.description'),
+    });
     const settings = this.services.getSettingsSnapshot();
     const createSection = (headingKey: string): HTMLElement => {
       const sectionEl = contentEl.createDiv({ cls: 'vault-word-cloud-settings-section' });
