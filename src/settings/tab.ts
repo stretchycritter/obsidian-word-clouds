@@ -1,6 +1,7 @@
 import type { Plugin } from 'obsidian';
 import { PluginSettingTab, Setting, setIcon } from 'obsidian';
 import type {
+  DefaultScopeOnInsert,
   PerformanceMode,
   RenderSettings,
   RotationPreset,
@@ -258,6 +259,32 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
 
     };
 
+    const globalSectionEl = createSection('settings.tab.global.heading');
+
+    new Setting(globalSectionEl)
+      .setName(t('settings.tab.global.openEditorOnInsert.name'))
+      .setDesc(t('settings.tab.global.openEditorOnInsert.desc'))
+      .addToggle((toggle) => {
+        toggle
+          .setValue(settings.openEditorOnInsert)
+          .onChange(async (value) => {
+            await this.services.updateOpenEditorOnInsert(value);
+          });
+      });
+
+    new Setting(globalSectionEl)
+      .setName(t('settings.tab.global.defaultScopeOnInsert.name'))
+      .setDesc(t('settings.tab.global.defaultScopeOnInsert.desc'))
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption('file', t('settings.tab.global.defaultScopeOnInsert.file'))
+          .addOption('vault', t('settings.tab.global.defaultScopeOnInsert.vault'))
+          .setValue(settings.defaultScopeOnInsert)
+          .onChange(async (value) => {
+            await this.services.updateDefaultScopeOnInsert(value as DefaultScopeOnInsert);
+          });
+      });
+
     const layoutSectionEl = createSection('settings.tab.render.heading');
     let previewCanvasEl!: HTMLDivElement;
 
@@ -483,17 +510,6 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
     }
 
     const interactionsSectionEl = createSection('settings.tab.interactions.heading');
-
-    new Setting(interactionsSectionEl)
-      .setName(t('settings.tab.interactions.openEditorOnInsert.name'))
-      .setDesc(t('settings.tab.interactions.openEditorOnInsert.desc'))
-      .addToggle((toggle) => {
-        toggle
-          .setValue(settings.openEditorOnInsert)
-          .onChange(async (value) => {
-            await this.services.updateOpenEditorOnInsert(value);
-          });
-      });
 
     new Setting(interactionsSectionEl)
       .setName(t('settings.tab.render.mouseInteractions.name'))

@@ -1,5 +1,6 @@
 import type { Plugin } from 'obsidian';
 import type {
+  DefaultScopeOnInsert,
   RenderSettings,
   FontFamilyOption,
   WordCloudSettings,
@@ -28,9 +29,11 @@ export class SettingsService {
 
   async load(): Promise<void> {
     const loaded = await this.plugin.loadData();
-    const raw = (loaded && typeof loaded === 'object') ? loaded as { openEditorOnInsert?: unknown; exclusionListWords?: unknown; render?: unknown; filters?: unknown } : {};
+    const raw = (loaded && typeof loaded === 'object') ? loaded as { openEditorOnInsert?: unknown; defaultScopeOnInsert?: unknown; exclusionListWords?: unknown; render?: unknown; filters?: unknown } : {};
+    const rawScope = raw.defaultScopeOnInsert;
     this.settings = {
       openEditorOnInsert: typeof raw.openEditorOnInsert === 'boolean' ? raw.openEditorOnInsert : DEFAULT_SETTINGS.openEditorOnInsert,
+      defaultScopeOnInsert: rawScope === 'file' || rawScope === 'vault' ? rawScope : DEFAULT_SETTINGS.defaultScopeOnInsert,
       exclusionListWords: normalizeExclusionListWords(raw.exclusionListWords),
       render: normalizeRenderSettings(raw.render),
       filters: normalizeFilterSettings(raw.filters),
@@ -116,6 +119,16 @@ export class SettingsService {
       const nextSettings: WordCloudSettings = {
         ...this.settings,
         openEditorOnInsert: value,
+      };
+      await this.persist(nextSettings);
+    });
+  }
+
+  async updateDefaultScopeOnInsert(value: DefaultScopeOnInsert): Promise<void> {
+    await this.enqueueUpdate(async () => {
+      const nextSettings: WordCloudSettings = {
+        ...this.settings,
+        defaultScopeOnInsert: value,
       };
       await this.persist(nextSettings);
     });

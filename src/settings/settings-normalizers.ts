@@ -14,6 +14,7 @@ import { normalizeTag } from '@/utils/utils';
 export function cloneSettings(settings: WordCloudSettings): WordCloudSettings {
   return {
     openEditorOnInsert: settings.openEditorOnInsert,
+    defaultScopeOnInsert: settings.defaultScopeOnInsert,
     exclusionListWords: [...settings.exclusionListWords],
     render: { ...settings.render },
     filters: {

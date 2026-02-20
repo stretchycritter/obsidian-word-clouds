@@ -119,8 +119,11 @@ export type WordCloudFilterSettings = {
   nlp: NlpSettings;
 };
 
+export type DefaultScopeOnInsert = 'file' | 'vault';
+
 export interface WordCloudSettings {
   openEditorOnInsert: boolean;
+  defaultScopeOnInsert: DefaultScopeOnInsert;
   exclusionListWords: string[];
   render: RenderSettings;
   filters: WordCloudFilterSettings;

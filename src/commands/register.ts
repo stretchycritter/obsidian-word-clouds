@@ -4,13 +4,13 @@ import { t } from '@/i18n';
 import { EmbedWordCloudModal } from '@/ui';
 import { insertEmbedAtCursor } from '@/services/note-service';
 
-function buildDefaultEmbedBlock(): string {
+function buildDefaultEmbedBlock(scope: string): string {
   const cloudId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
     : `wc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
   const data: Record<string, string> = {
-    scope: 'file',
+    scope,
     size: 'medium',
   };
 
@@ -40,9 +40,9 @@ export function registerCommands(plugin: Plugin, deps: Deps): void {
     id: 'embed-word-cloud-in-document',
     name: t('commands.embedWordCloudInDocument'),
     callback: () => {
-      const { openEditorOnInsert } = deps.settingsService.getSnapshot();
+      const { openEditorOnInsert, defaultScopeOnInsert } = deps.settingsService.getSnapshot();
       if (!openEditorOnInsert) {
-        insertEmbedAtCursor(plugin.app, buildDefaultEmbedBlock(), true);
+        insertEmbedAtCursor(plugin.app, buildDefaultEmbedBlock(defaultScopeOnInsert), true);
         return;
       }
 

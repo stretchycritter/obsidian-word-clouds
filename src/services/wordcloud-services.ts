@@ -9,7 +9,7 @@ import type {
 } from '@/services/types';
 import type { ObsidianService } from '@/services/obsidian-service';
 import type { SettingsService } from '@/settings/settings-service';
-import type { FontFamilyOption, RenderSettings, WordCloudFilterSettings, WordCloudSettings } from '@/settings/types';
+import type { DefaultScopeOnInsert, FontFamilyOption, RenderSettings, WordCloudFilterSettings, WordCloudSettings } from '@/settings/types';
 import type { WeightedWord, WordCloudCollectionResult, WordCloudService } from '@/core';
 
 export interface WordCloudSettingsControls {
@@ -18,6 +18,7 @@ export interface WordCloudSettingsControls {
   getSelectedSupportedFontFamily(rawFontFamily: string): string;
   getSettingsPreviewWords(): WeightedWord[];
   updateOpenEditorOnInsert(value: boolean): Promise<void>;
+  updateDefaultScopeOnInsert(value: DefaultScopeOnInsert): Promise<void>;
   updateMinimumFontSize(minFontSize: number): Promise<RenderSettings>;
   updateMaximumFontSize(maxFontSize: number): Promise<RenderSettings>;
   updateRenderSettings(patch: Partial<RenderSettings>): Promise<void>;
@@ -71,6 +72,10 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
 
   async updateOpenEditorOnInsert(value: boolean): Promise<void> {
     await this.settingsService.updateOpenEditorOnInsert(value);
+  }
+
+  async updateDefaultScopeOnInsert(value: DefaultScopeOnInsert): Promise<void> {
+    await this.settingsService.updateDefaultScopeOnInsert(value);
   }
 
   async updateFilterSettings(patch: Partial<WordCloudFilterSettings>): Promise<void> {
