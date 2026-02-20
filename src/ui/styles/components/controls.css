@@ -1,0 +1,115 @@
+/* ─── Overlay controls ──────────────────────────────────────────────────────
+ * Zoom/pan controls, export button, refresh button, and the popup menu
+ * that overlays the word cloud canvas. All controls fade in on hover/focus.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@layer components {
+
+  /* ── Control group positions ───────────────────────────────────────────── */
+
+  /* Bottom-left: zoom in / zoom out / reset zoom */
+  .word-cloud-view-controls {
+    @apply wc-absolute wc-inline-flex wc-z-overlay;
+    left: var(--size-4-2);
+    bottom: var(--size-4-2);
+    gap: var(--size-4-1);
+  }
+
+  /* Top-right: refresh / regenerate */
+  .word-cloud-refresh-controls {
+    @apply wc-absolute wc-z-overlay;
+    top: var(--size-4-2);
+    right: var(--size-4-2);
+  }
+
+  /* Top-left: export menu trigger */
+  .word-cloud-export-controls {
+    @apply wc-absolute wc-inline-flex wc-items-center wc-z-overlay;
+    top: var(--size-4-2);
+    left: var(--size-4-2);
+    gap: var(--size-4-1);
+  }
+
+  /* ── Fade-in on hover / focus-within ───────────────────────────────────── */
+
+  .word-cloud-view-controls,
+  .word-cloud-refresh-controls,
+  .word-cloud-export-controls {
+    @apply wc-opacity-0 wc-pointer-events-none;
+    transform: translateY(2px);
+    transition: opacity 120ms ease, transform 120ms ease;
+  }
+
+  .word-cloud-render-container:hover .word-cloud-view-controls,
+  .word-cloud-render-container:hover .word-cloud-refresh-controls,
+  .word-cloud-render-container:hover .word-cloud-export-controls,
+  .word-cloud-render-container:focus-within .word-cloud-view-controls,
+  .word-cloud-render-container:focus-within .word-cloud-refresh-controls,
+  .word-cloud-render-container:focus-within .word-cloud-export-controls {
+    @apply wc-opacity-100 wc-pointer-events-auto;
+    transform: translateY(0);
+  }
+
+  /* ── Round icon buttons (shared base) ─────────────────────────────────── */
+
+  .word-cloud-menu-button,
+  .word-cloud-refresh-button,
+  .word-cloud-edit-button,
+  .word-cloud-view-button,
+  .word-cloud-metric-button {
+    @apply wc-inline-flex wc-items-center wc-justify-center wc-shrink-0 wc-box-border wc-rounded-full wc-cursor-pointer;
+    width: 28px;
+    height: 28px;
+    min-height: 28px;
+    min-width: 28px;
+    flex: 0 0 28px;
+    padding: 0;
+    font-size: 18px;
+    line-height: 1;
+    border: 1px solid var(--background-modifier-border);
+    background: var(--background-primary);
+  }
+
+  /* Focus rings for all overlay buttons */
+  .word-cloud-menu-button:focus-visible,
+  .word-cloud-refresh-button:focus-visible,
+  .word-cloud-edit-button:focus-visible,
+  .word-cloud-metric-button:focus-visible,
+  .word-cloud-view-button:focus-visible,
+  .word-cloud-menu-item:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 1px;
+  }
+
+  /* Metric button is wider to accommodate a short text label */
+  .word-cloud-metric-button {
+    @apply wc-font-semibold;
+    width: 38px;
+    min-width: 38px;
+    flex-basis: 38px;
+    font-size: var(--font-ui-smaller);
+  }
+
+  /* ── Dropdown menu ─────────────────────────────────────────────────────── */
+
+  .word-cloud-menu {
+    @apply wc-absolute wc-flex wc-flex-col wc-z-dropdown;
+    top: 32px;
+    left: 0;
+    gap: var(--size-4-1);
+    padding: 6px;
+    min-width: 128px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    background: var(--background-primary);
+    box-shadow: var(--shadow-s);
+  }
+
+  .word-cloud-menu[hidden] {
+    @apply wc-hidden;
+  }
+
+  .word-cloud-menu-item {
+    @apply wc-whitespace-nowrap wc-text-left;
+    min-height: 26px;
+  }
+}

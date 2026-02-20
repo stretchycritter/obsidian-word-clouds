@@ -1,0 +1,33 @@
+/* ─── Embedded word cloud block ─────────────────────────────────────────────
+ * Styles for word clouds rendered inside a markdown code block.
+ * The render container styles are in render.css; these cover the outer wrapper
+ * and the optional status/message line shown above the canvas.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@layer components {
+
+  /* Outer block wrapper — inline-level block that Obsidian renders in the note */
+  .word-cloud-embed {
+    @apply wc-overflow-hidden wc-block;
+    margin: 0;
+    line-height: 0;
+    border-radius: var(--radius-m);
+    background: var(--background-primary-alt);
+    box-shadow: inset 0 0 0 1px var(--background-modifier-border-hover);
+  }
+
+  /* Status/error message bar rendered above the canvas */
+  .word-cloud-embed-state {
+    line-height: normal;
+    padding: var(--size-4-2);
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+    border-bottom: 1px solid var(--background-modifier-border-hover);
+  }
+
+  /* Canvas area within an embedded block */
+  .word-cloud-embed-canvas {
+    @apply wc-block;
+    min-height: 180px;
+    line-height: 0;
+  }
+}

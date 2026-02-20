@@ -1,0 +1,286 @@
+/* ─── Filter panel ──────────────────────────────────────────────────────────
+ * All filter controls: scope selector, tag chips, frontmatter rules,
+ * frequency sliders, and the advanced-details disclosure.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@layer components {
+
+  /* ── Controls card ─────────────────────────────────────────────────────── */
+
+  .vault-word-cloud-controls {
+    @apply wc-flex wc-items-stretch wc-flex-col;
+    gap: var(--size-4-2);
+    padding: var(--size-4-2);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background: var(--background-secondary);
+  }
+
+  /* Condensed variant: tighter spacing in narrow panels */
+  .vault-word-cloud-controls.vault-word-cloud-controls-condensed {
+    gap: var(--size-4-1);
+    padding: var(--size-4-1);
+  }
+
+  .vault-word-cloud-controls-condensed .vault-word-cloud-filter-section {
+    gap: var(--size-4-1);
+    padding: var(--size-4-1);
+  }
+
+  .vault-word-cloud-controls-condensed .vault-word-cloud-filter-grid {
+    gap: var(--size-4-1);
+  }
+
+  /* ── Filter bar (summary text + reset button) ──────────────────────────── */
+
+  .vault-word-cloud-filter-bar {
+    @apply wc-flex wc-items-center wc-justify-between;
+    gap: var(--size-4-1);
+  }
+
+  .vault-word-cloud-filter-reset {
+    @apply wc-inline-flex wc-items-center wc-justify-center wc-cursor-pointer;
+    @apply wc-rounded-full;
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    min-height: 30px;
+    padding: 0;
+    border: 1px solid var(--background-modifier-border);
+    background: var(--background-primary);
+    color: var(--text-muted);
+  }
+
+  .vault-word-cloud-filter-reset:hover {
+    color: var(--text-normal);
+    background: var(--background-modifier-hover);
+  }
+
+  .vault-word-cloud-filter-reset svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .vault-word-cloud-filter-summary {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-faint);
+    line-height: 1.4;
+  }
+
+  /* ── Filter section card ───────────────────────────────────────────────── */
+
+  .vault-word-cloud-filter-section {
+    @apply wc-flex wc-flex-col;
+    gap: var(--size-4-2);
+    padding: var(--size-4-2);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background: var(--background-primary-alt);
+  }
+
+  /* Responsive grid for filter fields */
+  .vault-word-cloud-filter-grid {
+    @apply wc-items-end;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: var(--size-4-2);
+  }
+
+  /* ── Advanced disclosure (<details>) ──────────────────────────────────── */
+
+  .vault-word-cloud-advanced-details {
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background: var(--background-primary);
+  }
+
+  .vault-word-cloud-advanced-summary {
+    @apply wc-cursor-pointer wc-select-none;
+    padding: var(--size-4-2);
+    color: var(--text-muted);
+    font-size: var(--font-ui-smaller);
+    font-weight: var(--font-medium);
+  }
+
+  .vault-word-cloud-advanced-summary:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 2px;
+  }
+
+  .vault-word-cloud-advanced-details > .vault-word-cloud-filter-section {
+    margin: 0 var(--size-4-2) var(--size-4-2) var(--size-4-2);
+  }
+
+  /* ── Controls header (title + summary line) ────────────────────────────── */
+
+  .vault-word-cloud-controls-header {
+    @apply wc-flex wc-items-baseline wc-justify-between wc-flex-wrap;
+    gap: var(--size-4-2);
+  }
+
+  .vault-word-cloud-controls-title {
+    @apply wc-uppercase;
+    font-size: var(--font-ui-smaller);
+    font-weight: var(--font-medium);
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+
+  .vault-word-cloud-controls-summary {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-faint);
+  }
+
+  /* ── Controls form row ─────────────────────────────────────────────────── */
+
+  .vault-word-cloud-controls-form {
+    @apply wc-flex wc-items-end wc-flex-wrap;
+    gap: var(--size-4-1);
+  }
+
+  /* Tag filter field and match-mode field */
+  .vault-word-cloud-tag-filter,
+  .vault-word-cloud-match-mode {
+    @apply wc-flex wc-flex-col wc-items-start;
+    gap: var(--size-4-1);
+    flex: 1 1 180px;
+  }
+
+  /* Frequency filter: wraps min/max inputs side by side */
+  .vault-word-cloud-frequency {
+    @apply wc-flex wc-flex-wrap;
+    gap: var(--size-4-2);
+  }
+
+  /* ── Frontmatter filter rows ───────────────────────────────────────────── */
+
+  .vault-word-cloud-frontmatter {
+    @apply wc-flex wc-flex-col;
+    gap: var(--size-4-2);
+  }
+
+  .vault-word-cloud-frontmatter-list {
+    @apply wc-flex wc-flex-col;
+    gap: var(--size-4-2);
+  }
+
+  .vault-word-cloud-frontmatter-row {
+    @apply wc-items-center;
+    display: grid;
+    grid-template-columns: minmax(120px, 1fr) minmax(140px, 180px) minmax(120px, 1fr) 24px;
+    gap: var(--size-4-2);
+  }
+
+  /* ── Field labels ──────────────────────────────────────────────────────── */
+
+  .vault-word-cloud-tag-label {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+    font-weight: var(--font-medium);
+  }
+
+  /* ── Select + refresh button shared sizing ─────────────────────────────── */
+
+  .vault-word-cloud-mode-select,
+  .vault-word-cloud-refresh {
+    min-height: 34px;
+    font-size: var(--font-ui-smaller);
+  }
+
+  .vault-word-cloud-mode-select {
+    @apply wc-w-full;
+    min-width: 180px;
+  }
+
+  .vault-word-cloud-refresh {
+    @apply wc-self-end;
+    min-width: 72px;
+  }
+
+  .vault-word-cloud-clear-filters {
+    @apply wc-whitespace-nowrap;
+  }
+
+  .vault-word-cloud-refresh:disabled,
+  .vault-word-cloud-mode-select:disabled {
+    @apply wc-cursor-not-allowed;
+    opacity: 0.6;
+  }
+
+  /* ── Focus rings (accessible keyboard navigation) ──────────────────────── */
+
+  .vault-word-cloud-mode-select:focus-visible,
+  .vault-word-cloud-refresh:focus-visible,
+  .vault-word-cloud-chip-remove:focus-visible,
+  .vault-word-cloud-filter-reset:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 2px;
+  }
+
+  /* ── Applied tag chips ─────────────────────────────────────────────────── */
+
+  .vault-word-cloud-applied-tags {
+    @apply wc-flex wc-flex-wrap wc-items-center;
+    gap: var(--size-4-2);
+    min-height: 28px;
+  }
+
+  .vault-word-cloud-chip-empty {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-faint);
+  }
+
+  .vault-word-cloud-chip {
+    @apply wc-inline-flex wc-items-center;
+    gap: 6px;
+    padding: 3px 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background: var(--background-secondary);
+  }
+
+  .vault-word-cloud-chip-text {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-normal);
+  }
+
+  .vault-word-cloud-chip-remove {
+    @apply wc-inline-flex wc-items-center wc-justify-center wc-cursor-pointer wc-shrink-0 wc-box-border wc-rounded-full;
+    width: 22px;
+    height: 22px;
+    min-height: 22px;
+    min-width: 22px;
+    flex: 0 0 22px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    line-height: 1;
+    font-size: var(--font-ui-smaller);
+  }
+
+  .vault-word-cloud-chip-remove:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+  }
+
+  /* ── Responsive breakpoint ─────────────────────────────────────────────── */
+
+  @media (max-width: 720px) {
+    .vault-word-cloud-tag-filter,
+    .vault-word-cloud-match-mode {
+      flex: 1 1 100%;
+    }
+
+    .vault-word-cloud-filter-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .vault-word-cloud-frontmatter-row {
+      grid-template-columns: 1fr;
+    }
+
+    .vault-word-cloud-refresh {
+      @apply wc-w-full;
+    }
+  }
+}

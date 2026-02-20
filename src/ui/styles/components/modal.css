@@ -1,0 +1,80 @@
+/* ─── Embed wizard modal ────────────────────────────────────────────────────
+ * Layout for the multi-tab modal used to create and edit embedded word clouds.
+ * Overrides Obsidian's default .modal sizing and manages the tab/panel system.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@layer components {
+
+  /* ── Modal size overrides ──────────────────────────────────────────────── */
+
+  .word-cloud-embed-wizard-modal .modal {
+    width: min(92vw, 920px);
+    height: min(86vh, 760px);
+  }
+
+  .word-cloud-embed-wizard-modal .modal-content {
+    @apply wc-overflow-hidden;
+    height: 100%;
+    min-height: 0;
+  }
+
+  /* ── Wizard root ───────────────────────────────────────────────────────── */
+
+  .word-cloud-embed-wizard {
+    @apply wc-flex wc-flex-col wc-h-full wc-min-h-0;
+    gap: var(--size-4-2);
+  }
+
+  .word-cloud-embed-wizard-settings {
+    @apply wc-flex wc-flex-col wc-min-h-0;
+    flex: 1 1 auto;
+    gap: var(--size-4-2);
+  }
+
+  /* Tab bar and tab button styles live in tabs.css (shared with note-view) */
+
+  /* ── Panel container ───────────────────────────────────────────────────── */
+
+  .word-cloud-embed-wizard-panels {
+    @apply wc-flex wc-flex-col wc-min-h-0;
+    flex: 1 1 auto;
+    gap: var(--size-4-2);
+  }
+
+  /* Individual panel — hidden by default, activated by .is-active */
+  .word-cloud-embed-wizard-panel {
+    @apply wc-hidden wc-min-h-0;
+  }
+
+  .word-cloud-embed-wizard-panel.is-active {
+    @apply wc-flex wc-flex-col wc-overflow-auto wc-min-h-0;
+    flex: 1 1 auto;
+    gap: var(--size-4-2);
+    padding-right: 2px;
+  }
+
+  /* ── Panel content ─────────────────────────────────────────────────────── */
+
+  .word-cloud-embed-wizard-description {
+    @apply wc-m-0;
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+  }
+
+  /* Conditionally hide entire sections within a panel */
+  .word-cloud-embed-wizard-section.is-hidden {
+    @apply wc-hidden;
+  }
+
+  /* ── Sticky action bar ─────────────────────────────────────────────────── */
+
+  /* Cancel / Apply buttons pinned to the bottom of the modal */
+  .word-cloud-embed-wizard-actions {
+    @apply wc-flex wc-justify-end wc-sticky wc-z-above;
+    gap: var(--size-4-1);
+    margin-top: auto;
+    padding-top: var(--size-4-1);
+    bottom: 0;
+    background: var(--modal-background);
+    border-top: 1px solid var(--background-modifier-border);
+  }
+}

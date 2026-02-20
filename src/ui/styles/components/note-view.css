@@ -1,0 +1,67 @@
+/* ─── Note word cloud view ──────────────────────────────────────────────────
+ * Tabbed layout for the per-note word cloud sidebar panel.
+ * Includes the word cloud tab, frequency chart tab, and SVG chart styles.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@layer components {
+
+  /* Tab bar and tab button styles live in tabs.css (shared with modal) */
+
+  /* ── Panel container ───────────────────────────────────────────────────── */
+
+  .note-word-cloud-panels {
+    @apply wc-flex-1 wc-min-h-0;
+  }
+
+  /* Individual panel — hidden by default, shown via .is-active */
+  .note-word-cloud-panel {
+    @apply wc-hidden wc-h-full wc-min-h-0;
+  }
+
+  .note-word-cloud-panel.is-active {
+    @apply wc-flex;
+  }
+
+  /* ── Frequency chart panel ─────────────────────────────────────────────── */
+
+  .note-word-cloud-frequency-canvas {
+    @apply wc-flex-1 wc-overflow-auto;
+    min-height: 300px;
+    padding: var(--size-4-2);
+    border-radius: var(--radius-m);
+    background: var(--background-primary-alt);
+    box-shadow: inset 0 0 0 1px var(--background-modifier-border-hover);
+  }
+
+  /* SVG fills its container width; height is determined by bar count */
+  .note-word-cloud-frequency-svg {
+    @apply wc-w-full;
+    min-width: 100%;
+  }
+
+  /* Shared font size for all chart text elements */
+  .note-word-cloud-frequency-label,
+  .note-word-cloud-frequency-value,
+  .note-word-cloud-frequency-summary {
+    font-size: var(--font-ui-smaller);
+  }
+
+  /* SVG text fills — these are SVG attributes, not CSS text colors */
+  .note-word-cloud-frequency-label {
+    fill: var(--text-muted);
+  }
+
+  .note-word-cloud-frequency-value {
+    fill: var(--text-faint);
+  }
+
+  .note-word-cloud-frequency-bar {
+    fill: var(--interactive-accent);
+    opacity: 0.85;
+  }
+
+  /* Summary line below the chart */
+  .note-word-cloud-frequency-summary {
+    margin-top: 6px;
+    color: var(--text-faint);
+  }
+}

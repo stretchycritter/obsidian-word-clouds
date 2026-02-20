@@ -1,0 +1,24 @@
+/* ─── Component styles ──────────────────────────────────────────────────────
+ * @import must precede @tailwind directives for postcss-import to inline them.
+ * Each file uses @layer components { } so Tailwind manages cascade ordering.
+ * Edit the relevant component file — not this entry point — to change styles.
+ * ────────────────────────────────────────────────────────────────────────── */
+@import './utilities.css';
+@import './components/vault-view.css';
+@import './components/filter-panel.css';
+@import './components/tabs.css';
+@import './components/note-view.css';
+@import './components/settings.css';
+@import './components/embed.css';
+@import './components/render.css';
+@import './components/controls.css';
+@import './components/modal.css';
+
+/* Tailwind CSS directives
+ * base:       minimal (preflight disabled — Obsidian owns base styles)
+ * components: @layer components {} blocks from each component file
+ * utilities:  wc-* scoped utility classes (generated from content scan + @apply usage)
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

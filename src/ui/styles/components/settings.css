@@ -1,0 +1,214 @@
+/* ─── Plugin settings tab ───────────────────────────────────────────────────
+ * Layout for the settings page: sections, excluded-words disclosure,
+ * badge lists, live preview canvas, benchmark table, and support block.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@layer components {
+
+  /* ── Section spacing ───────────────────────────────────────────────────── */
+
+  .vault-word-cloud-settings-tab > .vault-word-cloud-settings-section {
+    margin-top: var(--size-4-6);
+  }
+
+  .vault-word-cloud-settings-tab > .vault-word-cloud-settings-section:first-child {
+    margin-top: 0;
+  }
+
+  .vault-word-cloud-settings-section > h3 {
+    margin: 0 0 var(--size-4-2) 0;
+  }
+
+  .vault-word-cloud-settings-section .setting-item {
+    margin-top: var(--size-4-2);
+  }
+
+  .vault-word-cloud-settings-section .setting-item:first-of-type {
+    margin-top: 0;
+  }
+
+  .vault-word-cloud-settings-section-description {
+    margin: 0;
+  }
+
+  .vault-word-cloud-settings-list {
+    margin-top: var(--size-4-1);
+  }
+
+  /* ── Excluded-words disclosure (<details>) ─────────────────────────────── */
+
+  .vault-word-cloud-settings-excluded-details {
+    margin-top: var(--size-4-1);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background: var(--background-secondary);
+  }
+
+  .vault-word-cloud-settings-excluded-summary {
+    @apply wc-cursor-pointer wc-select-none;
+    padding: var(--size-4-2) var(--size-4-3);
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-medium);
+  }
+
+  .vault-word-cloud-settings-excluded-summary:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 1px;
+  }
+
+  .vault-word-cloud-settings-excluded-details[open] .vault-word-cloud-settings-list {
+    margin-top: 0;
+    padding: var(--size-4-1) var(--size-4-3) var(--size-4-3) var(--size-4-3);
+  }
+
+  /* ── Settings list items ───────────────────────────────────────────────── */
+
+  .vault-word-cloud-settings-items {
+    @apply wc-flex wc-flex-col;
+    gap: var(--size-4-1);
+  }
+
+  .vault-word-cloud-settings-item {
+    @apply wc-flex wc-justify-between wc-items-center;
+    gap: var(--size-4-2);
+    padding: var(--size-4-1) var(--size-4-2);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+  }
+
+  /* ── Badge list (e.g. active stop-words) ──────────────────────────────── */
+
+  .vault-word-cloud-settings-badges {
+    @apply wc-flex wc-flex-wrap;
+    gap: 6px;
+    padding: var(--size-4-2);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    background: var(--background-secondary);
+  }
+
+  .vault-word-cloud-settings-badges-empty {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+  }
+
+  .vault-word-cloud-settings-badge {
+    @apply wc-inline-flex wc-items-center wc-rounded-full;
+    gap: 6px;
+    padding: 2px 8px;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+  }
+
+  .vault-word-cloud-settings-badge-text {
+    font-size: var(--font-ui-smaller);
+  }
+
+  .vault-word-cloud-settings-badge-remove {
+    @apply wc-rounded-full wc-shrink-0;
+    width: 20px;
+    height: 20px;
+    min-height: 20px;
+    min-width: 20px;
+    flex: 0 0 20px;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    color: var(--text-muted);
+  }
+
+  .vault-word-cloud-settings-badge-remove:hover {
+    color: var(--text-normal);
+    background: var(--background-modifier-hover);
+  }
+
+  .vault-word-cloud-settings-badge-remove svg {
+    width: 10px;
+    height: 10px;
+  }
+
+  .vault-word-cloud-settings-badge-remove:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 1px;
+  }
+
+  /* ── Live preview canvas ───────────────────────────────────────────────── */
+
+  .vault-word-cloud-settings-preview {
+    margin-top: 0;
+  }
+
+  .vault-word-cloud-settings-preview-canvas {
+    @apply wc-overflow-hidden;
+    height: 300px;
+    border-radius: var(--radius-m);
+    background: var(--background-primary-alt);
+    box-shadow: inset 0 0 0 1px var(--background-modifier-border-hover);
+  }
+
+  /* ── Benchmark block ───────────────────────────────────────────────────── */
+
+  .vault-word-cloud-settings-benchmark-block {
+    padding: var(--size-4-3);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+  }
+
+  .vault-word-cloud-settings-benchmark-block > .setting-item {
+    border: 0;
+    padding: 0;
+  }
+
+  .vault-word-cloud-settings-benchmark-results {
+    margin-top: var(--size-4-2);
+  }
+
+  .vault-word-cloud-settings-benchmark-table {
+    @apply wc-w-full wc-border-collapse;
+    font-size: var(--font-ui-small);
+  }
+
+  .vault-word-cloud-settings-benchmark-table th,
+  .vault-word-cloud-settings-benchmark-table td {
+    padding: 6px 8px;
+    text-align: left;
+    border: 1px solid var(--background-modifier-border);
+  }
+
+  .vault-word-cloud-settings-benchmark-table th {
+    background: var(--background-secondary);
+  }
+
+  /* ── Support / sponsor block ───────────────────────────────────────────── */
+
+  .vault-word-cloud-settings-support {
+    @apply wc-flex wc-flex-col wc-items-center wc-text-center;
+    gap: var(--size-4-2);
+    padding: var(--size-4-3);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background: var(--background-secondary);
+  }
+
+  .vault-word-cloud-settings-support-title {
+    @apply wc-w-full wc-text-center;
+    margin: 0;
+  }
+
+  .vault-word-cloud-settings-support-copy {
+    @apply wc-w-full wc-text-center;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+  }
+
+  .vault-word-cloud-settings-support-actions {
+    @apply wc-flex wc-flex-wrap wc-items-center wc-justify-center wc-w-full;
+    gap: var(--size-4-3);
+  }
+
+  .vault-word-cloud-settings-support-button {
+    @apply wc-justify-center;
+    min-width: 150px;
+  }
+}

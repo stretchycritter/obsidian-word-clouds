@@ -1,0 +1,64 @@
+/* ─── Word cloud render surface ─────────────────────────────────────────────
+ * Positioning layers for the SVG canvas, pan/zoom surface,
+ * and the inline settings panel that floats over the canvas.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@layer components {
+
+  /* Outermost container — establishes the positioning context for overlays */
+  .word-cloud-render-container {
+    @apply wc-relative wc-block;
+    line-height: 0;
+  }
+
+  /* Inner host that wraps the render target and pan/zoom surface */
+  .word-cloud-render-host {
+    @apply wc-relative;
+  }
+
+  /* Full-panel shell for sidebar/view mode word clouds */
+  .word-cloud-view-shell {
+    @apply wc-relative wc-w-full wc-h-full;
+    min-height: 320px;
+  }
+
+  /* SVG render target — fills the host absolutely */
+  .word-cloud-render-target {
+    @apply wc-absolute wc-inset-0;
+  }
+
+  /* ── Inline settings panel ─────────────────────────────────────────────── */
+
+  /* Floating settings panel shown when the edit icon is clicked */
+  .word-cloud-inline-edit-panel {
+    @apply wc-absolute wc-z-panel;
+    top: 40px;
+    left: var(--size-4-2);
+    max-width: min(420px, calc(100% - 16px));
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background: var(--background-primary);
+    box-shadow: var(--shadow-s);
+  }
+
+  .word-cloud-inline-edit-panel[hidden] {
+    @apply wc-hidden;
+  }
+
+  .word-cloud-inline-edit-content {
+    padding: var(--size-4-2);
+  }
+
+  /* ── Pan/zoom surface ──────────────────────────────────────────────────── */
+
+  /* The interactive SVG element that handles pointer events for pan/zoom */
+  .word-cloud-panzoom-surface {
+    @apply wc-block wc-w-full wc-h-full wc-cursor-grab wc-touch-none;
+    border: none;
+    outline: none;
+    box-shadow: none;
+  }
+
+  .word-cloud-panzoom-surface.is-panning {
+    @apply wc-cursor-grabbing;
+  }
+}

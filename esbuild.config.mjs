@@ -2,6 +2,10 @@ import esbuild from 'esbuild';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'process';
+import postcss from 'postcss';
+import postcssImport from 'postcss-import';
+import tailwindcss from 'tailwindcss';
+import autoprefixer from 'autoprefixer';
 
 const mode = process.argv[2] ?? 'watch';
 if (!['dev', 'watch', 'watch-release', 'release'].includes(mode)) {
@@ -36,7 +40,7 @@ function copyBuiltPluginFiles(targetDir, includeSourceMap) {
   }
 }
 
-function copyStaticFiles() {
+async function copyStaticFiles() {
   mkdirSync(distDir, { recursive: true });
   if (isRelease) {
     const sourceMapPath = path.join(distDir, 'main.js.map');
@@ -45,14 +49,22 @@ function copyStaticFiles() {
     }
   }
 
-  const stylesPath = path.join(projectRoot, 'src', 'ui', 'styles.css');
+  // Process CSS entry point through PostCSS (postcss-import → Tailwind → autoprefixer).
+  // Component files live under src/ui/styles/components/ and are @imported by index.css.
+  const stylesEntryPath = path.join(projectRoot, 'src', 'ui', 'styles', 'index.css');
+  const rawCss = readFileSync(stylesEntryPath, 'utf8');
+  const postcssResult = await postcss([postcssImport, tailwindcss, autoprefixer]).process(rawCss, {
+    from: stylesEntryPath,
+    to: path.join(distDir, 'styles.css'),
+  });
+
   const stylesOutput = isRelease
-    ? esbuild.transformSync(readFileSync(stylesPath, 'utf8'), {
+    ? esbuild.transformSync(postcssResult.css, {
         loader: 'css',
         minify: true,
         legalComments: 'eof',
       }).code
-    : readFileSync(stylesPath, 'utf8');
+    : postcssResult.css;
 
   copyFileSync(manifestPath, path.join(distDir, 'manifest.json'));
   writeFileSync(path.join(distDir, 'styles.css'), stylesOutput);
@@ -80,9 +92,9 @@ const context = await esbuild.context({
     {
       name: 'copy-static-files',
       setup(build) {
-        build.onEnd((result) => {
+        build.onEnd(async (result) => {
           if (result.errors.length === 0) {
-            copyStaticFiles();
+            await copyStaticFiles();
             if (isWatch) {
               copyBuiltPluginFiles(demoVaultPluginDir, !isRelease);
             }

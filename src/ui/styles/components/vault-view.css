@@ -1,0 +1,50 @@
+/* ─── Vault word cloud view ─────────────────────────────────────────────────
+ * Top-level panel layout and canvas container for the vault-wide word cloud.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@layer components {
+  /* Root view container — fills the Obsidian panel */
+  .vault-word-cloud-view {
+    @apply wc-h-full wc-flex wc-flex-col;
+    gap: var(--size-4-2);
+    padding: var(--size-4-2);
+  }
+
+  /* Top section (header + controls), separated from the canvas below */
+  .vault-word-cloud-top {
+    @apply wc-flex wc-flex-col;
+    gap: var(--size-4-1);
+    padding: var(--size-4-1) 0;
+    border-bottom: 1px solid var(--background-modifier-border);
+  }
+
+  /* Header row: title on the left, actions on the right */
+  .vault-word-cloud-header {
+    @apply wc-flex wc-items-center wc-justify-between;
+  }
+
+  /* Section title label (e.g. "WORD CLOUD") */
+  .vault-word-cloud-title {
+    @apply wc-uppercase;
+    margin: 0;
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-medium);
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* Canvas area that holds the rendered word cloud */
+  .vault-word-cloud-canvas {
+    @apply wc-flex-1 wc-overflow-hidden;
+    min-height: 300px;
+    border-radius: var(--radius-m);
+    background: var(--background-primary-alt);
+    box-shadow: inset 0 0 0 1px var(--background-modifier-border-hover);
+  }
+
+  /* Centered empty/loading state shown when there is no word cloud to display */
+  .vault-word-cloud-state {
+    @apply wc-flex wc-items-center wc-justify-center wc-w-full wc-h-full;
+    color: var(--text-muted);
+    font-size: var(--font-ui-medium);
+  }
+}

@@ -1,0 +1,46 @@
+/* ─── Shared tab bar pattern ─────────────────────────────────────────────────
+ * Used by: note-view (note-word-cloud-*) and modal (word-cloud-embed-wizard-*)
+ * Centralised here to keep both implementations in sync.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@layer components {
+
+  /* ── Tab bar container ─────────────────────────────────────────────────── */
+
+  .note-word-cloud-tabs,
+  .word-cloud-embed-wizard-tabs {
+    @apply wc-inline-flex wc-items-center;
+    gap: var(--size-4-1);
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--background-modifier-border);
+  }
+
+  /* ── Tab button ─────────────────────────────────────────────────────────── */
+
+  .note-word-cloud-tab,
+  .word-cloud-embed-wizard-tab {
+    @apply wc-cursor-pointer;
+    min-height: 28px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-s);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: var(--font-ui-smaller);
+  }
+
+  /* ── Active state ───────────────────────────────────────────────────────── */
+
+  .note-word-cloud-tab.is-active,
+  .word-cloud-embed-wizard-tab.is-active {
+    border-color: var(--background-modifier-border);
+    background: var(--background-secondary);
+    color: var(--text-normal);
+  }
+
+  /* ── Focus ring ─────────────────────────────────────────────────────────── */
+
+  .note-word-cloud-tab:focus-visible,
+  .word-cloud-embed-wizard-tab:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 2px;
+  }
+}
