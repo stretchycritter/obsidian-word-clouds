@@ -4,8 +4,22 @@ import { t } from '@/i18n';
 import { EmbedWordCloudModal } from '@/ui';
 import { insertEmbedAtCursor } from '@/services/note-service';
 
+function buildDefaultEmbedBlock(): string {
+  const cloudId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `wc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+  const data: Record<string, string> = {
+    scope: 'file',
+    size: 'medium',
+  };
+
+  const dataEncoded = btoa(JSON.stringify(data));
+  return `\`\`\`wordcloud\nid: ${cloudId}\ndata: ${dataEncoded}\n\`\`\``;
+}
+
 export function registerCommands(plugin: Plugin, deps: Deps): void {
-  // Future planned features for dedicated views
+  // FUTURE: Future planned features for dedicated views
   // plugin.addCommand({
   //   id: 'open-vault-word-cloud-view',
   //   name: t('commands.openVaultWordCloud'),
@@ -26,10 +40,17 @@ export function registerCommands(plugin: Plugin, deps: Deps): void {
     id: 'embed-word-cloud-in-document',
     name: t('commands.embedWordCloudInDocument'),
     callback: () => {
+      const { openEditorOnInsert } = deps.settingsService.getSnapshot();
+      if (!openEditorOnInsert) {
+        insertEmbedAtCursor(plugin.app, buildDefaultEmbedBlock(), true);
+        return;
+      }
+
       new EmbedWordCloudModal(
         plugin.app,
         deps.services.wordCloud,
-        (embedBlock) => insertEmbedAtCursor(plugin.app, embedBlock),
+        (embedBlock) => insertEmbedAtCursor(plugin.app, embedBlock, true),
+        { mode: 'create' },
       ).open();
     },
   });

@@ -28,8 +28,9 @@ export class SettingsService {
 
   async load(): Promise<void> {
     const loaded = await this.plugin.loadData();
-    const raw = (loaded && typeof loaded === 'object') ? loaded as { exclusionListWords?: unknown; render?: unknown; filters?: unknown } : {};
+    const raw = (loaded && typeof loaded === 'object') ? loaded as { openEditorOnInsert?: unknown; exclusionListWords?: unknown; render?: unknown; filters?: unknown } : {};
     this.settings = {
+      openEditorOnInsert: typeof raw.openEditorOnInsert === 'boolean' ? raw.openEditorOnInsert : DEFAULT_SETTINGS.openEditorOnInsert,
       exclusionListWords: normalizeExclusionListWords(raw.exclusionListWords),
       render: normalizeRenderSettings(raw.render),
       filters: normalizeFilterSettings(raw.filters),
@@ -107,6 +108,16 @@ export class SettingsService {
       };
       await this.persist(nextSettings);
       return { ...this.settings.render };
+    });
+  }
+
+  async updateOpenEditorOnInsert(value: boolean): Promise<void> {
+    await this.enqueueUpdate(async () => {
+      const nextSettings: WordCloudSettings = {
+        ...this.settings,
+        openEditorOnInsert: value,
+      };
+      await this.persist(nextSettings);
     });
   }
 

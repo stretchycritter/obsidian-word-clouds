@@ -485,6 +485,17 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
     const interactionsSectionEl = createSection('settings.tab.interactions.heading');
 
     new Setting(interactionsSectionEl)
+      .setName(t('settings.tab.interactions.openEditorOnInsert.name'))
+      .setDesc(t('settings.tab.interactions.openEditorOnInsert.desc'))
+      .addToggle((toggle) => {
+        toggle
+          .setValue(settings.openEditorOnInsert)
+          .onChange(async (value) => {
+            await this.services.updateOpenEditorOnInsert(value);
+          });
+      });
+
+    new Setting(interactionsSectionEl)
       .setName(t('settings.tab.render.mouseInteractions.name'))
       .setDesc(t('settings.tab.render.mouseInteractions.desc'))
       .addToggle((toggle) => {

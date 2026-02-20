@@ -997,9 +997,7 @@ function openEmbeddedWordCloudEditWizard(
     services,
     async (embedBlock) => updateEmbeddedCodeBlock(plugin, ctx, hostEl, embedBlock, options.cloudId),
     {
-      title: t('ui.blocks.embed.editTitle'),
-      description: t('ui.blocks.embed.editDescription'),
-      submitButtonText: t('ui.modals.embed.apply'),
+      mode: 'edit',
       initialState: {
         cloudId: options.cloudId,
         scope: options.scope,

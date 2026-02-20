@@ -50,9 +50,7 @@ export type EmbedWizardState = {
 };
 
 type EmbedWordCloudModalOptions = {
-  title?: string;
-  description?: string;
-  submitButtonText?: string;
+  mode: 'create' | 'edit';
   initialState?: Partial<EmbedWizardState>;
 };
 
@@ -166,14 +164,14 @@ export class EmbedWordCloudModal extends Modal {
     app: App,
     services: WordCloudServices,
     onInsert: (embedBlock: string) => boolean | Promise<boolean>,
-    options: EmbedWordCloudModalOptions = {},
+    options: EmbedWordCloudModalOptions,
   ) {
     super(app);
     this.services = services;
     this.onInsert = onInsert;
-    this.title = options.title ?? t('ui.modals.embed.title');
-    this.description = options.description ?? t('ui.modals.embed.description');
-    this.submitButtonText = options.submitButtonText ?? t('ui.modals.embed.apply');
+    this.title = options.mode === 'edit' ? t('ui.blocks.embed.editTitle') : t('ui.modals.embed.title');
+    this.description = options.mode === 'edit' ? t('ui.blocks.embed.editDescription') : t('ui.modals.embed.description');
+    this.submitButtonText = options.mode === 'edit' ? t('ui.modals.embed.apply') : t('ui.modals.embed.insert');
     this.settingsDefaults = getSettingsDefaults(services);
 
     const defaultState = createDefaultState(this.settingsDefaults);
@@ -267,6 +265,7 @@ export class EmbedWordCloudModal extends Modal {
 
     this.refreshScopeSections();
     this.switchTab('filters');
+    applyButton.buttonEl.focus();
   }
 
   onClose(): void {

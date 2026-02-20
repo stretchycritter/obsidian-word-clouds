@@ -120,6 +120,7 @@ export type WordCloudFilterSettings = {
 };
 
 export interface WordCloudSettings {
+  openEditorOnInsert: boolean;
   exclusionListWords: string[];
   render: RenderSettings;
   filters: WordCloudFilterSettings;

@@ -46,6 +46,7 @@ export const DEFAULT_STOP_WORDS: string[] = [
 ];
 
 export const DEFAULT_SETTINGS: WordCloudSettings = {
+  openEditorOnInsert: true,
   exclusionListWords: [...DEFAULT_STOP_WORDS],
   render: {
     rotationPreset: 'mostly-horizontal',

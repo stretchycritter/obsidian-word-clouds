@@ -17,6 +17,7 @@ export interface WordCloudSettingsControls {
   getSupportedFontFamilyOptions(): ReadonlyArray<FontFamilyOption>;
   getSelectedSupportedFontFamily(rawFontFamily: string): string;
   getSettingsPreviewWords(): WeightedWord[];
+  updateOpenEditorOnInsert(value: boolean): Promise<void>;
   updateMinimumFontSize(minFontSize: number): Promise<RenderSettings>;
   updateMaximumFontSize(maxFontSize: number): Promise<RenderSettings>;
   updateRenderSettings(patch: Partial<RenderSettings>): Promise<void>;
@@ -66,6 +67,10 @@ export class WordCloudAppService implements WordCloudServices, WordCloudSettings
 
   getFilterSettings(): WordCloudFilterSettings {
     return this.settingsService.getSnapshot().filters;
+  }
+
+  async updateOpenEditorOnInsert(value: boolean): Promise<void> {
+    await this.settingsService.updateOpenEditorOnInsert(value);
   }
 
   async updateFilterSettings(patch: Partial<WordCloudFilterSettings>): Promise<void> {

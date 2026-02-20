@@ -6,3 +6,5 @@ dist/
 .deploy.local
 demo-vault/.obsidian/plugins/word-clouds/
 .temp/
+
+todo.md

@@ -13,6 +13,7 @@ import { normalizeTag } from '@/utils/utils';
 
 export function cloneSettings(settings: WordCloudSettings): WordCloudSettings {
   return {
+    openEditorOnInsert: settings.openEditorOnInsert,
     exclusionListWords: [...settings.exclusionListWords],
     render: { ...settings.render },
     filters: {
