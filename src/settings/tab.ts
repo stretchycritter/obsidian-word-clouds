@@ -161,28 +161,42 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
             });
         });
 
+      // Local mutable ref so sub-setting onChange handlers stay consistent
+      // after the enabled toggle fires without a full re-render.
+      let currentNlpSettings = { ...settings.filters.nlp };
+
+      // Declared before the toggle so the onChange closure can reference it;
+      // assigned after (safe because onChange is event-driven, never sync).
+      let nlpSubSettingsEl!: HTMLElement;
+
+      const nlpEnabledNameFrag = document.createDocumentFragment();
+      nlpEnabledNameFrag.append(t('settings.tab.filters.nlp.enabled.name'));
+      const nlpChipEl = nlpEnabledNameFrag.appendChild(document.createElement('span'));
+      nlpChipEl.className = 'vault-word-cloud-settings-nlp-chip';
+      nlpChipEl.textContent = 'NLP';
+
       new Setting(sectionEl)
-        .setName(t('settings.tab.filters.nlp.enabled.name'))
+        .setName(nlpEnabledNameFrag)
         .setDesc(t('settings.tab.filters.nlp.enabled.desc'))
         .addToggle((toggle) => {
           toggle
-            .setValue(settings.filters.nlp.enabled)
+            .setValue(currentNlpSettings.enabled)
             .onChange(async (value) => {
-              const nextMode = value && settings.filters.nlp.mode === 'off'
+              const nextMode = value && currentNlpSettings.mode === 'off'
                 ? 'light'
-                : settings.filters.nlp.mode;
-              await this.services.updateFilterSettings({
-                nlp: {
-                  ...settings.filters.nlp,
-                  enabled: value,
-                  mode: nextMode,
-                },
-              });
-              this.display();
+                : currentNlpSettings.mode;
+              currentNlpSettings = { ...currentNlpSettings, enabled: value, mode: nextMode };
+              await this.services.updateFilterSettings({ nlp: currentNlpSettings });
+              nlpSubSettingsEl.toggleClass('is-open', value);
             });
         });
 
-      new Setting(sectionEl)
+      // Creating the div after the Setting ensures it follows the toggle in DOM order.
+      nlpSubSettingsEl = sectionEl.createDiv({
+        cls: `vault-word-cloud-settings-nlp-subsettings${currentNlpSettings.enabled ? ' is-open' : ''}`,
+      });
+
+      new Setting(nlpSubSettingsEl)
         .setName(t('settings.tab.filters.nlp.mode.name'))
         .setDesc(t('settings.tab.filters.nlp.mode.desc'))
         .addDropdown((dropdown) => {
@@ -190,68 +204,51 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
             .addOption('off', t('settings.tab.filters.nlp.mode.off'))
             .addOption('light', t('settings.tab.filters.nlp.mode.light'))
             .addOption('aggressive', t('settings.tab.filters.nlp.mode.aggressive'))
-            .setValue(settings.filters.nlp.mode)
-            .setDisabled(!settings.filters.nlp.enabled)
+            .setValue(currentNlpSettings.mode)
             .onChange(async (value) => {
-              await this.services.updateFilterSettings({
-                nlp: {
-                  ...settings.filters.nlp,
-                  mode: value === 'light' || value === 'aggressive' ? value : 'off',
-                },
-              });
+              currentNlpSettings = {
+                ...currentNlpSettings,
+                mode: value === 'light' || value === 'aggressive' ? value : 'off',
+              };
+              await this.services.updateFilterSettings({ nlp: currentNlpSettings });
             });
         });
 
-      new Setting(sectionEl)
+      new Setting(nlpSubSettingsEl)
         .setName(t('settings.tab.filters.nlp.preserveAcronyms.name'))
         .setDesc(t('settings.tab.filters.nlp.preserveAcronyms.desc'))
         .addToggle((toggle) => {
           toggle
-            .setValue(settings.filters.nlp.preserveAcronyms)
-            .setDisabled(!settings.filters.nlp.enabled)
+            .setValue(currentNlpSettings.preserveAcronyms)
             .onChange(async (value) => {
-              await this.services.updateFilterSettings({
-                nlp: {
-                  ...settings.filters.nlp,
-                  preserveAcronyms: value,
-                },
-              });
+              currentNlpSettings = { ...currentNlpSettings, preserveAcronyms: value };
+              await this.services.updateFilterSettings({ nlp: currentNlpSettings });
             });
         });
 
-      new Setting(sectionEl)
+      new Setting(nlpSubSettingsEl)
         .setName(t('settings.tab.filters.nlp.minLemmaLength.name'))
         .setDesc(t('settings.tab.filters.nlp.minLemmaLength.desc'))
         .addSlider((slider) => {
           slider
             .setLimits(2, 32, 1)
-            .setValue(settings.filters.nlp.minLemmaLength)
+            .setValue(currentNlpSettings.minLemmaLength)
             .setDynamicTooltip()
-            .setDisabled(!settings.filters.nlp.enabled)
             .onChange(async (value) => {
-              await this.services.updateFilterSettings({
-                nlp: {
-                  ...settings.filters.nlp,
-                  minLemmaLength: value,
-                },
-              });
+              currentNlpSettings = { ...currentNlpSettings, minLemmaLength: value };
+              await this.services.updateFilterSettings({ nlp: currentNlpSettings });
             });
         });
 
-      new Setting(sectionEl)
+      new Setting(nlpSubSettingsEl)
         .setName(t('settings.tab.filters.nlp.filterNumericTokens.name'))
         .setDesc(t('settings.tab.filters.nlp.filterNumericTokens.desc'))
         .addToggle((toggle) => {
           toggle
-            .setValue(settings.filters.nlp.filterNumericTokens)
-            .setDisabled(!settings.filters.nlp.enabled)
+            .setValue(currentNlpSettings.filterNumericTokens)
             .onChange(async (value) => {
-              await this.services.updateFilterSettings({
-                nlp: {
-                  ...settings.filters.nlp,
-                  filterNumericTokens: value,
-                },
-              });
+              currentNlpSettings = { ...currentNlpSettings, filterNumericTokens: value };
+              await this.services.updateFilterSettings({ nlp: currentNlpSettings });
             });
         });
     };

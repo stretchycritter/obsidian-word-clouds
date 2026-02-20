@@ -55,6 +55,35 @@
     font-weight: var(--font-semibold);
   }
 
+  /* ── NLP chip badge ─────────────────────────────────────────────────────── */
+
+  .vault-word-cloud-settings-nlp-chip {
+    display: inline-block;
+    padding: 1px 7px;
+    margin-left: 7px;
+    background: #5ba3d4;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    vertical-align: middle;
+    letter-spacing: 0.03em;
+    line-height: 1.6;
+  }
+
+  /* ── NLP sub-settings collapsible ──────────────────────────────────────── */
+
+  .vault-word-cloud-settings-nlp-subsettings {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 220ms ease-out;
+  }
+
+  .vault-word-cloud-settings-nlp-subsettings.is-open {
+    max-height: 500px;
+    transition: max-height 260ms ease-in;
+  }
+
   /* ── Reset section separator ────────────────────────────────────────────── */
 
   .vault-word-cloud-settings-tab > .vault-word-cloud-settings-reset-wrapper {

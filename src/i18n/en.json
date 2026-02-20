@@ -142,7 +142,7 @@
   "settings.tab.filters.heading": "Filters",
   "settings.tab.filters.minimumWordLength.name": "Minimum word length",
   "settings.tab.filters.minimumWordLength.desc": "Ignore words shorter than this length.",
-  "settings.tab.filters.nlp.enabled.name": "Enable NLP processing",
+  "settings.tab.filters.nlp.enabled.name": "Enable Natural Language Processing",
   "settings.tab.filters.nlp.enabled.desc": "Apply lightweight normalization before filtering and counting words.",
   "settings.tab.filters.nlp.mode.name": "NLP mode",
   "settings.tab.filters.nlp.mode.desc": "Choose how aggressively to normalize words.",

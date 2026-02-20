@@ -70,6 +70,34 @@ jest.mock('obsidian', () => {
       this.removed = true;
     }
 
+    addClass(className: string): void {
+      this.classNames.add(className);
+    }
+
+    removeClass(className: string): void {
+      this.classNames.delete(className);
+    }
+
+    toggleClass(className: string, value: boolean): void {
+      if (value) {
+        this.classNames.add(className);
+      } else {
+        this.classNames.delete(className);
+      }
+    }
+
+    hasClass(className: string): boolean {
+      return this.classNames.has(className);
+    }
+
+    appendChild(child: MockElement): void {
+      const idx = this.children.indexOf(child);
+      if (idx !== -1) {
+        this.children.splice(idx, 1);
+      }
+      this.children.push(child);
+    }
+
     findByClass(className: string): MockElement | null {
       if (this.classNames.has(className)) {
         return this;
@@ -269,8 +297,8 @@ jest.mock('obsidian', () => {
       MockSetting.instances.push(this);
     }
 
-    setName(name: string): this {
-      this.name = name;
+    setName(name: string | DocumentFragment): this {
+      this.name = typeof name === 'string' ? name : (name.textContent ?? '');
       return this;
     }
 
@@ -353,6 +381,21 @@ describe('VaultWordCloudSettingTab', () => {
     obsidianMock.__mocks.MockSetting.instances.length = 0;
     (globalThis as { __DEV_BUILD__?: boolean }).__DEV_BUILD__ = true;
     (globalThis as any).window = { confirm: jest.fn(), open: jest.fn() };
+    // Minimal document stub for DocumentFragment usage in tab.ts (node test env has no DOM).
+    (globalThis as any).document = {
+      createDocumentFragment: () => {
+        const parts: Array<string | { textContent?: string }> = [];
+        return {
+          append: (s: string) => { parts.push(s); },
+          appendChild: (child: { textContent?: string }) => { parts.push(child); return child; },
+          // Evaluated lazily so children mutated after appendChild are captured correctly.
+          get textContent() {
+            return parts.map((p) => (typeof p === 'string' ? p : (p.textContent ?? ''))).join('');
+          },
+        };
+      },
+      createElement: (_tag: string) => ({ className: '', textContent: '' }),
+    };
   });
 
   test('renders preview initially and rerenders after render-default changes', async () => {
@@ -580,26 +623,32 @@ describe('VaultWordCloudSettingTab', () => {
     expect(services.updateRenderSettings).toHaveBeenCalledWith({ enableWordClickSearch: false });
   });
 
-  test('nlp controls update filter settings and dependent controls start disabled', async () => {
+  test('nlp sub-settings slide in/out and update filter settings', async () => {
     const settings = createSettings();
     settings.filters.nlp.enabled = false;
     const services = createServicesMock(settings);
     const tab = createTab(services);
     tab.display();
 
-    const modeDropdown = getControl('NLP mode', 0) as { disabled: boolean };
-    expect(modeDropdown.disabled).toBe(true);
+    // Sub-settings container should not have the open class when NLP is disabled.
+    const container = (tab.containerEl as unknown as {
+      findByClass: (className: string) => { hasClass: (cls: string) => boolean } | null;
+    }).findByClass('vault-word-cloud-settings-nlp-subsettings');
+    expect(container).not.toBeNull();
+    expect(container?.hasClass('is-open')).toBe(false);
 
-    const enabledToggle = getControl('Enable NLP processing', 0) as {
+    const enabledToggle = getControl('Enable Natural Language ProcessingNLP', 0) as {
       triggerChange: (value: boolean) => Promise<void>;
     };
     await enabledToggle.triggerChange(true);
 
+    expect(container?.hasClass('is-open')).toBe(true);
     expect(services.updateFilterSettings).toHaveBeenCalledWith({
-      nlp: expect.objectContaining({
-        enabled: true,
-      }),
+      nlp: expect.objectContaining({ enabled: true }),
     });
+
+    await enabledToggle.triggerChange(false);
+    expect(container?.hasClass('is-open')).toBe(false);
   });
 
   test('support buttons open template-specific GitHub issue forms', async () => {
