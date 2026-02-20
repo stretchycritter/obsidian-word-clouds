@@ -41,7 +41,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "\"embed\" path:\"README.md\"",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -65,8 +65,7 @@
               "title": "Files"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "horizontal",
@@ -153,7 +152,7 @@
       "word-clouds:Open word clouds": false
     }
   },
-  "active": "3d86353963d62dae",
+  "active": "b1fc209fbf33428d",
   "lastOpenFiles": [
     "Aesop Rock/06 - Supercell.md",
     "Aesop Rock/05 - Rabies.md",

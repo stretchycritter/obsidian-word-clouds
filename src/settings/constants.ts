@@ -36,14 +36,7 @@ export const SETTINGS_PREVIEW_TEMPLATE: ReadonlyArray<SettingsPreviewWord> = [
   ['goals', 4],
 ];
 
-export const DEFAULT_STOP_WORDS: string[] = [
-  'the', 'and', 'for', 'that', 'this', 'with', 'from', 'are', 'was', 'were', 'have', 'has', 'had',
-  'you', 'your', 'they', 'them', 'their', 'its', 'our', 'ours', 'his', 'her', 'she', 'him', 'not',
-  'but', 'can', 'will', 'all', 'any', 'one', 'two', 'too', 'use', 'using', 'into', 'out', 'about',
-  'there', 'then', 'than', 'when', 'what', 'where', 'which', 'who', 'whom', 'how', 'why', 'also',
-  'just', 'like', 'some', 'more', 'most', 'much', 'many', 'very', 'each', 'other', 'such', 'only',
-  'note', 'notes', 'todo', 'done', 'null', 'true', 'false', 'http', 'https', 'www', 'com',
-];
+export const DEFAULT_STOP_WORDS: string[] = [];
 
 export const DEFAULT_SETTINGS: WordCloudSettings = {
   openEditorOnInsert: true,
