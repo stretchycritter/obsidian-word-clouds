@@ -26,6 +26,11 @@
     @apply wc-absolute wc-inset-0;
   }
 
+  /* Persistent overlay layer for controls — survives word cloud re-renders */
+  .word-cloud-controls-layer {
+    @apply wc-absolute wc-inset-0 wc-pointer-events-none;
+  }
+
   /* ── Inline settings panel ─────────────────────────────────────────────── */
 
   /* Floating settings panel shown when the edit icon is clicked */

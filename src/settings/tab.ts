@@ -167,9 +167,16 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
 
       // Declared before the toggle so the onChange closure can reference it;
       // assigned after (safe because onChange is event-driven, never sync).
+      let nlpSubSettingsOuterEl!: HTMLElement;
       let nlpSubSettingsEl!: HTMLElement;
 
       const nlpEnabledNameFrag = document.createDocumentFragment();
+      const nlpChevronEl = nlpEnabledNameFrag.appendChild(document.createElement('span'));
+      nlpChevronEl.className = 'vault-word-cloud-settings-nlp-chevron';
+      setIcon(nlpChevronEl, 'chevron-right');
+      if (currentNlpSettings.enabled) {
+        nlpChevronEl.className += ' is-open';
+      }
       nlpEnabledNameFrag.append(t('settings.tab.filters.nlp.enabled.name'));
       const nlpChipEl = nlpEnabledNameFrag.appendChild(document.createElement('span'));
       nlpChipEl.className = 'vault-word-cloud-settings-nlp-chip';
@@ -178,6 +185,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       new Setting(sectionEl)
         .setName(nlpEnabledNameFrag)
         .setDesc(t('settings.tab.filters.nlp.enabled.desc'))
+        .setClass('vault-word-cloud-settings-nlp-parent')
         .addToggle((toggle) => {
           toggle
             .setValue(currentNlpSettings.enabled)
@@ -187,13 +195,17 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
                 : currentNlpSettings.mode;
               currentNlpSettings = { ...currentNlpSettings, enabled: value, mode: nextMode };
               await this.services.updateFilterSettings({ nlp: currentNlpSettings });
-              nlpSubSettingsEl.toggleClass('is-open', value);
+              nlpSubSettingsOuterEl.toggleClass('is-open', value);
+              nlpChevronEl.toggleClass('is-open', value);
             });
         });
 
-      // Creating the div after the Setting ensures it follows the toggle in DOM order.
-      nlpSubSettingsEl = sectionEl.createDiv({
+      // Creating the divs after the Setting ensures they follow the toggle in DOM order.
+      nlpSubSettingsOuterEl = sectionEl.createDiv({
         cls: `vault-word-cloud-settings-nlp-subsettings${currentNlpSettings.enabled ? ' is-open' : ''}`,
+      });
+      nlpSubSettingsEl = nlpSubSettingsOuterEl.createDiv({
+        cls: 'vault-word-cloud-settings-nlp-subsettings-inner',
       });
 
       new Setting(nlpSubSettingsEl)
@@ -283,6 +295,11 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
 
     renderExclusionListBlock(globalSectionEl);
 
+    // ── Filters ──────────────────────────────────────────────────────────────
+
+    const filtersSectionEl = createSection('settings.tab.filters.heading');
+    renderFiltersSection(filtersSectionEl);
+
     // ── Wordcloud Defaults ───────────────────────────────────────────────────
 
     const defaultsSectionEl = createSection('settings.tab.defaults.heading', 'settings.tab.defaults.desc');
@@ -324,6 +341,10 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
         getAriaLabel: () => t('settings.tab.preview.ariaLabel'),
         getNoWordsMessage: () => t('settings.tab.preview.noWords'),
         getWords: async () => this.services.getSettingsPreviewWords(),
+        getDrawOptions: () => ({
+          enableViewportInteraction: false,
+          enableWordClickSearch: false,
+        }),
         onWordClick: () => {
           // no-op in settings preview
         },
@@ -559,9 +580,6 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           });
       });
 
-    const filtersSectionEl = createSubSection(defaultsSectionEl, 'settings.tab.filters.heading');
-    renderFiltersSection(filtersSectionEl);
-
     if (typeof __DEV_BUILD__ !== 'undefined' && __DEV_BUILD__) {
       const performanceSectionEl = createSection('settings.tab.performance.heading');
 
@@ -626,7 +644,6 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
     resetSectionEl.addClass('vault-word-cloud-settings-reset-wrapper');
 
     new Setting(resetSectionEl)
-      .setName(t('settings.tab.reset.all.name'))
       .setDesc(t('settings.tab.reset.all.desc'))
       .addButton((button) => {
         button

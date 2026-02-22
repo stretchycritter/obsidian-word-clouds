@@ -91,6 +91,7 @@
   "ui.modals.embed.size.small": "Small",
   "ui.modals.embed.size.medium": "Medium",
   "ui.modals.embed.size.large": "Large",
+  "ui.modals.embed.size.xl": "Extra Large",
   "ui.modals.embed.file.name": "File",
   "ui.modals.embed.file.desc": "Select the file used when scope is set to file. Choose Current note to use the note containing this embed.",
   "ui.modals.embed.file.currentNote": "Current note",

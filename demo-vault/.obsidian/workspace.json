@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "dbeffe65e5c5197d",
+        "id": "7c831d0e7ab91852",
         "type": "tabs",
         "children": [
           {
-            "id": "b61b35ffa44335b7",
+            "id": "4c61150141977eb0",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -128,13 +128,12 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "README.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of README"
+              "title": "Outline"
             }
           }
         ],
@@ -148,26 +147,25 @@
   "left-ribbon": {
     "hiddenItems": {
       "graph:Open graph view": false,
-      "command-palette:Open command palette": false,
-      "word-clouds:Open word clouds": false
+      "command-palette:Open command palette": false
     }
   },
-  "active": "b61b35ffa44335b7",
+  "active": "b1fc209fbf33428d",
   "lastOpenFiles": [
-    "Aesop Rock/15 - Molecules.md",
-    "Aesop Rock/14 - Water Tower.md",
-    "Aesop Rock/13 - Defender.md",
-    "Aesop Rock/12 - Lazy Eye.md",
-    "Aesop Rock/11 - TUFF.md",
+    "README.md",
     "Aesop Rock/10 - Kirby.md",
+    "Aesop Rock/11 - TUFF.md",
+    "Aesop Rock/14 - Water Tower.md",
+    "Aesop Rock/15 - Molecules.md",
     "Aesop Rock/09 - Shrunk.md",
+    "Aesop Rock/12 - Lazy Eye.md",
     "Aesop Rock/08 - Get Out of the Car.md",
+    "Aesop Rock/05 - Rabies.md",
+    "Aesop Rock/13 - Defender.md",
     "Aesop Rock/07 - Blood Sandwich.md",
     "Aesop Rock/06 - Supercell.md",
-    "Aesop Rock/05 - Rabies.md",
     "Aesop Rock/03 - Lotta Years.md",
     "Aesop Rock/02 - Rings.md",
-    "README.md",
     "Aesop Rock/01 - Mystery Fish.md",
     "Aesop Rock/04 - Dorks.md",
     "Aesop Rock",

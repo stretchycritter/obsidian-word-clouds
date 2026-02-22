@@ -310,6 +310,10 @@ jest.mock('obsidian', () => {
       return this;
     }
 
+    setClass(_cls: string): this {
+      return this;
+    }
+
     addText(callback: (text: MockTextControl) => void): this {
       const control = new MockTextControl();
       callback(control);
@@ -394,7 +398,11 @@ describe('VaultWordCloudSettingTab', () => {
           },
         };
       },
-      createElement: (_tag: string) => ({ className: '', textContent: '' }),
+      createElement: (_tag: string) => ({
+        className: '',
+        textContent: '',
+        toggleClass(_cls: string, _value: boolean) { /* stub */ },
+      }),
     };
   });
 

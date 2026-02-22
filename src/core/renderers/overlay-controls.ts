@@ -9,13 +9,13 @@ type WordCloudViewportControls = {
 };
 
 type WordCloudOverlayControlsOptions = {
-  containerEl: HTMLDivElement;
-  svgEl: SVGSVGElement | null;
+  containerEl: HTMLElement;
+  svgElRef: { current: SVGSVGElement | null };
   exportBaseName: string;
   enableExport: boolean;
   onRefresh: () => void | Promise<void>;
   onEdit: (() => void | Promise<void>) | undefined;
-  viewportControls: WordCloudViewportControls;
+  viewportControlsRef: { current: WordCloudViewportControls };
   showRefreshControl: boolean;
   showZoomControls: boolean;
   showEditControl: boolean;
@@ -31,12 +31,12 @@ function sanitizeWordCloudExportBaseName(value: string): string {
 function renderWordCloudOverlayControls(options: WordCloudOverlayControlsOptions): void {
   const {
     containerEl,
-    svgEl,
+    svgElRef,
     exportBaseName,
     enableExport,
     onRefresh,
     onEdit,
-    viewportControls,
+    viewportControlsRef,
     showRefreshControl,
     showZoomControls,
     showEditControl,
@@ -44,10 +44,6 @@ function renderWordCloudOverlayControls(options: WordCloudOverlayControlsOptions
     getCurrentWordMetric,
     onToggleWordMetric,
   } = options;
-
-  if (!svgEl) {
-    return;
-  }
 
   const makeRefreshButton = (parentEl: HTMLDivElement): void => {
     if (!showRefreshControl) {
@@ -150,7 +146,7 @@ function renderWordCloudOverlayControls(options: WordCloudOverlayControlsOptions
     zoomOutButton.type = 'button';
     setIcon(zoomOutButton, 'minus');
     zoomOutButton.setAttr('aria-label', t('ui.overlay.zoomOut'));
-    zoomOutButton.addEventListener('click', () => viewportControls.zoomOut());
+    zoomOutButton.addEventListener('click', () => viewportControlsRef.current.zoomOut());
 
     const resetViewButton = viewControlsEl.createEl('button', {
       cls: 'word-cloud-view-button',
@@ -158,7 +154,7 @@ function renderWordCloudOverlayControls(options: WordCloudOverlayControlsOptions
     resetViewButton.type = 'button';
     setIcon(resetViewButton, 'locate-fixed');
     resetViewButton.setAttr('aria-label', t('ui.overlay.resetPanZoom'));
-    resetViewButton.addEventListener('click', () => viewportControls.resetView());
+    resetViewButton.addEventListener('click', () => viewportControlsRef.current.resetView());
 
     const zoomInButton = viewControlsEl.createEl('button', {
       cls: 'word-cloud-view-button',
@@ -166,7 +162,7 @@ function renderWordCloudOverlayControls(options: WordCloudOverlayControlsOptions
     zoomInButton.type = 'button';
     setIcon(zoomInButton, 'plus');
     zoomInButton.setAttr('aria-label', t('ui.overlay.zoomIn'));
-    zoomInButton.addEventListener('click', () => viewportControls.zoomIn());
+    zoomInButton.addEventListener('click', () => viewportControlsRef.current.zoomIn());
   }
 
   if (!enableExport) {
@@ -229,8 +225,13 @@ function renderWordCloudOverlayControls(options: WordCloudOverlayControlsOptions
     button.addEventListener('click', async (event) => {
       event.preventDefault();
       event.stopPropagation();
+      const currentSvgEl = svgElRef.current;
+      if (!currentSvgEl) {
+        toggleMenu(false);
+        return;
+      }
       try {
-        await exportSvg(svgEl, format, exportBaseName);
+        await exportSvg(currentSvgEl, format, exportBaseName);
       } catch (error) {
         console.error('Word clouds: export failed', error);
       } finally {

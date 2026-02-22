@@ -1,5 +1,5 @@
 import { Notice } from 'obsidian';
-import type { WordCloudRenderOptions } from '@/core/renderers';
+import type { WordCloudPersistentControlsRef, WordCloudRenderOptions } from '@/core/renderers';
 import type { SearchOptions, WordCloudServices } from '@/services/types';
 import type { RenderSettings, WordCloudFilterSettings } from '@/settings/types';
 import type { WeightedWord } from '@/core/types';
@@ -24,6 +24,7 @@ type RenderWordCloudCanvasOptions<TExtra> = {
   nonceRef: RenderNonceRef;
   containerEl: HTMLDivElement;
   preserveContainerDuringRender?: boolean;
+  persistentControlsRef?: WordCloudPersistentControlsRef;
   services: WordCloudServices;
   filters?: WordCloudFilterSettings;
   errorLogPrefix: string;
@@ -82,6 +83,7 @@ export async function renderWordCloudCanvas<TExtra>(
     nonceRef,
     containerEl,
     preserveContainerDuringRender = false,
+    persistentControlsRef,
     services,
     filters,
     errorLogPrefix,
@@ -111,6 +113,18 @@ export async function renderWordCloudCanvas<TExtra>(
   if (preserveContainerDuringRender) {
     containerEl.addClass('word-cloud-render-host');
   }
+
+  // Create (first render) or reuse (subsequent renders) the persistent controls layer
+  let controlsLayerEl: HTMLElement | null = null;
+  if (preserveContainerDuringRender && persistentControlsRef) {
+    if (!persistentControlsRef.containerEl.current) {
+      controlsLayerEl = containerEl.createDiv({ cls: 'word-cloud-controls-layer' });
+      persistentControlsRef.containerEl.current = controlsLayerEl;
+    } else {
+      controlsLayerEl = persistentControlsRef.containerEl.current;
+    }
+  }
+
   const statusHandle = createStatusHandle(t('ui.renderers.wordCloudCanvas.buildingCloud'), targetEl);
 
   const removeTargetIfStale = (): boolean => {
@@ -129,9 +143,13 @@ export async function renderWordCloudCanvas<TExtra>(
       return;
     }
     for (const child of Array.from(containerEl.children)) {
-      if (child !== targetEl) {
+      if (child !== targetEl && child !== controlsLayerEl) {
         child.remove();
       }
+    }
+    // Keep controls layer last in DOM so it renders on top without needing z-index
+    if (controlsLayerEl && controlsLayerEl.parentElement === containerEl) {
+      containerEl.appendChild(controlsLayerEl);
     }
   };
 
@@ -213,6 +231,7 @@ export async function renderWordCloudCanvas<TExtra>(
       exportBaseName: drawOptions?.exportBaseName,
       onWordClick: resolvedWordClick,
       renderSettingsOverride,
+      persistentControlsRef: persistentControlsRef ?? undefined,
     });
 
     if (removeTargetIfStale()) {

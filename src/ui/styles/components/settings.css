@@ -71,17 +71,80 @@
     line-height: 1.6;
   }
 
+  /* ── NLP chevron disclosure indicator ──────────────────────────────────── */
+
+  .vault-word-cloud-settings-nlp-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin-right: 4px;
+    vertical-align: middle;
+    transition: transform 200ms ease;
+  }
+
+  .vault-word-cloud-settings-nlp-chevron.is-open {
+    transform: rotate(90deg);
+  }
+
+  .vault-word-cloud-settings-nlp-chevron svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* ── NLP parent setting card ───────────────────────────────────────────── */
+
+  .setting-item.vault-word-cloud-settings-nlp-parent {
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    padding: var(--size-4-2) var(--size-4-3);
+  }
+
+  .setting-item.vault-word-cloud-settings-nlp-parent:has(+ .vault-word-cloud-settings-nlp-subsettings.is-open) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    margin-bottom: 0;
+  }
+
   /* ── NLP sub-settings collapsible ──────────────────────────────────────── */
 
   .vault-word-cloud-settings-nlp-subsettings {
     overflow: hidden;
     max-height: 0;
+    margin-top: 0;
     transition: max-height 220ms ease-out;
   }
 
   .vault-word-cloud-settings-nlp-subsettings.is-open {
     max-height: 500px;
     transition: max-height 260ms ease-in;
+  }
+
+  .vault-word-cloud-settings-nlp-subsettings-inner {
+    margin: 0;
+    padding: var(--size-4-2) var(--size-4-3) var(--size-4-3) calc(var(--size-4-3) + var(--size-4-2));
+    border: 1px solid var(--background-modifier-border);
+    border-top: none;
+    background: var(--background-secondary);
+    border-radius: 0 0 var(--radius-m) var(--radius-m);
+  }
+
+  .vault-word-cloud-settings-nlp-subsettings-inner .setting-item {
+    margin-top: var(--size-4-2);
+  }
+
+  .vault-word-cloud-settings-nlp-subsettings-inner .setting-item:first-of-type {
+    margin-top: 0;
+  }
+
+  .vault-word-cloud-settings-nlp-subsettings-inner .setting-item-name {
+    font-size: var(--font-ui-small);
+  }
+
+  .vault-word-cloud-settings-nlp-subsettings-inner .setting-item-description {
+    font-size: var(--font-ui-smaller);
   }
 
   /* ── Reset section separator ────────────────────────────────────────────── */

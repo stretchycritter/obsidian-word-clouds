@@ -136,9 +136,7 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
 
   const viewportGroup = svg.append('g').attr('class', 'word-cloud-viewport');
   const g = viewportGroup.append('g').attr('transform', `translate(${width / 2},${height / 2})`);
-  const viewportControls = enableViewportInteraction
-    ? setupViewportControls(svg.node(), viewportGroup.node(), width, height)
-    : createStaticViewportControls();
+  const viewportControls = setupViewportControls(svg.node(), viewportGroup.node(), width, height, enableViewportInteraction);
 
   const color = scaleOrdinal<string, string>(schemeTableau10);
   const { default: cloud } = await import('d3-cloud');
@@ -235,23 +233,40 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
 
         reportProgress(t('ui.renderers.wordCloud.renderingComplete'), 100);
         if (enableOverlayControls) {
-          renderWordCloudOverlayControls({
-            containerEl,
-            svgEl: svg.node(),
-            exportBaseName,
-            enableExport,
-            onRefresh,
-            onEdit: options.onEdit,
-            viewportControls,
-            showRefreshControl,
-            showZoomControls,
-            showEditControl,
-            showWordMetricToggleControl: false,
-            getCurrentWordMetric: () => activeWordTextMetric,
-            onToggleWordMetric: () => {
-              applyWordTextMetric(activeWordTextMetric === 'count' ? 'frequency' : 'count');
-            },
-          });
+          const persistentRef = options.persistentControlsRef;
+
+          // Update live refs so persistent controls stay connected to the new SVG/viewport
+          if (persistentRef) {
+            persistentRef.liveRef.svgEl.current = svg.node();
+            persistentRef.liveRef.viewportControls.current = viewportControls;
+          }
+
+          const controlsEl = persistentRef?.containerEl.current;
+          const controlsAlreadyMounted = controlsEl != null && controlsEl.childElementCount > 0;
+
+          if (!controlsAlreadyMounted) {
+            const targetContainerEl = controlsEl ?? containerEl;
+            const svgElRef = persistentRef?.liveRef.svgEl ?? { current: svg.node() };
+            const viewportControlsRef = persistentRef?.liveRef.viewportControls ?? { current: viewportControls };
+
+            renderWordCloudOverlayControls({
+              containerEl: targetContainerEl,
+              svgElRef,
+              viewportControlsRef,
+              exportBaseName,
+              enableExport,
+              onRefresh,
+              onEdit: options.onEdit,
+              showRefreshControl,
+              showZoomControls,
+              showEditControl,
+              showWordMetricToggleControl: false,
+              getCurrentWordMetric: () => activeWordTextMetric,
+              onToggleWordMetric: () => {
+                applyWordTextMetric(activeWordTextMetric === 'count' ? 'frequency' : 'count');
+              },
+            });
+          }
         }
 
         resolve();
@@ -328,20 +343,12 @@ function addExcludeMenuItems(
   }
 }
 
-function createStaticViewportControls(): ViewportControls {
-  return {
-    zoomIn: () => undefined,
-    zoomOut: () => undefined,
-    resetView: () => undefined,
-    shouldSuppressWordClick: () => false,
-  };
-}
-
 function setupViewportControls(
   svgEl: SVGSVGElement | null,
   viewportEl: SVGGElement | null,
   width: number,
   height: number,
+  enableInputListeners: boolean,
 ): ViewportControls {
   if (!svgEl || !viewportEl) {
     return {
@@ -412,6 +419,16 @@ function setupViewportControls(
   };
 
   applyTransform();
+
+  if (!enableInputListeners) {
+    return {
+      zoomIn,
+      zoomOut,
+      resetView,
+      shouldSuppressWordClick: () => false,
+    };
+  }
+
   svgEl.classList.add('word-cloud-panzoom-surface');
   svgEl.setAttribute('tabindex', '0');
   svgEl.setAttribute(

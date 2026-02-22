@@ -16,7 +16,7 @@ import { t } from '@/i18n';
 import { normalizeTag } from '@/utils/utils';
 
 export type EmbedScope = 'file' | 'vault' | 'folder';
-export type EmbedSize = 'small' | 'medium' | 'large';
+export type EmbedSize = 'small' | 'medium' | 'large' | 'xl';
 type EmbedSettingsTab = 'filters' | 'display' | 'interactions';
 
 type SettingsSnapshotProvider = {
@@ -489,9 +489,10 @@ export class EmbedWordCloudModal extends Modal {
           .addOption('small', t('ui.modals.embed.size.small'))
           .addOption('medium', t('ui.modals.embed.size.medium'))
           .addOption('large', t('ui.modals.embed.size.large'))
+          .addOption('xl', t('ui.modals.embed.size.xl'))
           .setValue(this.state.size)
           .onChange((value) => {
-            this.state.size = value === 'small' || value === 'large' ? value : 'medium';
+            this.state.size = value === 'small' || value === 'large' || value === 'xl' ? value : 'medium';
           });
       });
 

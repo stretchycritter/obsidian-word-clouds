@@ -23,7 +23,7 @@ import { mergeRenderSettings, renderWordCloudCanvas } from '@/core';
 import { t } from '@/i18n';
 
 type EmbeddedWordCloudScope = 'file' | 'vault' | 'folder';
-type EmbeddedWordCloudSize = 'small' | 'medium' | 'large';
+type EmbeddedWordCloudSize = 'small' | 'medium' | 'large' | 'xl';
 
 type EmbeddedWordCloudOptions = {
   cloudId: string;
@@ -70,9 +70,10 @@ const FRONTMATTER_OPERATORS = new Set<FrontmatterOperator>([
 const EMBED_RESIZE_DEBOUNCE_MS = 140;
 const EMBED_CONTENT_CHANGE_DEBOUNCE_MS = 5000;
 const EMBED_SIZE_HEIGHT: Record<EmbeddedWordCloudSize, number> = {
-  small: 240,
-  medium: 320,
-  large: 440,
+  small: 320,
+  medium: 440,
+  large: 880,
+  xl: 1760,
 };
 const embeddedRenderStates = new WeakMap<HTMLElement, EmbeddedRenderState>();
 const embeddedRenderNonces = new WeakMap<HTMLElement, { value: number }>();
@@ -742,9 +743,9 @@ function parseScopeOption(value: string): EmbeddedWordCloudScope | null {
 }
 
 function parseSizeOption(value: string): EmbeddedWordCloudSize | null {
-  const normalized = value.trim().toLowerCase();
-  if (normalized === 'small' || normalized === 'medium' || normalized === 'large') {
-    return normalized;
+  const normalized = value.trim().toLowerCase().replace(/[\s_-]+/g, '');
+  if (normalized === 'small' || normalized === 'medium' || normalized === 'large' || normalized === 'xl' || normalized === 'extralarge') {
+    return normalized === 'extralarge' ? 'xl' : normalized;
   }
   return null;
 }
@@ -838,14 +839,17 @@ function parseFrontmatterRules(rawValue: string): FrontmatterRule[] {
 }
 
 function sizeFromHeight(height: number): EmbeddedWordCloudSize {
-  const normalized = Math.min(900, Math.max(180, height));
-  if (normalized <= 280) {
+  const normalized = Math.min(2400, Math.max(200, height));
+  if (normalized <= 380) {
     return 'small';
   }
-  if (normalized <= 380) {
+  if (normalized <= 660) {
     return 'medium';
   }
-  return 'large';
+  if (normalized <= 1320) {
+    return 'large';
+  }
+  return 'xl';
 }
 
 function parseBooleanOption(value: string, fallback: boolean): boolean {

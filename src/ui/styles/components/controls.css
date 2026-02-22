@@ -44,7 +44,13 @@
   .word-cloud-render-container:hover .word-cloud-export-controls,
   .word-cloud-render-container:focus-within .word-cloud-view-controls,
   .word-cloud-render-container:focus-within .word-cloud-refresh-controls,
-  .word-cloud-render-container:focus-within .word-cloud-export-controls {
+  .word-cloud-render-container:focus-within .word-cloud-export-controls,
+  .word-cloud-render-host:hover .word-cloud-view-controls,
+  .word-cloud-render-host:hover .word-cloud-refresh-controls,
+  .word-cloud-render-host:hover .word-cloud-export-controls,
+  .word-cloud-render-host:focus-within .word-cloud-view-controls,
+  .word-cloud-render-host:focus-within .word-cloud-refresh-controls,
+  .word-cloud-render-host:focus-within .word-cloud-export-controls {
     @apply wc-opacity-100 wc-pointer-events-auto;
     transform: translateY(0);
   }

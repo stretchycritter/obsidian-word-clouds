@@ -11,6 +11,13 @@ export class VaultWordCloudView extends ItemView {
   private readonly renderNonce = { value: 0 };
   private filters: WordCloudFilterSettings;
   private isEditPanelOpen = false;
+  private readonly persistentControlsRef = {
+    containerEl: { current: null as HTMLElement | null },
+    liveRef: {
+      svgEl: { current: null as SVGSVGElement | null },
+      viewportControls: { current: { zoomIn: () => {}, zoomOut: () => {}, resetView: () => {} } },
+    },
+  };
 
   constructor(leaf: WorkspaceLeaf, services: WordCloudServices) {
     super(leaf);
@@ -34,6 +41,9 @@ export class VaultWordCloudView extends ItemView {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass('vault-word-cloud-view');
+
+    // Reset controls ref since the DOM was cleared
+    this.persistentControlsRef.containerEl.current = null;
 
     this.filters = this.services.getFilterSettings();
 
@@ -103,6 +113,7 @@ export class VaultWordCloudView extends ItemView {
       nonceRef: this.renderNonce,
       containerEl,
       preserveContainerDuringRender: true,
+      persistentControlsRef: this.persistentControlsRef,
       services: this.services,
       filters: this.filters,
       errorLogPrefix: 'Vault word cloud',
