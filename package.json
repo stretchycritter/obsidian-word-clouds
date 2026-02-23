@@ -19,6 +19,7 @@
     "benchmark:custom": "node scripts/run-benchmark.mjs",
     "test": "jest --runInBand",
     "test:coverage": "jest --runInBand --coverage --coverageDirectory=.temp/coverage",
+    "release:validate": "node scripts/release-validate.mjs",
     "clean": "node -e \"const fs=require('node:fs');fs.rmSync('.temp',{recursive:true,force:true});fs.rmSync('dist',{recursive:true,force:true});\""
   },
   "keywords": [
