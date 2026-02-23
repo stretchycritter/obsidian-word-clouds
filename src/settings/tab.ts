@@ -12,6 +12,7 @@ import type { VaultCollectionOptions, WordCloudServices } from '@/services/types
 import type { WordCloudSettingsControls } from '@/services/wordcloud-services';
 import { renderWordCloudCanvas } from '@/core';
 import { t } from '@/i18n';
+import { renderFilterSettingsPanel } from '@/ui/components/filter-settings-panel';
 
 type SettingsTabServices = WordCloudServices & WordCloudSettingsControls;
 type PerformanceModeRunResult = {
@@ -148,121 +149,21 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
     };
 
     const renderFiltersSection = (sectionEl: HTMLElement): void => {
-      new Setting(sectionEl)
-        .setName(t('settings.tab.filters.minimumWordLength.name'))
-        .setDesc(t('settings.tab.filters.minimumWordLength.desc'))
-        .addSlider((slider) => {
-          slider
-            .setLimits(1, 32, 1)
-            .setValue(settings.filters.minWordLength)
-            .setDynamicTooltip()
-            .onChange(async (value) => {
-              await this.services.updateFilterSettings({ minWordLength: value });
-            });
-        });
-
-      // Local mutable ref so sub-setting onChange handlers stay consistent
-      // after the enabled toggle fires without a full re-render.
-      let currentNlpSettings = { ...settings.filters.nlp };
-
-      // Declared before the toggle so the onChange closure can reference it;
-      // assigned after (safe because onChange is event-driven, never sync).
-      let nlpSubSettingsOuterEl!: HTMLElement;
-      let nlpSubSettingsEl!: HTMLElement;
-
-      const nlpEnabledNameFrag = document.createDocumentFragment();
-      const nlpChevronEl = nlpEnabledNameFrag.appendChild(document.createElement('span'));
-      nlpChevronEl.className = 'vault-word-cloud-settings-nlp-chevron';
-      setIcon(nlpChevronEl, 'chevron-right');
-      if (currentNlpSettings.enabled) {
-        nlpChevronEl.className += ' is-open';
-      }
-      nlpEnabledNameFrag.append(t('settings.tab.filters.nlp.enabled.name'));
-      const nlpChipEl = nlpEnabledNameFrag.appendChild(document.createElement('span'));
-      nlpChipEl.className = 'vault-word-cloud-settings-nlp-chip';
-      nlpChipEl.textContent = 'NLP';
-
-      new Setting(sectionEl)
-        .setName(nlpEnabledNameFrag)
-        .setDesc(t('settings.tab.filters.nlp.enabled.desc'))
-        .setClass('vault-word-cloud-settings-nlp-parent')
-        .addToggle((toggle) => {
-          toggle
-            .setValue(currentNlpSettings.enabled)
-            .onChange(async (value) => {
-              const nextMode = value && currentNlpSettings.mode === 'off'
-                ? 'light'
-                : currentNlpSettings.mode;
-              currentNlpSettings = { ...currentNlpSettings, enabled: value, mode: nextMode };
-              await this.services.updateFilterSettings({ nlp: currentNlpSettings });
-              nlpSubSettingsOuterEl.toggleClass('is-open', value);
-              nlpChevronEl.toggleClass('is-open', value);
-            });
-        });
-
-      // Creating the divs after the Setting ensures they follow the toggle in DOM order.
-      nlpSubSettingsOuterEl = sectionEl.createDiv({
-        cls: `vault-word-cloud-settings-nlp-subsettings${currentNlpSettings.enabled ? ' is-open' : ''}`,
-      });
-      nlpSubSettingsEl = nlpSubSettingsOuterEl.createDiv({
-        cls: 'vault-word-cloud-settings-nlp-subsettings-inner',
-      });
-
-      new Setting(nlpSubSettingsEl)
-        .setName(t('settings.tab.filters.nlp.mode.name'))
-        .setDesc(t('settings.tab.filters.nlp.mode.desc'))
-        .addDropdown((dropdown) => {
-          dropdown
-            .addOption('off', t('settings.tab.filters.nlp.mode.off'))
-            .addOption('light', t('settings.tab.filters.nlp.mode.light'))
-            .addOption('aggressive', t('settings.tab.filters.nlp.mode.aggressive'))
-            .setValue(currentNlpSettings.mode)
-            .onChange(async (value) => {
-              currentNlpSettings = {
-                ...currentNlpSettings,
-                mode: value === 'light' || value === 'aggressive' ? value : 'off',
-              };
-              await this.services.updateFilterSettings({ nlp: currentNlpSettings });
-            });
-        });
-
-      new Setting(nlpSubSettingsEl)
-        .setName(t('settings.tab.filters.nlp.preserveAcronyms.name'))
-        .setDesc(t('settings.tab.filters.nlp.preserveAcronyms.desc'))
-        .addToggle((toggle) => {
-          toggle
-            .setValue(currentNlpSettings.preserveAcronyms)
-            .onChange(async (value) => {
-              currentNlpSettings = { ...currentNlpSettings, preserveAcronyms: value };
-              await this.services.updateFilterSettings({ nlp: currentNlpSettings });
-            });
-        });
-
-      new Setting(nlpSubSettingsEl)
-        .setName(t('settings.tab.filters.nlp.minLemmaLength.name'))
-        .setDesc(t('settings.tab.filters.nlp.minLemmaLength.desc'))
-        .addSlider((slider) => {
-          slider
-            .setLimits(2, 32, 1)
-            .setValue(currentNlpSettings.minLemmaLength)
-            .setDynamicTooltip()
-            .onChange(async (value) => {
-              currentNlpSettings = { ...currentNlpSettings, minLemmaLength: value };
-              await this.services.updateFilterSettings({ nlp: currentNlpSettings });
-            });
-        });
-
-      new Setting(nlpSubSettingsEl)
-        .setName(t('settings.tab.filters.nlp.filterNumericTokens.name'))
-        .setDesc(t('settings.tab.filters.nlp.filterNumericTokens.desc'))
-        .addToggle((toggle) => {
-          toggle
-            .setValue(currentNlpSettings.filterNumericTokens)
-            .onChange(async (value) => {
-              currentNlpSettings = { ...currentNlpSettings, filterNumericTokens: value };
-              await this.services.updateFilterSettings({ nlp: currentNlpSettings });
-            });
-        });
+      renderFilterSettingsPanel(
+        sectionEl,
+        {
+          minWordLength: settings.filters.minWordLength,
+          nlp: { ...settings.filters.nlp },
+        },
+        {
+          onMinWordLengthChange: async (value) => {
+            await this.services.updateFilterSettings({ minWordLength: value });
+          },
+          onNlpSettingsChange: async (nlp) => {
+            await this.services.updateFilterSettings({ nlp });
+          },
+        },
+      );
     };
 
     // ── Global Settings ─────────────────────────────────────────────────────

@@ -24,6 +24,53 @@
     gap: var(--size-4-2);
   }
 
+  /* Compact title — smaller than Obsidian's default h2 */
+  .word-cloud-embed-wizard h2 {
+    margin: 0;
+    font-size: var(--font-ui-medium);
+    font-weight: var(--font-semibold);
+    line-height: 1.2;
+  }
+
+  /* ── Scope row — horizontal strip ──────────────────────────────────────── */
+
+  .word-cloud-embed-wizard-scope-row {
+    @apply wc-flex wc-items-center;
+    gap: var(--size-4-3);
+    padding-bottom: var(--size-4-2);
+    border-bottom: 1px solid var(--background-modifier-border);
+  }
+
+  /* Strip default Setting borders/padding so they flow inline */
+  .word-cloud-embed-wizard-scope-row .setting-item {
+    border: none;
+    padding: 0;
+    gap: var(--size-4-2);
+  }
+
+  /* Scope dropdown — fixed/natural width */
+  .word-cloud-embed-wizard-scope-row > .setting-item {
+    flex: 0 0 auto;
+  }
+
+  /* File/folder section fills the remaining width */
+  .word-cloud-embed-wizard-scope-row .word-cloud-embed-wizard-section {
+    @apply wc-flex-1 wc-min-w-0;
+  }
+
+  .word-cloud-embed-wizard-scope-row .word-cloud-embed-wizard-section .setting-item {
+    @apply wc-flex-1 wc-min-w-0;
+  }
+
+  /* Text input in the scope row should fill available space */
+  .word-cloud-embed-wizard-scope-row .setting-item-control {
+    @apply wc-flex-1 wc-min-w-0;
+  }
+
+  .word-cloud-embed-wizard-scope-row .setting-item-control input[type="text"] {
+    width: 100%;
+  }
+
   .word-cloud-embed-wizard-settings {
     @apply wc-flex wc-flex-col wc-min-h-0;
     flex: 1 1 auto;
@@ -53,12 +100,6 @@
   }
 
   /* ── Panel content ─────────────────────────────────────────────────────── */
-
-  .word-cloud-embed-wizard-description {
-    @apply wc-m-0;
-    color: var(--text-muted);
-    font-size: var(--font-ui-small);
-  }
 
   /* Conditionally hide entire sections within a panel */
   .word-cloud-embed-wizard-section.is-hidden {

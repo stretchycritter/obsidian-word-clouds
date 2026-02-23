@@ -993,9 +993,6 @@ function openEmbeddedWordCloudEditWizard(
   hostEl: HTMLElement,
   options: EmbeddedWordCloudOptions,
 ): void {
-  const settingsDefaults = getSettingsDefaults(services);
-  const effectiveRender = mergeRenderSettings(settingsDefaults.render, options.renderSettingsOverride);
-
   new EmbedWordCloudModal(
     plugin.app,
     services,
@@ -1023,7 +1020,7 @@ function openEmbeddedWordCloudEditWizard(
         preserveAcronyms: options.nlp.preserveAcronyms,
         minLemmaLength: options.nlp.minLemmaLength,
         filterNumericTokens: options.nlp.filterNumericTokens,
-        render: effectiveRender,
+        renderOverride: { ...options.renderSettingsOverride },
       },
     },
   ).open();

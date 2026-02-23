@@ -65,7 +65,8 @@
               "title": "Files"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
@@ -150,7 +151,7 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "b1fc209fbf33428d",
+  "active": "4c61150141977eb0",
   "lastOpenFiles": [
     "README.md",
     "Aesop Rock/10 - Kirby.md",

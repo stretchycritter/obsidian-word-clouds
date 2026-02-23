@@ -80,8 +80,8 @@ export const DEFAULT_SETTINGS: WordCloudSettings = {
       maxCount: 9999,
     },
     nlp: {
-      enabled: false,
-      mode: 'off',
+      enabled: true,
+      mode: 'light',
       preserveAcronyms: true,
       minLemmaLength: 3,
       filterNumericTokens: true,

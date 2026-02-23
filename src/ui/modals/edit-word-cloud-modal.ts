@@ -3,7 +3,6 @@ import type { WordCloudServices } from '@/services/types';
 import type {
   FrontmatterOperator,
   FrontmatterRule,
-  NlpMode,
   RenderSettings,
   RotationPreset,
   ScalingMode,
@@ -14,17 +13,14 @@ import type {
 import { DEFAULT_SETTINGS, SUPPORTED_FONT_FAMILIES } from '@/settings/constants';
 import { t } from '@/i18n';
 import { normalizeTag } from '@/utils/utils';
+import { renderFilterSettingsPanel } from '@/ui/components/filter-settings-panel';
+import { FileSuggest, FolderSuggest } from '@/ui/components/suggest';
 
 export type EmbedScope = 'file' | 'vault' | 'folder';
 export type EmbedSize = 'small' | 'medium' | 'large' | 'xl';
-type EmbedSettingsTab = 'filters' | 'display' | 'interactions';
 
 type SettingsSnapshotProvider = {
   getSettingsSnapshot: () => Readonly<WordCloudSettings>;
-};
-
-type FontOptionsProvider = {
-  getSupportedFontFamilyOptions: () => ReadonlyArray<{ value: string; label: string }>;
 };
 
 export type EmbedWizardState = {
@@ -42,11 +38,11 @@ export type EmbedWizardState = {
   excludeWordsRaw: string;
   minWordLength: number;
   nlpEnabled: boolean;
-  nlpMode: NlpMode;
+  nlpMode: 'off' | 'light' | 'aggressive';
   preserveAcronyms: boolean;
   minLemmaLength: number;
   filterNumericTokens: boolean;
-  render: RenderSettings;
+  renderOverride: Partial<RenderSettings>;
 };
 
 type EmbedWordCloudModalOptions = {
@@ -66,25 +62,6 @@ const FRONTMATTER_OPERATORS: FrontmatterOperator[] = [
   'not-exists',
 ];
 
-const ROTATION_PRESETS: RotationPreset[] = [
-  'horizontal',
-  'mostly-horizontal',
-  'mixed',
-  'vertical',
-];
-
-const SPIRAL_TYPES: SpiralType[] = [
-  'archimedean',
-  'rectangular',
-];
-
-const SCALING_MODES: ScalingMode[] = [
-  'linear',
-  'power',
-  'log',
-  'rank',
-];
-
 function getSettingsDefaults(services: WordCloudServices): Readonly<WordCloudSettings> {
   if ('getSettingsSnapshot' in services && typeof services.getSettingsSnapshot === 'function') {
     return (services as WordCloudServices & SettingsSnapshotProvider).getSettingsSnapshot();
@@ -92,11 +69,28 @@ function getSettingsDefaults(services: WordCloudServices): Readonly<WordCloudSet
   return DEFAULT_SETTINGS;
 }
 
-function getSupportedFontOptions(services: WordCloudServices): ReadonlyArray<{ value: string; label: string }> {
-  if ('getSupportedFontFamilyOptions' in services && typeof services.getSupportedFontFamilyOptions === 'function') {
-    return (services as WordCloudServices & FontOptionsProvider).getSupportedFontFamilyOptions();
-  }
-  return SUPPORTED_FONT_FAMILIES;
+function createDefaultState(settings: Readonly<WordCloudSettings>): EmbedWizardState {
+  return {
+    cloudId: '',
+    scope: settings.defaultScopeOnInsert,
+    size: 'medium',
+    specificFilePath: settings.filters.scope.activeFilePath ?? '',
+    includeTagsRaw: settings.filters.includeTags.join(', '),
+    excludeTagsRaw: settings.filters.excludeTags.join(', '),
+    tagMatchMode: settings.filters.tagMatchMode,
+    folderPathsRaw: (settings.filters.scope.folderPaths ?? []).join(', '),
+    frontmatterRulesRaw: settings.filters.frontmatterRules.map(serializeFrontmatterRule).join('; '),
+    minCountRaw: `${settings.filters.frequency.minCount}`,
+    maxCountRaw: `${settings.filters.frequency.maxCount}`,
+    excludeWordsRaw: '',
+    minWordLength: settings.filters.minWordLength,
+    nlpEnabled: settings.filters.nlp.enabled,
+    nlpMode: settings.filters.nlp.mode,
+    preserveAcronyms: settings.filters.nlp.preserveAcronyms,
+    minLemmaLength: settings.filters.nlp.minLemmaLength,
+    filterNumericTokens: settings.filters.nlp.filterNumericTokens,
+    renderOverride: {},
+  };
 }
 
 function getFontLabel(value: string, fallback: string): string {
@@ -117,28 +111,19 @@ function getFontLabel(value: string, fallback: string): string {
   return translationKey ? t(translationKey) : fallback;
 }
 
-function createDefaultState(settings: Readonly<WordCloudSettings>): EmbedWizardState {
-  return {
-    cloudId: '',
-    scope: 'file',
-    size: 'medium',
-    specificFilePath: settings.filters.scope.activeFilePath ?? '',
-    includeTagsRaw: settings.filters.includeTags.join(', '),
-    excludeTagsRaw: settings.filters.excludeTags.join(', '),
-    tagMatchMode: settings.filters.tagMatchMode,
-    folderPathsRaw: (settings.filters.scope.folderPaths ?? []).join(', '),
-    frontmatterRulesRaw: settings.filters.frontmatterRules.map(serializeFrontmatterRule).join('; '),
-    minCountRaw: `${settings.filters.frequency.minCount}`,
-    maxCountRaw: `${settings.filters.frequency.maxCount}`,
-    excludeWordsRaw: '',
-    minWordLength: settings.filters.minWordLength,
-    nlpEnabled: settings.filters.nlp.enabled,
-    nlpMode: settings.filters.nlp.mode,
-    preserveAcronyms: settings.filters.nlp.preserveAcronyms,
-    minLemmaLength: settings.filters.nlp.minLemmaLength,
-    filterNumericTokens: settings.filters.nlp.filterNumericTokens,
-    render: { ...settings.render },
-  };
+function resolveEffectiveFont(rawFontFamily: string): string {
+  const trimmed = rawFontFamily.trim();
+  const supported = new Set(SUPPORTED_FONT_FAMILIES.map((opt) => opt.value));
+  return supported.has(trimmed) ? trimmed : DEFAULT_SETTINGS.render.fontFamily;
+}
+
+function effectiveRender<K extends keyof RenderSettings>(
+  key: K,
+  overrides: Partial<RenderSettings>,
+  defaults: Readonly<RenderSettings>,
+): RenderSettings[K] {
+  const value = overrides[key];
+  return value !== undefined ? (value as RenderSettings[K]) : defaults[key];
 }
 
 export class EmbedWordCloudModal extends Modal {
@@ -147,18 +132,11 @@ export class EmbedWordCloudModal extends Modal {
   private readonly state: EmbedWizardState;
   private readonly settingsDefaults: Readonly<WordCloudSettings>;
   private readonly title: string;
-  private readonly description: string;
   private readonly submitButtonText: string;
 
-  private tabsEl!: HTMLDivElement;
-  private filtersTabButtonEl!: HTMLButtonElement;
-  private displayTabButtonEl!: HTMLButtonElement;
-  private interactionsTabButtonEl!: HTMLButtonElement;
-  private filtersPanelEl!: HTMLDivElement;
-  private displayPanelEl!: HTMLDivElement;
-  private interactionsPanelEl!: HTMLDivElement;
   private specificFileWrapperEl!: HTMLDivElement;
   private folderPathsWrapperEl!: HTMLDivElement;
+  private layoutPanelEl!: HTMLDivElement;
 
   constructor(
     app: App,
@@ -170,7 +148,6 @@ export class EmbedWordCloudModal extends Modal {
     this.services = services;
     this.onInsert = onInsert;
     this.title = options.mode === 'edit' ? t('ui.blocks.embed.editTitle') : t('ui.modals.embed.title');
-    this.description = options.mode === 'edit' ? t('ui.blocks.embed.editDescription') : t('ui.modals.embed.description');
     this.submitButtonText = options.mode === 'edit' ? t('ui.modals.embed.apply') : t('ui.modals.embed.insert');
     this.settingsDefaults = getSettingsDefaults(services);
 
@@ -179,10 +156,6 @@ export class EmbedWordCloudModal extends Modal {
     this.state = {
       ...defaultState,
       ...initialState,
-      render: {
-        ...defaultState.render,
-        ...(initialState.render ?? {}),
-      },
     };
 
     if (!this.state.cloudId) {
@@ -198,41 +171,97 @@ export class EmbedWordCloudModal extends Modal {
     contentEl.addClass('word-cloud-embed-wizard');
 
     contentEl.createEl('h2', { text: this.title });
-    contentEl.createEl('p', {
-      cls: 'word-cloud-embed-wizard-description',
-      text: this.description,
-    });
 
+    // Scope row — compact header, always visible above tabs
+    // File/folder input is first (left), scope dropdown is last (right)
+    const scopeRowEl = contentEl.createDiv({ cls: 'word-cloud-embed-wizard-scope-row' });
+
+    this.specificFileWrapperEl = scopeRowEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
+    this.renderSpecificFileSetting();
+
+    this.folderPathsWrapperEl = scopeRowEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
+    new Setting(this.folderPathsWrapperEl)
+      .setName(t('ui.modals.embed.folderPaths.name'))
+      .addText((text) => {
+        text
+          .setPlaceholder(t('ui.modals.embed.folderPaths.placeholder'))
+          .setValue(this.state.folderPathsRaw)
+          .onChange((value) => {
+            this.state.folderPathsRaw = value;
+          });
+        new FolderSuggest(this.app, text.inputEl, (path) => {
+          this.state.folderPathsRaw = path;
+        });
+      });
+
+    new Setting(scopeRowEl)
+      .setName(t('ui.modals.embed.scope.name'))
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption('file', t('ui.modals.embed.scope.file'))
+          .addOption('vault', t('ui.modals.embed.scope.vault'))
+          .addOption('folder', t('ui.modals.embed.scope.folder'))
+          .setValue(this.state.scope)
+          .onChange((value) => {
+            this.state.scope = value === 'vault' || value === 'folder' ? value : 'file';
+            this.refreshScopeSections();
+          });
+      });
+
+    // Settings area with tabs
     const settingsShellEl = contentEl.createDiv({ cls: 'word-cloud-embed-wizard-settings' });
 
-    this.tabsEl = settingsShellEl.createDiv({ cls: 'word-cloud-embed-wizard-tabs' });
-    this.tabsEl.setAttr('role', 'tablist');
-    this.tabsEl.setAttr('aria-label', t('ui.modals.embed.tabs.ariaLabel'));
+    // Tab bar
+    const tabBarEl = settingsShellEl.createDiv({ cls: 'word-cloud-embed-wizard-tabs' });
+    tabBarEl.setAttr('role', 'tablist');
+    tabBarEl.setAttr('aria-label', t('ui.modals.embed.tabs.ariaLabel'));
 
-    this.filtersTabButtonEl = this.buildTabButton('filters', t('ui.modals.embed.tabs.filters'), true);
-    this.displayTabButtonEl = this.buildTabButton('display', t('ui.modals.embed.tabs.display'), false);
-    this.interactionsTabButtonEl = this.buildTabButton('interactions', t('ui.modals.embed.tabs.interactions'), false);
-
+    // Panels container
     const panelsEl = settingsShellEl.createDiv({ cls: 'word-cloud-embed-wizard-panels' });
+    const filtersPanelEl = panelsEl.createDiv({ cls: 'word-cloud-embed-wizard-panel' });
+    this.layoutPanelEl = panelsEl.createDiv({ cls: 'word-cloud-embed-wizard-panel' });
+    const interactionsPanelEl = panelsEl.createDiv({ cls: 'word-cloud-embed-wizard-panel' });
 
-    this.filtersPanelEl = panelsEl.createDiv({ cls: 'word-cloud-embed-wizard-panel is-active' });
-    this.filtersPanelEl.id = 'word-cloud-embed-wizard-panel-filters';
-    this.filtersPanelEl.setAttr('role', 'tabpanel');
-    this.filtersPanelEl.setAttr('aria-labelledby', this.filtersTabButtonEl.id);
+    // Build tabs
+    const tabDefs = [
+      { key: 'filters', label: t('ui.modals.embed.tabs.filters'), panel: filtersPanelEl },
+      { key: 'layout', label: t('ui.modals.embed.tabs.layout'), panel: this.layoutPanelEl },
+      { key: 'interactions', label: t('ui.modals.embed.tabs.interactions'), panel: interactionsPanelEl },
+    ];
 
-    this.displayPanelEl = panelsEl.createDiv({ cls: 'word-cloud-embed-wizard-panel' });
-    this.displayPanelEl.id = 'word-cloud-embed-wizard-panel-display';
-    this.displayPanelEl.setAttr('role', 'tabpanel');
-    this.displayPanelEl.setAttr('aria-labelledby', this.displayTabButtonEl.id);
+    const tabEls: HTMLButtonElement[] = [];
 
-    this.interactionsPanelEl = panelsEl.createDiv({ cls: 'word-cloud-embed-wizard-panel' });
-    this.interactionsPanelEl.id = 'word-cloud-embed-wizard-panel-interactions';
-    this.interactionsPanelEl.setAttr('role', 'tabpanel');
-    this.interactionsPanelEl.setAttr('aria-labelledby', this.interactionsTabButtonEl.id);
+    for (const tabDef of tabDefs) {
+      const tabEl = tabBarEl.createEl('button', {
+        cls: 'word-cloud-embed-wizard-tab',
+        text: tabDef.label,
+      });
+      tabEl.type = 'button';
+      tabEl.setAttr('role', 'tab');
+      tabEl.setAttr('aria-selected', 'false');
+      tabEls.push(tabEl);
 
-    this.renderFiltersPanel();
-    this.renderDisplayPanel();
-    this.renderInteractionsPanel();
+      tabEl.addEventListener('click', () => {
+        for (let i = 0; i < tabEls.length; i++) {
+          tabEls[i].removeClass('is-active');
+          tabEls[i].setAttr('aria-selected', 'false');
+          tabDefs[i].panel.removeClass('is-active');
+        }
+        tabEl.addClass('is-active');
+        tabEl.setAttr('aria-selected', 'true');
+        tabDef.panel.addClass('is-active');
+      });
+    }
+
+    // Activate first tab
+    tabEls[0].addClass('is-active');
+    tabEls[0].setAttr('aria-selected', 'true');
+    filtersPanelEl.addClass('is-active');
+
+    // Render panel contents
+    this.renderFiltersPanel(filtersPanelEl);
+    this.renderLayoutPanel();
+    this.renderInteractionsPanel(interactionsPanelEl);
 
     const buttonRowEl = contentEl.createDiv({ cls: 'word-cloud-embed-wizard-actions' });
 
@@ -264,8 +293,19 @@ export class EmbedWordCloudModal extends Modal {
     applyButton.buttonEl.type = 'button';
 
     this.refreshScopeSections();
-    this.switchTab('filters');
-    applyButton.buttonEl.focus();
+
+    // Submit on Enter when no input field is focused (e.g. on initial open)
+    this.scope.register([], 'Enter', (event) => {
+      const active = document.activeElement;
+      if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement) {
+        return;
+      }
+      event.preventDefault();
+      applyButton.buttonEl.click();
+    });
+
+    // Prevent auto-focus on any input when the modal opens
+    (document.activeElement as HTMLElement)?.blur();
   }
 
   onClose(): void {
@@ -273,39 +313,8 @@ export class EmbedWordCloudModal extends Modal {
     this.contentEl.empty();
   }
 
-  private renderFiltersPanel(): void {
-    new Setting(this.filtersPanelEl)
-      .setName(t('ui.modals.embed.scope.name'))
-      .setDesc(t('ui.modals.embed.scope.desc'))
-      .addDropdown((dropdown) => {
-        dropdown
-          .addOption('file', t('ui.modals.embed.scope.file'))
-          .addOption('vault', t('ui.modals.embed.scope.vault'))
-          .addOption('folder', t('ui.modals.embed.scope.folder'))
-          .setValue(this.state.scope)
-          .onChange((value) => {
-            this.state.scope = value === 'vault' || value === 'folder' ? value : 'file';
-            this.refreshScopeSections();
-          });
-      });
-
-    this.specificFileWrapperEl = this.filtersPanelEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
-    this.renderSpecificFileSetting();
-
-    this.folderPathsWrapperEl = this.filtersPanelEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
-    new Setting(this.folderPathsWrapperEl)
-      .setName(t('ui.modals.embed.folderPaths.name'))
-      .setDesc(t('ui.modals.embed.folderPaths.desc'))
-      .addText((text) => {
-        text
-          .setPlaceholder(t('ui.modals.embed.folderPaths.placeholder'))
-          .setValue(this.state.folderPathsRaw)
-          .onChange((value) => {
-            this.state.folderPathsRaw = value;
-          });
-      });
-
-    new Setting(this.filtersPanelEl)
+  private renderFiltersPanel(panelEl: HTMLDivElement): void {
+    new Setting(panelEl)
       .setName(t('ui.modals.embed.includeTags.name'))
       .setDesc(t('ui.modals.embed.includeTags.desc').replace('{hint}', this.buildAvailableTagHint()))
       .addText((text) => {
@@ -317,7 +326,7 @@ export class EmbedWordCloudModal extends Modal {
           });
       });
 
-    new Setting(this.filtersPanelEl)
+    new Setting(panelEl)
       .setName(t('ui.modals.embed.excludeTags.name'))
       .setDesc(t('ui.modals.embed.excludeTags.desc'))
       .addText((text) => {
@@ -329,7 +338,7 @@ export class EmbedWordCloudModal extends Modal {
           });
       });
 
-    new Setting(this.filtersPanelEl)
+    new Setting(panelEl)
       .setName(t('ui.modals.embed.matchMode.name'))
       .setDesc(t('ui.modals.embed.matchMode.desc'))
       .addDropdown((dropdown) => {
@@ -342,7 +351,7 @@ export class EmbedWordCloudModal extends Modal {
           });
       });
 
-    new Setting(this.filtersPanelEl)
+    new Setting(panelEl)
       .setName(t('ui.modals.embed.frontmatterRules.name'))
       .setDesc(t('ui.modals.embed.frontmatterRules.desc'))
       .addText((text) => {
@@ -354,7 +363,7 @@ export class EmbedWordCloudModal extends Modal {
           });
       });
 
-    new Setting(this.filtersPanelEl)
+    new Setting(panelEl)
       .setName(t('ui.modals.embed.minCount.name'))
       .setDesc(t('ui.modals.embed.minCount.desc'))
       .addText((text) => {
@@ -366,7 +375,7 @@ export class EmbedWordCloudModal extends Modal {
           });
       });
 
-    new Setting(this.filtersPanelEl)
+    new Setting(panelEl)
       .setName(t('ui.modals.embed.maxCount.name'))
       .setDesc(t('ui.modals.embed.maxCount.desc'))
       .addText((text) => {
@@ -378,7 +387,7 @@ export class EmbedWordCloudModal extends Modal {
           });
       });
 
-    new Setting(this.filtersPanelEl)
+    new Setting(panelEl)
       .setName(t('ui.modals.embed.excludeWords.name'))
       .setDesc(t('ui.modals.embed.excludeWords.desc'))
       .addText((text) => {
@@ -390,98 +399,41 @@ export class EmbedWordCloudModal extends Modal {
           });
       });
 
-    new Setting(this.filtersPanelEl)
-      .setName(t('settings.tab.filters.minimumWordLength.name'))
-      .setDesc(t('settings.tab.filters.minimumWordLength.desc'))
-      .addSlider((slider) => {
-        slider
-          .setLimits(1, 32, 1)
-          .setValue(this.state.minWordLength)
-          .setDynamicTooltip()
-          .onChange((value) => {
-            this.state.minWordLength = value;
-          });
-      });
-
-    new Setting(this.filtersPanelEl)
-      .setName(t('settings.tab.filters.nlp.enabled.name'))
-      .setDesc(t('settings.tab.filters.nlp.enabled.desc'))
-      .addToggle((toggle) => {
-        toggle
-          .setValue(this.state.nlpEnabled)
-          .onChange((value) => {
-            this.state.nlpEnabled = value;
-            if (value && this.state.nlpMode === 'off') {
-              this.state.nlpMode = 'light';
-            }
-            this.renderFiltersPanelRefresh();
-          });
-      });
-
-    this.renderFiltersPanelRefresh();
+    renderFilterSettingsPanel(
+      panelEl,
+      {
+        minWordLength: this.state.minWordLength,
+        nlp: {
+          enabled: this.state.nlpEnabled,
+          mode: this.state.nlpMode,
+          preserveAcronyms: this.state.preserveAcronyms,
+          minLemmaLength: this.state.minLemmaLength,
+          filterNumericTokens: this.state.filterNumericTokens,
+        },
+      },
+      {
+        onMinWordLengthChange: (value) => {
+          this.state.minWordLength = value;
+        },
+        onNlpSettingsChange: (nlp) => {
+          this.state.nlpEnabled = nlp.enabled;
+          this.state.nlpMode = nlp.mode;
+          this.state.preserveAcronyms = nlp.preserveAcronyms;
+          this.state.minLemmaLength = nlp.minLemmaLength;
+          this.state.filterNumericTokens = nlp.filterNumericTokens;
+        },
+      },
+    );
   }
 
-  private renderFiltersPanelRefresh(): void {
-    this.filtersPanelEl.querySelectorAll('.word-cloud-embed-wizard-filter-nlp').forEach((el) => el.remove());
+  private renderLayoutPanel(): void {
+    const panelEl = this.layoutPanelEl;
+    panelEl.empty();
 
-    const nlpContainer = this.filtersPanelEl.createDiv({ cls: 'word-cloud-embed-wizard-filter-nlp' });
+    const defaults = this.settingsDefaults.render;
+    const overrides = this.state.renderOverride;
 
-    new Setting(nlpContainer)
-      .setName(t('settings.tab.filters.nlp.mode.name'))
-      .setDesc(t('settings.tab.filters.nlp.mode.desc'))
-      .addDropdown((dropdown) => {
-        dropdown
-          .addOption('off', t('settings.tab.filters.nlp.mode.off'))
-          .addOption('light', t('settings.tab.filters.nlp.mode.light'))
-          .addOption('aggressive', t('settings.tab.filters.nlp.mode.aggressive'))
-          .setValue(this.state.nlpMode)
-          .setDisabled(!this.state.nlpEnabled)
-          .onChange((value) => {
-            this.state.nlpMode = value === 'light' || value === 'aggressive' ? value : 'off';
-          });
-      });
-
-    new Setting(nlpContainer)
-      .setName(t('settings.tab.filters.nlp.preserveAcronyms.name'))
-      .setDesc(t('settings.tab.filters.nlp.preserveAcronyms.desc'))
-      .addToggle((toggle) => {
-        toggle
-          .setValue(this.state.preserveAcronyms)
-          .setDisabled(!this.state.nlpEnabled)
-          .onChange((value) => {
-            this.state.preserveAcronyms = value;
-          });
-      });
-
-    new Setting(nlpContainer)
-      .setName(t('settings.tab.filters.nlp.minLemmaLength.name'))
-      .setDesc(t('settings.tab.filters.nlp.minLemmaLength.desc'))
-      .addSlider((slider) => {
-        slider
-          .setLimits(2, 32, 1)
-          .setValue(this.state.minLemmaLength)
-          .setDynamicTooltip()
-          .setDisabled(!this.state.nlpEnabled)
-          .onChange((value) => {
-            this.state.minLemmaLength = value;
-          });
-      });
-
-    new Setting(nlpContainer)
-      .setName(t('settings.tab.filters.nlp.filterNumericTokens.name'))
-      .setDesc(t('settings.tab.filters.nlp.filterNumericTokens.desc'))
-      .addToggle((toggle) => {
-        toggle
-          .setValue(this.state.filterNumericTokens)
-          .setDisabled(!this.state.nlpEnabled)
-          .onChange((value) => {
-            this.state.filterNumericTokens = value;
-          });
-      });
-  }
-
-  private renderDisplayPanel(): void {
-    new Setting(this.displayPanelEl)
+    new Setting(panelEl)
       .setName(t('ui.modals.embed.size.name'))
       .setDesc(t('ui.modals.embed.size.desc'))
       .addDropdown((dropdown) => {
@@ -496,216 +448,216 @@ export class EmbedWordCloudModal extends Modal {
           });
       });
 
-    new Setting(this.displayPanelEl)
+    new Setting(panelEl)
       .setName(t('settings.tab.render.fontFamily.name'))
       .setDesc(t('settings.tab.render.fontFamily.desc'))
       .addDropdown((dropdown) => {
-        for (const font of getSupportedFontOptions(this.services)) {
+        for (const font of SUPPORTED_FONT_FAMILIES) {
           dropdown.addOption(font.value, getFontLabel(font.value, font.label));
         }
         dropdown
-          .setValue(this.state.render.fontFamily)
+          .setValue(resolveEffectiveFont(effectiveRender('fontFamily', overrides, defaults)))
           .onChange((value) => {
-            this.state.render.fontFamily = value;
+            overrides.fontFamily = value;
           });
       });
 
-    new Setting(this.displayPanelEl)
+    new Setting(panelEl)
       .setName(t('settings.tab.render.wordCaseMode.name'))
       .setDesc(t('settings.tab.render.wordCaseMode.desc'))
       .addDropdown((dropdown) => {
         dropdown
           .addOption('lowercase', t('settings.tab.render.wordCaseMode.lowercase'))
           .addOption('normalized', t('settings.tab.render.wordCaseMode.normalized'))
-          .setValue(this.state.render.wordCaseMode)
+          .setValue(effectiveRender('wordCaseMode', overrides, defaults))
           .onChange((value) => {
-            this.state.render.wordCaseMode = value === 'normalized' ? 'normalized' : 'lowercase';
+            overrides.wordCaseMode = value === 'normalized' ? 'normalized' : 'lowercase';
           });
       });
 
-    new Setting(this.displayPanelEl)
+    new Setting(panelEl)
       .setName(t('settings.tab.render.showCount.name'))
       .setDesc(t('settings.tab.render.showCount.desc'))
       .addToggle((toggle) => {
         toggle
-          .setValue(this.state.render.showCountInWordText)
+          .setValue(effectiveRender('showCountInWordText', overrides, defaults))
           .onChange((value) => {
-            this.state.render.showCountInWordText = value;
+            overrides.showCountInWordText = value;
           });
       });
 
-    new Setting(this.displayPanelEl)
+    new Setting(panelEl)
       .setName(t('settings.tab.render.rotation.name'))
       .setDesc(t('settings.tab.render.rotation.desc'))
       .addDropdown((dropdown) => {
-        for (const preset of ROTATION_PRESETS) {
-          dropdown.addOption(preset, this.rotationPresetLabel(preset));
-        }
         dropdown
-          .setValue(this.state.render.rotationPreset)
+          .addOption('horizontal', t('settings.tab.render.rotation.horizontal'))
+          .addOption('mostly-horizontal', t('settings.tab.render.rotation.mostlyHorizontal'))
+          .addOption('mixed', t('settings.tab.render.rotation.mixed'))
+          .addOption('vertical', t('settings.tab.render.rotation.vertical'))
+          .setValue(effectiveRender('rotationPreset', overrides, defaults))
           .onChange((value) => {
-            this.state.render.rotationPreset = (ROTATION_PRESETS.includes(value as RotationPreset)
-              ? value
-              : 'mostly-horizontal') as RotationPreset;
+            overrides.rotationPreset = value as RotationPreset;
           });
       });
 
-    new Setting(this.displayPanelEl)
+    new Setting(panelEl)
       .setName(t('settings.tab.render.spiral.name'))
       .setDesc(t('settings.tab.render.spiral.desc'))
       .addDropdown((dropdown) => {
-        for (const spiral of SPIRAL_TYPES) {
-          dropdown.addOption(spiral, this.spiralLabel(spiral));
-        }
         dropdown
-          .setValue(this.state.render.spiral)
+          .addOption('archimedean', t('settings.tab.render.spiral.archimedean'))
+          .addOption('rectangular', t('settings.tab.render.spiral.rectangular'))
+          .setValue(effectiveRender('spiral', overrides, defaults))
           .onChange((value) => {
-            this.state.render.spiral = (SPIRAL_TYPES.includes(value as SpiralType)
-              ? value
-              : 'archimedean') as SpiralType;
+            overrides.spiral = value as SpiralType;
           });
       });
 
-    new Setting(this.displayPanelEl)
+    new Setting(panelEl)
       .setName(t('settings.tab.render.wordPadding.name'))
       .setDesc(t('settings.tab.render.wordPadding.desc'))
       .addSlider((slider) => {
         slider
           .setLimits(0, 12, 1)
-          .setValue(this.state.render.wordPadding)
+          .setValue(effectiveRender('wordPadding', overrides, defaults))
           .setDynamicTooltip()
           .onChange((value) => {
-            this.state.render.wordPadding = value;
+            overrides.wordPadding = value;
           });
       });
 
-    new Setting(this.displayPanelEl)
-      .setName(t('settings.tab.render.fontSizeRange.name'))
-      .setDesc(t('settings.tab.render.fontSizeRange.desc'))
+    new Setting(panelEl)
+      .setName(t('settings.tab.render.fontSizeMin.name'))
+      .setDesc(t('settings.tab.render.fontSizeMin.desc'))
       .addSlider((slider) => {
         slider
           .setLimits(8, 64, 1)
-          .setValue(this.state.render.minFontSize)
+          .setValue(effectiveRender('minFontSize', overrides, defaults))
           .setDynamicTooltip()
           .onChange((value) => {
-            this.state.render.minFontSize = Math.min(value, this.state.render.maxFontSize);
+            overrides.minFontSize = value;
           });
-      })
+      });
+
+    new Setting(panelEl)
+      .setName(t('settings.tab.render.fontSizeMax.name'))
+      .setDesc(t('settings.tab.render.fontSizeMax.desc'))
       .addSlider((slider) => {
         slider
           .setLimits(16, 140, 1)
-          .setValue(this.state.render.maxFontSize)
+          .setValue(effectiveRender('maxFontSize', overrides, defaults))
           .setDynamicTooltip()
           .onChange((value) => {
-            this.state.render.maxFontSize = Math.max(value, this.state.render.minFontSize);
+            overrides.maxFontSize = value;
           });
       });
 
-    new Setting(this.displayPanelEl)
+    const currentScalingMode = effectiveRender('scalingMode', overrides, defaults);
+
+    const scalingModeSetting = new Setting(panelEl)
       .setName(t('settings.tab.render.scalingMode.name'))
       .setDesc(t('settings.tab.render.scalingMode.desc'))
       .addDropdown((dropdown) => {
-        for (const mode of SCALING_MODES) {
-          dropdown.addOption(mode, this.scalingModeLabel(mode));
-        }
         dropdown
-          .setValue(this.state.render.scalingMode)
+          .addOption('linear', t('settings.tab.render.scalingMode.linear'))
+          .addOption('power', t('settings.tab.render.scalingMode.power'))
+          .addOption('log', t('settings.tab.render.scalingMode.log'))
+          .addOption('rank', t('settings.tab.render.scalingMode.rank'))
+          .setValue(currentScalingMode)
           .onChange((value) => {
-            this.state.render.scalingMode = (SCALING_MODES.includes(value as ScalingMode)
-              ? value
-              : 'power') as ScalingMode;
-            this.renderDisplayPanelRefresh();
+            overrides.scalingMode = value as ScalingMode;
+            this.renderLayoutPanel();
           });
       });
 
-    this.renderDisplayPanelRefresh();
-  }
-
-  private renderDisplayPanelRefresh(): void {
-    this.displayPanelEl.querySelectorAll('.word-cloud-embed-wizard-display-extra').forEach((el) => el.remove());
-    const extraContainer = this.displayPanelEl.createDiv({ cls: 'word-cloud-embed-wizard-display-extra' });
-
-    new Setting(extraContainer)
-      .setName(t('settings.tab.render.scalingEmphasis.name'))
-      .setDesc(t('settings.tab.render.scalingEmphasis.desc'))
-      .addSlider((slider) => {
+    if (currentScalingMode === 'power') {
+      scalingModeSetting.addSlider((slider) => {
         slider
           .setLimits(0.5, 3, 0.1)
-          .setValue(this.state.render.emphasis)
+          .setValue(effectiveRender('emphasis', overrides, defaults))
           .setDynamicTooltip()
-          .setDisabled(this.state.render.scalingMode !== 'power')
           .onChange((value) => {
-            this.state.render.emphasis = value;
+            overrides.emphasis = value;
           });
       });
+    }
 
-    new Setting(extraContainer)
+    const currentDeterministic = effectiveRender('deterministicLayout', overrides, defaults);
+
+    const deterministicSetting = new Setting(panelEl)
       .setName(t('settings.tab.render.deterministicLayout.name'))
-      .setDesc(t('settings.tab.render.deterministicLayout.desc'))
-      .addToggle((toggle) => {
-        toggle
-          .setValue(this.state.render.deterministicLayout)
-          .onChange((value) => {
-            this.state.render.deterministicLayout = value;
-            this.renderDisplayPanelRefresh();
-          });
-      })
-      .addText((text) => {
+      .setDesc(t('settings.tab.render.deterministicLayout.desc'));
+
+    if (currentDeterministic) {
+      deterministicSetting.addText((text) => {
+        text.setPlaceholder(t('settings.tab.render.deterministicLayout.seedPlaceholder'));
         text
-          .setPlaceholder(t('settings.tab.render.deterministicLayout.seedPlaceholder'))
-          .setValue(String(this.state.render.randomSeed))
-          .setDisabled(!this.state.render.deterministicLayout)
+          .setValue(String(effectiveRender('randomSeed', overrides, defaults)))
           .onChange((value) => {
             const parsed = Number.parseInt(value, 10);
             if (!Number.isNaN(parsed)) {
-              this.state.render.randomSeed = Math.max(1, parsed);
+              overrides.randomSeed = parsed;
             }
           });
       });
+    }
+
+    deterministicSetting.addToggle((toggle) => {
+      toggle
+        .setValue(currentDeterministic)
+        .onChange((value) => {
+          overrides.deterministicLayout = value;
+          this.renderLayoutPanel();
+        });
+    });
   }
 
-  private renderInteractionsPanel(): void {
-    new Setting(this.interactionsPanelEl)
+  private renderInteractionsPanel(panelEl: HTMLDivElement): void {
+    const defaults = this.settingsDefaults.render;
+    const overrides = this.state.renderOverride;
+
+    new Setting(panelEl)
       .setName(t('settings.tab.render.mouseInteractions.name'))
       .setDesc(t('settings.tab.render.mouseInteractions.desc'))
       .addToggle((toggle) => {
         toggle
-          .setValue(this.state.render.enableMouseInteractions)
+          .setValue(effectiveRender('enableMouseInteractions', overrides, defaults))
           .onChange((value) => {
-            this.state.render.enableMouseInteractions = value;
+            overrides.enableMouseInteractions = value;
           });
       });
 
-    new Setting(this.interactionsPanelEl)
+    new Setting(panelEl)
       .setName(t('settings.tab.render.clickToSearch.name'))
       .setDesc(t('settings.tab.render.clickToSearch.desc'))
       .addToggle((toggle) => {
         toggle
-          .setValue(this.state.render.enableWordClickSearch)
+          .setValue(effectiveRender('enableWordClickSearch', overrides, defaults))
           .onChange((value) => {
-            this.state.render.enableWordClickSearch = value;
+            overrides.enableWordClickSearch = value;
           });
       });
 
-    new Setting(this.interactionsPanelEl)
+    new Setting(panelEl)
       .setName(t('settings.tab.render.controls.name'))
       .setDesc(t('settings.tab.render.controls.desc'))
       .addToggle((toggle) => {
         toggle
-          .setValue(this.state.render.enableControls)
+          .setValue(effectiveRender('enableControls', overrides, defaults))
           .onChange((value) => {
-            this.state.render.enableControls = value;
+            overrides.enableControls = value;
           });
       });
 
-    new Setting(this.interactionsPanelEl)
+    new Setting(panelEl)
       .setName(t('settings.tab.render.exporting.name'))
       .setDesc(t('settings.tab.render.exporting.desc'))
       .addToggle((toggle) => {
         toggle
-          .setValue(this.state.render.enableExporting)
+          .setValue(effectiveRender('enableExporting', overrides, defaults))
           .onChange((value) => {
-            this.state.render.enableExporting = value;
+            overrides.enableExporting = value;
           });
       });
   }
@@ -713,29 +665,18 @@ export class EmbedWordCloudModal extends Modal {
   private renderSpecificFileSetting(): void {
     this.specificFileWrapperEl.empty();
 
-    const filePaths = this.app.vault
-      .getMarkdownFiles()
-      .map((file) => file.path)
-      .sort((a, b) => a.localeCompare(b));
-    const hasCurrent = filePaths.includes(this.state.specificFilePath);
-
     new Setting(this.specificFileWrapperEl)
       .setName(t('ui.modals.embed.file.name'))
-      .setDesc(t('ui.modals.embed.file.desc'))
-      .addDropdown((dropdown) => {
-        dropdown.addOption('', t('ui.modals.embed.file.currentNote'));
-        for (const filePath of filePaths) {
-          dropdown.addOption(filePath, filePath);
-        }
-        if (this.state.specificFilePath && !hasCurrent) {
-          dropdown.addOption(this.state.specificFilePath, this.state.specificFilePath);
-        }
-
-        dropdown
+      .addText((text) => {
+        text
+          .setPlaceholder(t('ui.modals.embed.file.placeholder'))
           .setValue(this.state.specificFilePath)
           .onChange((value) => {
             this.state.specificFilePath = value;
           });
+        new FileSuggest(this.app, text.inputEl, (path) => {
+          this.state.specificFilePath = path;
+        });
       });
   }
 
@@ -750,123 +691,6 @@ export class EmbedWordCloudModal extends Modal {
       ? t('ui.modals.embed.includeTags.availableHint')
         .replace('{tags}', `${availableTags.slice(0, 12).join(', ')}${availableTags.length > 12 ? '…' : ''}`)
       : t('ui.modals.embed.includeTags.noneDetected');
-  }
-
-  private buildTabButton(tab: EmbedSettingsTab, label: string, isActive: boolean): HTMLButtonElement {
-    const buttonEl = this.tabsEl.createEl('button', {
-      cls: `word-cloud-embed-wizard-tab${isActive ? ' is-active' : ''}`,
-      text: label,
-    });
-    buttonEl.id = `word-cloud-embed-wizard-tab-${tab}`;
-    buttonEl.type = 'button';
-    buttonEl.setAttr('role', 'tab');
-    buttonEl.setAttr('aria-controls', `word-cloud-embed-wizard-panel-${tab}`);
-    buttonEl.setAttr('aria-selected', isActive ? 'true' : 'false');
-    buttonEl.setAttr('tabindex', isActive ? '0' : '-1');
-    buttonEl.addEventListener('click', () => {
-      this.switchTab(tab);
-    });
-    buttonEl.addEventListener('keydown', (event) => {
-      this.handleTabKeydown(event, tab);
-    });
-    return buttonEl;
-  }
-
-  private handleTabKeydown(event: KeyboardEvent, currentTab: EmbedSettingsTab): void {
-    const tabs: EmbedSettingsTab[] = ['filters', 'display', 'interactions'];
-    const currentIndex = tabs.indexOf(currentTab);
-    if (currentIndex === -1) {
-      return;
-    }
-
-    if (event.key === 'ArrowRight') {
-      const nextTab = tabs[(currentIndex + 1) % tabs.length];
-      this.switchTab(nextTab);
-      event.preventDefault();
-      return;
-    }
-
-    if (event.key === 'ArrowLeft') {
-      const nextTab = tabs[(currentIndex - 1 + tabs.length) % tabs.length];
-      this.switchTab(nextTab);
-      event.preventDefault();
-      return;
-    }
-
-    if (event.key === 'Home') {
-      this.switchTab(tabs[0]);
-      event.preventDefault();
-      return;
-    }
-
-    if (event.key === 'End') {
-      this.switchTab(tabs[tabs.length - 1]);
-      event.preventDefault();
-    }
-  }
-
-  private switchTab(tab: EmbedSettingsTab): void {
-    const showFilters = tab === 'filters';
-    const showDisplay = tab === 'display';
-    const showInteractions = tab === 'interactions';
-
-    this.filtersTabButtonEl.toggleClass('is-active', showFilters);
-    this.filtersTabButtonEl.setAttr('aria-selected', showFilters ? 'true' : 'false');
-    this.filtersTabButtonEl.setAttr('tabindex', showFilters ? '0' : '-1');
-
-    this.displayTabButtonEl.toggleClass('is-active', showDisplay);
-    this.displayTabButtonEl.setAttr('aria-selected', showDisplay ? 'true' : 'false');
-    this.displayTabButtonEl.setAttr('tabindex', showDisplay ? '0' : '-1');
-
-    this.interactionsTabButtonEl.toggleClass('is-active', showInteractions);
-    this.interactionsTabButtonEl.setAttr('aria-selected', showInteractions ? 'true' : 'false');
-    this.interactionsTabButtonEl.setAttr('tabindex', showInteractions ? '0' : '-1');
-
-    this.filtersPanelEl.toggleClass('is-active', showFilters);
-    this.displayPanelEl.toggleClass('is-active', showDisplay);
-    this.interactionsPanelEl.toggleClass('is-active', showInteractions);
-
-    const targetButton = showFilters
-      ? this.filtersTabButtonEl
-      : showDisplay
-        ? this.displayTabButtonEl
-        : this.interactionsTabButtonEl;
-
-    if (document.activeElement && this.tabsEl.contains(document.activeElement)) {
-      targetButton.focus();
-    }
-  }
-
-  private rotationPresetLabel(value: RotationPreset): string {
-    if (value === 'horizontal') {
-      return t('settings.tab.render.rotation.horizontal');
-    }
-    if (value === 'mixed') {
-      return t('settings.tab.render.rotation.mixed');
-    }
-    if (value === 'vertical') {
-      return t('settings.tab.render.rotation.vertical');
-    }
-    return t('settings.tab.render.rotation.mostlyHorizontal');
-  }
-
-  private spiralLabel(value: SpiralType): string {
-    return value === 'rectangular'
-      ? t('settings.tab.render.spiral.rectangular')
-      : t('settings.tab.render.spiral.archimedean');
-  }
-
-  private scalingModeLabel(value: ScalingMode): string {
-    if (value === 'linear') {
-      return t('settings.tab.render.scalingMode.linear');
-    }
-    if (value === 'log') {
-      return t('settings.tab.render.scalingMode.log');
-    }
-    if (value === 'rank') {
-      return t('settings.tab.render.scalingMode.rank');
-    }
-    return t('settings.tab.render.scalingMode.power');
   }
 
   private buildEmbedBlock(): string {
@@ -941,7 +765,58 @@ export class EmbedWordCloudModal extends Modal {
       data['nlp-filter-numeric-tokens'] = String(this.state.filterNumericTokens);
     }
 
-    this.appendRenderOverridesToData(data);
+    // Render overrides — only encode values that differ from defaults
+    const renderDefaults = this.settingsDefaults.render;
+    const ro = this.state.renderOverride;
+
+    if (ro.fontFamily !== undefined && ro.fontFamily !== renderDefaults.fontFamily) {
+      data['font-family'] = ro.fontFamily;
+    }
+    if (ro.wordCaseMode !== undefined && ro.wordCaseMode !== renderDefaults.wordCaseMode) {
+      data['word-case-mode'] = ro.wordCaseMode;
+    }
+    if (ro.showCountInWordText !== undefined && ro.showCountInWordText !== renderDefaults.showCountInWordText) {
+      data['show-count-in-word-text'] = String(ro.showCountInWordText);
+    }
+    if (ro.rotationPreset !== undefined && ro.rotationPreset !== renderDefaults.rotationPreset) {
+      data['rotation'] = ro.rotationPreset;
+    }
+    if (ro.spiral !== undefined && ro.spiral !== renderDefaults.spiral) {
+      data['spiral'] = ro.spiral;
+    }
+    if (ro.wordPadding !== undefined && ro.wordPadding !== renderDefaults.wordPadding) {
+      data['word-padding'] = String(ro.wordPadding);
+    }
+    if (ro.minFontSize !== undefined && ro.minFontSize !== renderDefaults.minFontSize) {
+      data['min-font-size'] = String(ro.minFontSize);
+    }
+    if (ro.maxFontSize !== undefined && ro.maxFontSize !== renderDefaults.maxFontSize) {
+      data['max-font-size'] = String(ro.maxFontSize);
+    }
+    if (ro.scalingMode !== undefined && ro.scalingMode !== renderDefaults.scalingMode) {
+      data['scaling-mode'] = ro.scalingMode;
+    }
+    if (ro.emphasis !== undefined && ro.emphasis !== renderDefaults.emphasis) {
+      data['emphasis'] = String(ro.emphasis);
+    }
+    if (ro.deterministicLayout !== undefined && ro.deterministicLayout !== renderDefaults.deterministicLayout) {
+      data['deterministic-layout'] = String(ro.deterministicLayout);
+    }
+    if (ro.randomSeed !== undefined && ro.randomSeed !== renderDefaults.randomSeed) {
+      data['random-seed'] = String(ro.randomSeed);
+    }
+    if (ro.enableMouseInteractions !== undefined && ro.enableMouseInteractions !== renderDefaults.enableMouseInteractions) {
+      data['enable-mouse-interactions'] = String(ro.enableMouseInteractions);
+    }
+    if (ro.enableWordClickSearch !== undefined && ro.enableWordClickSearch !== renderDefaults.enableWordClickSearch) {
+      data['enable-click-to-search'] = String(ro.enableWordClickSearch);
+    }
+    if (ro.enableControls !== undefined && ro.enableControls !== renderDefaults.enableControls) {
+      data['enable-controls'] = String(ro.enableControls);
+    }
+    if (ro.enableExporting !== undefined && ro.enableExporting !== renderDefaults.enableExporting) {
+      data['enable-exporting'] = String(ro.enableExporting);
+    }
 
     const dataEncoded = btoa(JSON.stringify(data));
 
@@ -949,60 +824,6 @@ export class EmbedWordCloudModal extends Modal {
 id: ${this.state.cloudId}
 data: ${dataEncoded}
 \`\`\``;
-  }
-
-  private appendRenderOverridesToData(data: Record<string, string>): void {
-    const defaults = this.settingsDefaults.render;
-    const render = this.state.render;
-
-    if (render.rotationPreset !== defaults.rotationPreset) {
-      data['rotation-preset'] = render.rotationPreset;
-    }
-    if (render.spiral !== defaults.spiral) {
-      data.spiral = render.spiral;
-    }
-    if (render.wordPadding !== defaults.wordPadding) {
-      data['word-padding'] = String(render.wordPadding);
-    }
-    if (render.minFontSize !== defaults.minFontSize) {
-      data['min-font-size'] = String(render.minFontSize);
-    }
-    if (render.maxFontSize !== defaults.maxFontSize) {
-      data['max-font-size'] = String(render.maxFontSize);
-    }
-    if (render.fontFamily !== defaults.fontFamily) {
-      data['font-family'] = render.fontFamily;
-    }
-    if (render.scalingMode !== defaults.scalingMode) {
-      data['scaling-mode'] = render.scalingMode;
-    }
-    if (render.emphasis !== defaults.emphasis) {
-      data.emphasis = String(render.emphasis);
-    }
-    if (render.showCountInWordText !== defaults.showCountInWordText) {
-      data['show-count-in-word-text'] = String(render.showCountInWordText);
-    }
-    if (render.wordCaseMode !== defaults.wordCaseMode) {
-      data['word-case-mode'] = render.wordCaseMode;
-    }
-    if (render.deterministicLayout !== defaults.deterministicLayout) {
-      data['deterministic-layout'] = String(render.deterministicLayout);
-    }
-    if (render.randomSeed !== defaults.randomSeed) {
-      data['random-seed'] = String(render.randomSeed);
-    }
-    if (render.enableMouseInteractions !== defaults.enableMouseInteractions) {
-      data['enable-mouse-interactions'] = String(render.enableMouseInteractions);
-    }
-    if (render.enableWordClickSearch !== defaults.enableWordClickSearch) {
-      data['enable-click-to-search'] = String(render.enableWordClickSearch);
-    }
-    if (render.enableControls !== defaults.enableControls) {
-      data['enable-controls'] = String(render.enableControls);
-    }
-    if (render.enableExporting !== defaults.enableExporting) {
-      data['enable-exporting'] = String(render.enableExporting);
-    }
   }
 }
 
