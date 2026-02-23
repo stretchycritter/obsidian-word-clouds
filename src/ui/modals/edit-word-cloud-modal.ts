@@ -131,7 +131,6 @@ export class EmbedWordCloudModal extends Modal {
   private readonly onInsert: (embedBlock: string) => boolean | Promise<boolean>;
   private readonly state: EmbedWizardState;
   private readonly settingsDefaults: Readonly<WordCloudSettings>;
-  private readonly title: string;
   private readonly submitButtonText: string;
 
   private specificFileWrapperEl!: HTMLDivElement;
@@ -147,7 +146,6 @@ export class EmbedWordCloudModal extends Modal {
     super(app);
     this.services = services;
     this.onInsert = onInsert;
-    this.title = options.mode === 'edit' ? t('ui.blocks.embed.editTitle') : t('ui.modals.embed.title');
     this.submitButtonText = options.mode === 'edit' ? t('ui.modals.embed.apply') : t('ui.modals.embed.insert');
     this.settingsDefaults = getSettingsDefaults(services);
 
@@ -170,29 +168,9 @@ export class EmbedWordCloudModal extends Modal {
     contentEl.empty();
     contentEl.addClass('word-cloud-embed-wizard');
 
-    contentEl.createEl('h2', { text: this.title });
-
     // Scope row — compact header, always visible above tabs
-    // File/folder input is first (left), scope dropdown is last (right)
+    // Scope dropdown is first (left), file/folder input is last (right)
     const scopeRowEl = contentEl.createDiv({ cls: 'word-cloud-embed-wizard-scope-row' });
-
-    this.specificFileWrapperEl = scopeRowEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
-    this.renderSpecificFileSetting();
-
-    this.folderPathsWrapperEl = scopeRowEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
-    new Setting(this.folderPathsWrapperEl)
-      .setName(t('ui.modals.embed.folderPaths.name'))
-      .addText((text) => {
-        text
-          .setPlaceholder(t('ui.modals.embed.folderPaths.placeholder'))
-          .setValue(this.state.folderPathsRaw)
-          .onChange((value) => {
-            this.state.folderPathsRaw = value;
-          });
-        new FolderSuggest(this.app, text.inputEl, (path) => {
-          this.state.folderPathsRaw = path;
-        });
-      });
 
     new Setting(scopeRowEl)
       .setName(t('ui.modals.embed.scope.name'))
@@ -206,6 +184,24 @@ export class EmbedWordCloudModal extends Modal {
             this.state.scope = value === 'vault' || value === 'folder' ? value : 'file';
             this.refreshScopeSections();
           });
+      });
+
+    this.specificFileWrapperEl = scopeRowEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
+    this.renderSpecificFileSetting();
+
+    this.folderPathsWrapperEl = scopeRowEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
+    new Setting(this.folderPathsWrapperEl)
+      .setName('')
+      .addText((text) => {
+        text
+          .setPlaceholder(t('ui.modals.embed.folderPaths.placeholder'))
+          .setValue(this.state.folderPathsRaw)
+          .onChange((value) => {
+            this.state.folderPathsRaw = value;
+          });
+        new FolderSuggest(this.app, text.inputEl, (path) => {
+          this.state.folderPathsRaw = path;
+        });
       });
 
     // Settings area with tabs
@@ -666,7 +662,7 @@ export class EmbedWordCloudModal extends Modal {
     this.specificFileWrapperEl.empty();
 
     new Setting(this.specificFileWrapperEl)
-      .setName(t('ui.modals.embed.file.name'))
+      .setName('')
       .addText((text) => {
         text
           .setPlaceholder(t('ui.modals.embed.file.placeholder'))
@@ -703,13 +699,13 @@ export class EmbedWordCloudModal extends Modal {
     const excludeTags = parseTagList(this.state.excludeTagsRaw).filter((tag) => !includeTags.includes(tag));
     const folderPaths = parseList(this.state.folderPathsRaw);
     const frontmatterRules = parseFrontmatterRules(this.state.frontmatterRulesRaw);
-    const minCount = parseCount(this.state.minCountRaw, this.settingsDefaults.filters.frequency.minCount);
-    const maxCount = parseCount(this.state.maxCountRaw, this.settingsDefaults.filters.frequency.maxCount);
+    const minCount = parseCount(this.state.minCountRaw, DEFAULT_SETTINGS.filters.frequency.minCount);
+    const maxCount = parseCount(this.state.maxCountRaw, DEFAULT_SETTINGS.filters.frequency.maxCount);
     const excludeWords = parseWordList(this.state.excludeWordsRaw);
     const specificFilePath = this.state.specificFilePath.trim();
 
     if (this.state.scope === 'file') {
-      const defaultFilePath = this.settingsDefaults.filters.scope.activeFilePath ?? '';
+      const defaultFilePath = DEFAULT_SETTINGS.filters.scope.activeFilePath ?? '';
       if (specificFilePath !== defaultFilePath) {
         data.file = specificFilePath;
       }
@@ -726,18 +722,18 @@ export class EmbedWordCloudModal extends Modal {
       data['exclude-tags'] = excludeTags.join(', ');
     }
 
-    if (this.state.tagMatchMode !== this.settingsDefaults.filters.tagMatchMode) {
+    if (this.state.tagMatchMode !== DEFAULT_SETTINGS.filters.tagMatchMode) {
       data['tag-match'] = this.state.tagMatchMode;
     }
 
-    if (!areFrontmatterRulesEqual(frontmatterRules, this.settingsDefaults.filters.frontmatterRules)) {
+    if (!areFrontmatterRulesEqual(frontmatterRules, DEFAULT_SETTINGS.filters.frontmatterRules)) {
       data['frontmatter-rules'] = frontmatterRules.map(serializeFrontmatterRule).join('; ');
     }
 
-    if (minCount !== this.settingsDefaults.filters.frequency.minCount) {
+    if (minCount !== DEFAULT_SETTINGS.filters.frequency.minCount) {
       data['min-count'] = String(minCount);
     }
-    if (maxCount !== this.settingsDefaults.filters.frequency.maxCount) {
+    if (maxCount !== DEFAULT_SETTINGS.filters.frequency.maxCount) {
       data['max-count'] = String(maxCount);
     }
 
@@ -745,28 +741,28 @@ export class EmbedWordCloudModal extends Modal {
       data['exclude-words'] = excludeWords.join(', ');
     }
 
-    if (this.state.minWordLength !== this.settingsDefaults.filters.minWordLength) {
+    if (this.state.minWordLength !== DEFAULT_SETTINGS.filters.minWordLength) {
       data['min-word-length'] = String(this.state.minWordLength);
     }
 
-    if (this.state.nlpEnabled !== this.settingsDefaults.filters.nlp.enabled) {
+    if (this.state.nlpEnabled !== DEFAULT_SETTINGS.filters.nlp.enabled) {
       data['nlp-enabled'] = String(this.state.nlpEnabled);
     }
-    if (this.state.nlpMode !== this.settingsDefaults.filters.nlp.mode) {
+    if (this.state.nlpMode !== DEFAULT_SETTINGS.filters.nlp.mode) {
       data['nlp-mode'] = this.state.nlpMode;
     }
-    if (this.state.preserveAcronyms !== this.settingsDefaults.filters.nlp.preserveAcronyms) {
+    if (this.state.preserveAcronyms !== DEFAULT_SETTINGS.filters.nlp.preserveAcronyms) {
       data['nlp-preserve-acronyms'] = String(this.state.preserveAcronyms);
     }
-    if (this.state.minLemmaLength !== this.settingsDefaults.filters.nlp.minLemmaLength) {
+    if (this.state.minLemmaLength !== DEFAULT_SETTINGS.filters.nlp.minLemmaLength) {
       data['nlp-min-lemma-length'] = String(this.state.minLemmaLength);
     }
-    if (this.state.filterNumericTokens !== this.settingsDefaults.filters.nlp.filterNumericTokens) {
+    if (this.state.filterNumericTokens !== DEFAULT_SETTINGS.filters.nlp.filterNumericTokens) {
       data['nlp-filter-numeric-tokens'] = String(this.state.filterNumericTokens);
     }
 
     // Render overrides — only encode values that differ from defaults
-    const renderDefaults = this.settingsDefaults.render;
+    const renderDefaults = DEFAULT_SETTINGS.render;
     const ro = this.state.renderOverride;
 
     if (ro.fontFamily !== undefined && ro.fontFamily !== renderDefaults.fontFamily) {

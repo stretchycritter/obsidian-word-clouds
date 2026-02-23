@@ -19,6 +19,7 @@
   .word-cloud-view-shell {
     @apply wc-relative wc-w-full wc-h-full;
     min-height: 320px;
+    padding: var(--size-4-2);
   }
 
   /* SVG render target — fills the host absolutely */

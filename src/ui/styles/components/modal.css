@@ -24,14 +24,6 @@
     gap: var(--size-4-2);
   }
 
-  /* Compact title — smaller than Obsidian's default h2 */
-  .word-cloud-embed-wizard h2 {
-    margin: 0;
-    font-size: var(--font-ui-medium);
-    font-weight: var(--font-semibold);
-    line-height: 1.2;
-  }
-
   /* ── Scope row — horizontal strip ──────────────────────────────────────── */
 
   .word-cloud-embed-wizard-scope-row {
@@ -48,27 +40,26 @@
     gap: var(--size-4-2);
   }
 
-  /* Scope dropdown — fixed/natural width */
+  /* Scope dropdown — fixed/natural width, anchored left */
   .word-cloud-embed-wizard-scope-row > .setting-item {
     flex: 0 0 auto;
+    @apply wc-flex wc-items-center;
   }
 
-  /* File/folder section fills the remaining width */
+  /* File/folder section — pushed to the right */
   .word-cloud-embed-wizard-scope-row .word-cloud-embed-wizard-section {
-    @apply wc-flex-1 wc-min-w-0;
+    @apply wc-flex wc-items-center wc-flex-shrink-0;
+    margin-left: auto;
   }
 
   .word-cloud-embed-wizard-scope-row .word-cloud-embed-wizard-section .setting-item {
-    @apply wc-flex-1 wc-min-w-0;
+    flex: 0 0 auto;
+    @apply wc-flex wc-items-center;
   }
 
-  /* Text input in the scope row should fill available space */
-  .word-cloud-embed-wizard-scope-row .setting-item-control {
-    @apply wc-flex-1 wc-min-w-0;
-  }
-
+  /* Text input in the scope row — fixed reasonable width */
   .word-cloud-embed-wizard-scope-row .setting-item-control input[type="text"] {
-    width: 100%;
+    width: 240px;
   }
 
   .word-cloud-embed-wizard-settings {
@@ -78,6 +69,98 @@
   }
 
   /* Tab bar and tab button styles live in tabs.css (shared with note-view) */
+
+  /* ── NLP chip badge ─────────────────────────────────────────────────────── */
+
+  .word-cloud-embed-wizard-panel .vault-word-cloud-settings-nlp-chip {
+    display: inline-block;
+    padding: 1px 7px;
+    margin-left: 7px;
+    background: #5ba3d4;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    vertical-align: middle;
+    letter-spacing: 0.03em;
+    line-height: 1.6;
+  }
+
+  /* ── NLP chevron disclosure indicator ──────────────────────────────────── */
+
+  .word-cloud-embed-wizard-panel .vault-word-cloud-settings-nlp-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin-right: 4px;
+    vertical-align: middle;
+    transition: transform 200ms ease;
+  }
+
+  .word-cloud-embed-wizard-panel .vault-word-cloud-settings-nlp-chevron.is-open {
+    transform: rotate(90deg);
+  }
+
+  .word-cloud-embed-wizard-panel .vault-word-cloud-settings-nlp-chevron svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* ── NLP parent setting card ───────────────────────────────────────────── */
+
+  .word-cloud-embed-wizard-panel .setting-item.vault-word-cloud-settings-nlp-parent {
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    padding: var(--size-4-2) var(--size-4-3);
+  }
+
+  .word-cloud-embed-wizard-panel .setting-item.vault-word-cloud-settings-nlp-parent:has(+ .vault-word-cloud-settings-nlp-subsettings.is-open) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    margin-bottom: 0;
+  }
+
+  /* ── NLP sub-settings collapsible ──────────────────────────────────────── */
+
+  .word-cloud-embed-wizard-panel .vault-word-cloud-settings-nlp-subsettings {
+    overflow: hidden;
+    max-height: 0;
+    margin-top: 0;
+    transition: max-height 220ms ease-out;
+  }
+
+  .word-cloud-embed-wizard-panel .vault-word-cloud-settings-nlp-subsettings.is-open {
+    max-height: 500px;
+    transition: max-height 260ms ease-in;
+  }
+
+  .word-cloud-embed-wizard-panel .vault-word-cloud-settings-nlp-subsettings-inner {
+    margin: 0;
+    padding: var(--size-4-2) var(--size-4-3) var(--size-4-3) calc(var(--size-4-3) + var(--size-4-2));
+    border: 1px solid var(--background-modifier-border);
+    border-top: none;
+    background: var(--background-secondary);
+    border-radius: 0 0 var(--radius-m) var(--radius-m);
+  }
+
+  .word-cloud-embed-wizard-panel .vault-word-cloud-settings-nlp-subsettings-inner .setting-item {
+    margin-top: var(--size-4-2);
+  }
+
+  .word-cloud-embed-wizard-panel .vault-word-cloud-settings-nlp-subsettings-inner .setting-item:first-of-type {
+    margin-top: 0;
+  }
+
+  .word-cloud-embed-wizard-panel .vault-word-cloud-settings-nlp-subsettings-inner .setting-item-name {
+    font-size: var(--font-ui-small);
+  }
+
+  .word-cloud-embed-wizard-panel .vault-word-cloud-settings-nlp-subsettings-inner .setting-item-description {
+    font-size: var(--font-ui-smaller);
+  }
 
   /* ── Panel container ───────────────────────────────────────────────────── */
 

@@ -30,20 +30,24 @@ function parseSemver(version) {
   };
 }
 
-function bumpVersion(version, level) {
+function bumpVersion(version, level, isBeta = false) {
   const parsed = parseSemver(version);
+  let bumped;
   if (level === 'major') {
-    return `${parsed.major + 1}.0.0`;
+    bumped = `${parsed.major + 1}.0.0`;
+  } else if (level === 'minor') {
+    bumped = `${parsed.major}.${parsed.minor + 1}.0`;
+  } else {
+    bumped = `${parsed.major}.${parsed.minor}.${parsed.patch + 1}`;
   }
-  if (level === 'minor') {
-    return `${parsed.major}.${parsed.minor + 1}.0`;
-  }
-  return `${parsed.major}.${parsed.minor}.${parsed.patch + 1}`;
+
+  return isBeta ? `${bumped}-beta` : bumped;
 }
 
 const level = process.argv[2]?.trim();
+const isBeta = process.argv[3]?.trim() === 'beta';
 if (!level || !VALID_LEVELS.has(level)) {
-  fail('usage: npm run version:bump -- <major|minor|patch>');
+  fail('usage: npm run version:bump -- <major|minor|patch> [beta]');
 }
 
 const projectRoot = process.cwd();
@@ -64,7 +68,27 @@ if (currentVersion !== packageVersion) {
   fail(`manifest.json version (${currentVersion}) does not match package.json version (${packageVersion}).`);
 }
 
-const nextVersion = bumpVersion(currentVersion, level);
+// For beta releases, use the last released version as the base
+let baseVersion = currentVersion;
+if (isBeta) {
+  const versionKeys = Object.keys(versions)
+    .filter(v => !v.includes('-beta') && v.match(/^\d+\.\d+\.\d+$/))
+    .sort((a, b) => {
+      const aParts = a.split('.').map(Number);
+      const bParts = b.split('.').map(Number);
+      for (let i = 0; i < 3; i++) {
+        if (aParts[i] !== bParts[i]) {
+          return bParts[i] - aParts[i];
+        }
+      }
+      return 0;
+    });
+  if (versionKeys.length > 0) {
+    baseVersion = versionKeys[0];
+  }
+}
+
+const nextVersion = bumpVersion(baseVersion, level, isBeta);
 
 manifest.version = nextVersion;
 packageJson.version = nextVersion;
@@ -73,11 +97,13 @@ if (packageLock.packages && packageLock.packages['']) {
   packageLock.packages[''].version = nextVersion;
 }
 
-versions[nextVersion] = manifest.minAppVersion;
-
-writeJson(manifestPath, manifest);
-writeJson(packageJsonPath, packageJson);
-writeJson(packageLockPath, packageLock);
-writeJson(versionsPath, versions);
+// Only update files for stable releases
+if (!isBeta) {
+  versions[nextVersion] = manifest.minAppVersion;
+  writeJson(manifestPath, manifest);
+  writeJson(packageJsonPath, packageJson);
+  writeJson(packageLockPath, packageLock);
+  writeJson(versionsPath, versions);
+}
 
 process.stdout.write(nextVersion);
