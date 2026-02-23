@@ -12,7 +12,7 @@ import type { VaultCollectionOptions, WordCloudServices } from '@/services/types
 import type { WordCloudSettingsControls } from '@/services/wordcloud-services';
 import { renderWordCloudCanvas } from '@/core';
 import { t } from '@/i18n';
-import { renderFilterSettingsPanel } from '@/ui/components/filter-settings-panel';
+import { renderFilterSettingsPanel } from '@/ui';
 
 type SettingsTabServices = WordCloudServices & WordCloudSettingsControls;
 type PerformanceModeRunResult = {
