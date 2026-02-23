@@ -97,12 +97,13 @@ if (packageLock.packages && packageLock.packages['']) {
   packageLock.packages[''].version = nextVersion;
 }
 
-// Only update files for stable releases
+// Always update manifest/package files so the build and validation use the new version.
+// For stable releases, also record the version in versions.json.
+writeJson(manifestPath, manifest);
+writeJson(packageJsonPath, packageJson);
+writeJson(packageLockPath, packageLock);
 if (!isBeta) {
   versions[nextVersion] = manifest.minAppVersion;
-  writeJson(manifestPath, manifest);
-  writeJson(packageJsonPath, packageJson);
-  writeJson(packageLockPath, packageLock);
   writeJson(versionsPath, versions);
 }
 

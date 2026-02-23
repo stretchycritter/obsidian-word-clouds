@@ -52,15 +52,18 @@ if (String(packageJson.version ?? '').trim() !== manifestVersion) {
   fail(`package.json version (${packageJson.version}) must match manifest.json version (${manifestVersion}).`);
 }
 
+const isBeta = manifestVersion.includes('-');
 const mappedMinAppVersion = versions[manifestVersion];
-if (!mappedMinAppVersion) {
-  fail(`versions.json must include an entry for ${manifestVersion}.`);
-}
+if (!isBeta) {
+  if (!mappedMinAppVersion) {
+    fail(`versions.json must include an entry for ${manifestVersion}.`);
+  }
 
-if (mappedMinAppVersion !== manifest.minAppVersion) {
-  fail(
-    `versions.json maps ${manifestVersion} to ${mappedMinAppVersion}, but manifest.json minAppVersion is ${manifest.minAppVersion}.`,
-  );
+  if (mappedMinAppVersion !== manifest.minAppVersion) {
+    fail(
+      `versions.json maps ${manifestVersion} to ${mappedMinAppVersion}, but manifest.json minAppVersion is ${manifest.minAppVersion}.`,
+    );
+  }
 }
 
 assertNonEmptyFile(path.join(distDir, 'manifest.json'));
