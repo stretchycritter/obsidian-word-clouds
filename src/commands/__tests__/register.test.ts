@@ -2,13 +2,10 @@ import type { Plugin } from 'obsidian';
 import type { Deps } from '@/types';
 import { registerCommands } from '@/commands/register';
 import { t } from '@/i18n';
-import { activateNoteWordCloudView, activateVaultWordCloudView } from '@/ui';
 import { EmbedWordCloudModal } from '@/ui';
 import { insertEmbedAtCursor } from '@/services/note-service';
 
 const mockT = t as jest.MockedFunction<typeof t>;
-const mockedActivateVaultWordCloudView = activateVaultWordCloudView as jest.MockedFunction<typeof activateVaultWordCloudView>;
-const mockedActivateNoteWordCloudView = activateNoteWordCloudView as jest.MockedFunction<typeof activateNoteWordCloudView>;
 const mockedInsertEmbedAtCursor = insertEmbedAtCursor as jest.MockedFunction<typeof insertEmbedAtCursor>;
 const mockedEmbedWordCloudModal = EmbedWordCloudModal as unknown as jest.MockedClass<typeof EmbedWordCloudModal>;
 const mockModalOpenSpy = jest.fn();
@@ -38,46 +35,6 @@ describe('registerCommands', () => {
     jest.clearAllMocks();
   });
 
-  test('registers open vault word cloud view command with the expected setup', () => {
-    const plugin = createPluginMock();
-    const deps = createDepsMock();
-
-    registerCommands(plugin, deps);
-
-    expect(plugin.addCommand).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 'open-vault-word-cloud-view',
-        name: 'translated:commands.openVaultWordCloud',
-      }),
-    );
-    expect(mockT).toHaveBeenCalledWith('commands.openVaultWordCloud');
-
-    const command = getRegisteredCommand(plugin, 'open-vault-word-cloud-view');
-    command.callback?.();
-
-    expect(mockedActivateVaultWordCloudView).toHaveBeenCalledWith(plugin.app);
-  });
-
-  test('registers open note word cloud sidebar command with the expected setup', () => {
-    const plugin = createPluginMock();
-    const deps = createDepsMock();
-
-    registerCommands(plugin, deps);
-
-    expect(plugin.addCommand).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 'open-note-word-cloud-sidebar',
-        name: 'translated:commands.openCurrentNoteWordCloud',
-      }),
-    );
-    expect(mockT).toHaveBeenCalledWith('commands.openCurrentNoteWordCloud');
-
-    const command = getRegisteredCommand(plugin, 'open-note-word-cloud-sidebar');
-    command.callback?.();
-
-    expect(mockedActivateNoteWordCloudView).toHaveBeenCalledWith(plugin.app);
-  });
-
   test('registers embed word cloud in document command with the expected setup', () => {
     const plugin = createPluginMock();
     const deps = createDepsMock();
@@ -101,7 +58,16 @@ describe('registerCommands', () => {
 
     const onSubmit = mockModalConstructorSpy.mock.calls[0]?.[2] as ((embedBlock: string) => void) | undefined;
     onSubmit?.('```wordcloud```');
-    expect(mockedInsertEmbedAtCursor).toHaveBeenCalledWith(plugin.app, '```wordcloud```');
+    expect(mockedInsertEmbedAtCursor).toHaveBeenCalledWith(plugin.app, '```wordcloud```', true);
+  });
+
+  test('registers one command total', () => {
+    const plugin = createPluginMock();
+    const deps = createDepsMock();
+
+    registerCommands(plugin, deps);
+
+    expect(plugin.addCommand).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -128,7 +94,12 @@ function createPluginMock(): Plugin & { addCommand: jest.Mock } {
 
 function createDepsMock(): Deps {
   return {
-    settingsService: {},
+    settingsService: {
+      getSnapshot: jest.fn(() => ({
+        openEditorOnInsert: true,
+        defaultScopeOnInsert: 'vault',
+      })),
+    },
     services: {
       obsidian: {},
       wordCloud: { some: 'service' },
