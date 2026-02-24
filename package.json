@@ -1,6 +1,6 @@
 {
   "name": "word-clouds",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Explore word clouds of your entire vault, individual notes, and filtered content. Embed them in any document and export them to common formats.",
   "main": "main.js",
   "scripts": {
