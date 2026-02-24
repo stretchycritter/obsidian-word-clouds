@@ -200,5 +200,10 @@ function asTFile(value: unknown): TFile | null {
     return null;
   }
 
+  // TFolder has a 'children' array; TFile does not
+  if ('children' in value) {
+    return null;
+  }
+
   return value as TFile;
 }

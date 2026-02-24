@@ -4,6 +4,7 @@ import type { FrequencyThresholds, NlpSettings, RenderSettings, SourceSelectionR
 import { DEFAULT_SETTINGS } from '@/settings/constants';
 import { filterSourceFilesByMetadata, getAvailableTags, readPipelineDocuments } from '@/core/ingestion';
 import { runTransformPipeline } from '@/core/pipeline';
+import { createThrottledProgress } from '@/utils/throttled-progress';
 
 export class WordCloudService {
   private readonly app: App;
@@ -75,32 +76,6 @@ export class WordCloudService {
       },
     };
   }
-}
-
-function createThrottledProgress(
-  onProgress: ((message: string, percent: number) => void) | undefined,
-  minIntervalMs: number,
-): (message: string, percent: number) => void {
-  if (!onProgress) {
-    return () => undefined;
-  }
-
-  let lastReportedAt = 0;
-  let lastPercent = -1;
-
-  return (message: string, percent: number) => {
-    const now = Date.now();
-    if (percent !== 100 && percent === lastPercent && now - lastReportedAt < minIntervalMs) {
-      return;
-    }
-    if (percent !== 100 && now - lastReportedAt < minIntervalMs) {
-      return;
-    }
-
-    lastReportedAt = now;
-    lastPercent = percent;
-    onProgress(message, percent);
-  };
 }
 
 function getPerformanceProfile(mode: RenderSettings['performanceMode']): {

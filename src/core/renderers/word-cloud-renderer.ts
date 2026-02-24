@@ -10,6 +10,7 @@ import {
   sanitizeWordCloudExportBaseName,
 } from '@/core/renderers/overlay-controls';
 import type { WordCloudRenderOptions } from '@/core/renderers/types';
+import { createThrottledProgress } from '@/utils/throttled-progress';
 
 function buildDeterministicRandom(seed: number): () => number {
   let state = seed >>> 0;
@@ -72,11 +73,17 @@ function applyWordCaseMode(text: string, renderSettings: RenderSettings): string
     return text.toLowerCase();
   }
 
-  const [first, ...rest] = text;
-  if (!first) {
-    return text;
+  if (renderSettings.wordCaseMode === 'normalized') {
+    const [first, ...rest] = text;
+    if (!first) {
+      return text;
+    }
+    return `${first.toUpperCase()}${rest.join('')}`;
   }
-  return `${first.toUpperCase()}${rest.join('')}`;
+
+  // Exhaustive fallback — logs a warning for any future unhandled modes
+  console.warn(`[WordCloud] Unknown wordCaseMode: ${renderSettings.wordCaseMode as string}`);
+  return text;
 }
 
 type LayoutWord = WeightedWord & {
@@ -144,134 +151,148 @@ export async function drawWordCloud(options: WordCloudRenderOptions, renderSetti
   const reportProgress = createThrottledProgress(onProgress, performance.progressThrottleMs);
   const layoutTimeInterval = performance.layoutTimeIntervalMs ?? Math.max(8, Math.round(renderSettings.layoutTimeIntervalMs));
 
-  await new Promise<void>((resolve) => {
+  await new Promise<void>((resolve, reject) => {
+    const timeoutHandle = setTimeout(() => {
+      reject(new Error('Word cloud layout timed out after 30 seconds'));
+    }, 30_000);
+
     let laidOutWords = 0;
     const totalWords = Math.max(1, layoutWords.length);
 
-    cloud<LayoutWord>()
-      .size([width, height])
-      .words(layoutWords)
-      .text((d) => d.layoutText)
-      .timeInterval(layoutTimeInterval)
-      .padding(Math.max(0, Math.round(renderSettings.wordPadding)))
-      .spiral(renderSettings.spiral)
-      .rotate(() => pickRotation(random, renderSettings.rotationPreset))
-      .font(renderSettings.fontFamily || 'sans-serif')
-      .fontSize((d) => d.size)
-      .random(random)
-      .on('word', () => {
-        laidOutWords += 1;
-        if (laidOutWords % performance.wordProgressStride === 0) {
-          const layoutPercent = Math.min(99, Math.round((laidOutWords / totalWords) * 100));
-          reportProgress(
-            t('ui.renderers.wordCloud.layoutProgress')
-              .replace('{count}', String(laidOutWords))
-              .replace('{total}', String(layoutWords.length)),
-            layoutPercent,
-          );
-        }
-      })
-      .on('end', (layoutWords) => {
-        const textSelection = g.selectAll('text')
-          .data(layoutWords)
-          .enter()
-          .append('text')
-          .style('font-size', (d) => `${d.size}px`)
-          .style('font-family', renderSettings.fontFamily || 'sans-serif')
-          .style('fill', (_, i) => color(String(i)))
-          .style('cursor', enableWordClickSearch ? 'pointer' : 'default')
-          .attr('tabindex', 0)
-          .attr('text-anchor', 'middle')
-          .attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0}) rotate(${d.rotate ?? 0})`)
-          .text((d) => d.layoutText)
-          .on('click', (_, d) => {
-            if (!enableWordClickSearch) {
-              return;
-            }
-            if (viewportControls.shouldSuppressWordClick()) {
-              return;
-            }
-            onWordClick(d.baseText);
-          })
-          .on('keydown', (event: KeyboardEvent, d) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              if (!enableWordClickSearch) {
-                return;
+    try {
+      cloud<LayoutWord>()
+        .size([width, height])
+        .words(layoutWords)
+        .text((d) => d.layoutText)
+        .timeInterval(layoutTimeInterval)
+        .padding(Math.max(0, Math.round(renderSettings.wordPadding)))
+        .spiral(renderSettings.spiral)
+        .rotate(() => pickRotation(random, renderSettings.rotationPreset))
+        .font(renderSettings.fontFamily || 'sans-serif')
+        .fontSize((d) => d.size)
+        .random(random)
+        .on('word', () => {
+          laidOutWords += 1;
+          if (laidOutWords % performance.wordProgressStride === 0) {
+            const layoutPercent = Math.min(99, Math.round((laidOutWords / totalWords) * 100));
+            reportProgress(
+              t('ui.renderers.wordCloud.layoutProgress')
+                .replace('{count}', String(laidOutWords))
+                .replace('{total}', String(layoutWords.length)),
+              layoutPercent,
+            );
+          }
+        })
+        .on('end', (layoutWords) => {
+          clearTimeout(timeoutHandle);
+          try {
+            const textSelection = g.selectAll('text')
+              .data(layoutWords)
+              .enter()
+              .append('text')
+              .style('font-size', (d) => `${d.size}px`)
+              .style('font-family', renderSettings.fontFamily || 'sans-serif')
+              .style('fill', (_, i) => color(String(i)))
+              .style('cursor', enableWordClickSearch ? 'pointer' : 'default')
+              .attr('tabindex', 0)
+              .attr('text-anchor', 'middle')
+              .attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0}) rotate(${d.rotate ?? 0})`)
+              .text((d) => d.layoutText)
+              .on('click', (_, d) => {
+                if (!enableWordClickSearch) {
+                  return;
+                }
+                if (viewportControls.shouldSuppressWordClick()) {
+                  return;
+                }
+                onWordClick(d.baseText);
+              })
+              .on('keydown', (event: KeyboardEvent, d) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  if (!enableWordClickSearch) {
+                    return;
+                  }
+                  event.preventDefault();
+                  onWordClick(d.baseText);
+                  return;
+                }
+
+                if ((onExcludeInCloud || onExcludeInVault) && (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10'))) {
+                  event.preventDefault();
+                  openExcludeWordMenuAtFocusedWord(event.currentTarget, d.baseText, onExcludeInCloud, onExcludeInVault);
+                }
+              })
+              .on('contextmenu', (event: MouseEvent, d) => {
+                if (!enableMouseInteractions) {
+                  return;
+                }
+                if (!onExcludeInCloud && !onExcludeInVault) {
+                  return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+                openExcludeWordMenuAtPointer(event, d.baseText, onExcludeInCloud, onExcludeInVault);
+              });
+
+            textSelection
+              .append('title')
+              .text((d) => formatWordDisplayTitle(d, totalWordCount, renderSettings));
+
+            const applyWordTextMetric = (metric: WordTextMetric): void => {
+              activeWordTextMetric = metric;
+              textSelection.text((d) => getWordLabel(d, renderSettings, totalWordCount, metric));
+              textSelection.select('title').text((d) => formatWordDisplayTitle(d, totalWordCount, renderSettings));
+            };
+
+            reportProgress(t('ui.renderers.wordCloud.renderingComplete'), 100);
+            if (enableOverlayControls) {
+              const persistentRef = options.persistentControlsRef;
+
+              // Update live refs so persistent controls stay connected to the new SVG/viewport
+              if (persistentRef) {
+                persistentRef.liveRef.svgEl.current = svg.node();
+                persistentRef.liveRef.viewportControls.current = viewportControls;
               }
-              event.preventDefault();
-              onWordClick(d.baseText);
-              return;
+
+              const controlsEl = persistentRef?.containerEl.current;
+              const controlsAlreadyMounted = controlsEl != null && controlsEl.childElementCount > 0;
+
+              if (!controlsAlreadyMounted) {
+                const targetContainerEl = controlsEl ?? containerEl;
+                const svgElRef = persistentRef?.liveRef.svgEl ?? { current: svg.node() };
+                const viewportControlsRef = persistentRef?.liveRef.viewportControls ?? { current: viewportControls };
+
+                renderWordCloudOverlayControls({
+                  containerEl: targetContainerEl,
+                  svgElRef,
+                  viewportControlsRef,
+                  exportBaseName,
+                  enableExport,
+                  onRefresh,
+                  onEdit: options.onEdit,
+                  showRefreshControl,
+                  showZoomControls,
+                  showEditControl,
+                  showWordMetricToggleControl: false,
+                  getCurrentWordMetric: () => activeWordTextMetric,
+                  onToggleWordMetric: () => {
+                    applyWordTextMetric(activeWordTextMetric === 'count' ? 'frequency' : 'count');
+                  },
+                });
+              }
             }
 
-            if ((onExcludeInCloud || onExcludeInVault) && (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10'))) {
-              event.preventDefault();
-              openExcludeWordMenuAtFocusedWord(event.currentTarget, d.baseText, onExcludeInCloud, onExcludeInVault);
-            }
-          })
-          .on('contextmenu', (event: MouseEvent, d) => {
-            if (!enableMouseInteractions) {
-              return;
-            }
-            if (!onExcludeInCloud && !onExcludeInVault) {
-              return;
-            }
-
-            event.preventDefault();
-            event.stopPropagation();
-            openExcludeWordMenuAtPointer(event, d.baseText, onExcludeInCloud, onExcludeInVault);
-          });
-
-        textSelection
-          .append('title')
-          .text((d) => formatWordDisplayTitle(d, totalWordCount, renderSettings));
-
-        const applyWordTextMetric = (metric: WordTextMetric): void => {
-          activeWordTextMetric = metric;
-          textSelection.text((d) => getWordLabel(d, renderSettings, totalWordCount, metric));
-          textSelection.select('title').text((d) => formatWordDisplayTitle(d, totalWordCount, renderSettings));
-        };
-
-        reportProgress(t('ui.renderers.wordCloud.renderingComplete'), 100);
-        if (enableOverlayControls) {
-          const persistentRef = options.persistentControlsRef;
-
-          // Update live refs so persistent controls stay connected to the new SVG/viewport
-          if (persistentRef) {
-            persistentRef.liveRef.svgEl.current = svg.node();
-            persistentRef.liveRef.viewportControls.current = viewportControls;
+            resolve();
+          } catch (err) {
+            reject(err instanceof Error ? err : new Error(String(err)));
           }
-
-          const controlsEl = persistentRef?.containerEl.current;
-          const controlsAlreadyMounted = controlsEl != null && controlsEl.childElementCount > 0;
-
-          if (!controlsAlreadyMounted) {
-            const targetContainerEl = controlsEl ?? containerEl;
-            const svgElRef = persistentRef?.liveRef.svgEl ?? { current: svg.node() };
-            const viewportControlsRef = persistentRef?.liveRef.viewportControls ?? { current: viewportControls };
-
-            renderWordCloudOverlayControls({
-              containerEl: targetContainerEl,
-              svgElRef,
-              viewportControlsRef,
-              exportBaseName,
-              enableExport,
-              onRefresh,
-              onEdit: options.onEdit,
-              showRefreshControl,
-              showZoomControls,
-              showEditControl,
-              showWordMetricToggleControl: false,
-              getCurrentWordMetric: () => activeWordTextMetric,
-              onToggleWordMetric: () => {
-                applyWordTextMetric(activeWordTextMetric === 'count' ? 'frequency' : 'count');
-              },
-            });
-          }
-        }
-
-        resolve();
-      })
-      .start();
+        })
+        .start();
+    } catch (err) {
+      clearTimeout(timeoutHandle);
+      reject(err instanceof Error ? err : new Error(String(err)));
+    }
   });
 }
 
@@ -512,6 +533,16 @@ function setupViewportControls(
     }
   });
 
+  svgEl.addEventListener('lostpointercapture', (event: PointerEvent) => {
+    if (pointerId !== event.pointerId) {
+      return;
+    }
+    pointerId = null;
+    pointerMoved = false;
+    isDragging = false;
+    svgEl.classList.remove('is-panning');
+  });
+
   svgEl.addEventListener(
     'wheel',
     (event: WheelEvent) => {
@@ -581,7 +612,7 @@ function getLayoutPerformanceProfile(mode: RenderSettings['performanceMode']): {
     return {
       progressThrottleMs: 1_000_000,
       wordProgressStride: Number.MAX_SAFE_INTEGER,
-      layoutTimeIntervalMs: Infinity,
+      layoutTimeIntervalMs: Number.MAX_SAFE_INTEGER,
     };
   }
 
@@ -600,28 +631,3 @@ function getLayoutPerformanceProfile(mode: RenderSettings['performanceMode']): {
   };
 }
 
-function createThrottledProgress(
-  onProgress: ((message: string, percent: number) => void) | undefined,
-  minIntervalMs: number,
-): (message: string, percent: number) => void {
-  if (!onProgress) {
-    return () => undefined;
-  }
-
-  let lastReportedAt = 0;
-  let lastPercent = -1;
-
-  return (message: string, percent: number) => {
-    const now = Date.now();
-    if (percent !== 100 && percent === lastPercent && now - lastReportedAt < minIntervalMs) {
-      return;
-    }
-    if (percent !== 100 && now - lastReportedAt < minIntervalMs) {
-      return;
-    }
-
-    lastReportedAt = now;
-    lastPercent = percent;
-    onProgress(message, percent);
-  };
-}

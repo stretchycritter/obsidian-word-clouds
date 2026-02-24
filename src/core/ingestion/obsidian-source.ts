@@ -1,6 +1,7 @@
 import type { App, CachedMetadata, TFile } from 'obsidian';
 import { normalizeTag } from '@/utils/utils';
 import type { PipelineDocument } from '@/core/types';
+import { extractFrontmatterTags } from '@/utils/frontmatter-tags';
 
 export async function readPipelineDocuments(
   app: App,
@@ -69,24 +70,4 @@ function getFileTagsFromCache(cache: CachedMetadata | null): string[] {
   }
 
   return [...tagSet];
-}
-
-function extractFrontmatterTags(frontmatter: Record<string, unknown> | null | undefined): string[] {
-  if (!frontmatter || typeof frontmatter !== 'object') {
-    return [];
-  }
-
-  const rawTags = frontmatter.tags ?? frontmatter.tag;
-  if (typeof rawTags === 'string') {
-    return rawTags.split(/[\s,]+/).filter((entry) => entry.length > 0);
-  }
-
-  if (Array.isArray(rawTags)) {
-    return rawTags
-      .filter((entry): entry is string => typeof entry === 'string')
-      .map((entry) => entry.trim())
-      .filter((entry) => entry.length > 0);
-  }
-
-  return [];
 }

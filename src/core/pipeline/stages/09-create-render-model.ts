@@ -15,7 +15,7 @@ function buildDistributionSeries(words: WeightedWord[]): DistributionBucket[] {
     return [];
   }
 
-  const maxCount = words[0]?.count ?? 0;
+  const maxCount = words.length > 0 ? Math.max(...words.map((w) => w.count)) : 0;
   if (maxCount <= 0) {
     return [];
   }

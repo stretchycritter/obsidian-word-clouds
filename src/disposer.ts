@@ -19,7 +19,13 @@ export class Disposer {
   disposeAll(): void {
     while (this.callbacks.length > 0) {
       const callback = this.callbacks.pop();
-      callback?.();
+      if (!callback) continue;
+      try {
+        callback();
+      } catch (err) {
+        console.error('[WordCloud] Error during disposal:', err);
+        throw err;
+      }
     }
   }
 }

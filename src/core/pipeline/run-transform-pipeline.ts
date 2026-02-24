@@ -11,6 +11,10 @@ import type { PipelineInput, RenderModel } from '@/core/pipeline/types';
 export function runTransformPipeline(input: PipelineInput): RenderModel {
   const selectedDocuments = selectDocuments(input.documents, input.sourceRules);
   const normalizedDocuments = normalizeDocuments(selectedDocuments);
+  // NOTE: This inlines the aggregation logic from stages/06-aggregate-token-counts.ts#aggregateTokens()
+  // for performance (avoids an intermediate Map copy). Any changes to filtering or aggregation
+  // semantics must be reflected both here and in stage 06, which remains the testable reference
+  // implementation.
   const counts = new Map<string, { count: number; firstSeen: number }>();
   let totalTokens = 0;
   let firstSeen = 0;

@@ -6,9 +6,9 @@ tags:
   - docs
 aliases:
 ---
-make sure empty state wordcloud still has working controls so it can be edited. Right now it does not.
+# Word Clouds Demo Vault
 
-should auto refresh the render whenever a word is excluded from a right click action
+This vault demonstrates embedded word cloud blocks at various sizes and configurations. Each block below uses the `wordcloud` code fence with a unique id and base64-encoded settings.
 
 ```wordcloud
 id: b827d376-d25d-4951-ad65-d4fb0a007bc6

@@ -1,6 +1,8 @@
 import { moment } from "obsidian";
 import en from "@/i18n/en.json";
 
+export type TranslationKey = keyof typeof en;
+
 export const SUPPORTED_TRANSLATIONS = ["en"] as const;
 export type SupportedTranslation = (typeof SUPPORTED_TRANSLATIONS)[number];
 
@@ -16,7 +18,7 @@ export function initI18n(): void {
   activeLocale = resolveLocale(moment.locale());
 }
 
-export function t(key: string, localeOverride?: string): string {
+export function t(key: TranslationKey, localeOverride?: string): string {
   const locale = localeOverride ? resolveLocale(localeOverride) : activeLocale;
   return dictionaries[locale][key] ?? dictionaries[DEFAULT_LOCALE][key] ?? key;
 }

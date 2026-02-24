@@ -22,8 +22,7 @@
     },
     "types": [
       "node",
-      "obsidian",
-      "jest"
+      "obsidian"
     ]
   },
   "include": [

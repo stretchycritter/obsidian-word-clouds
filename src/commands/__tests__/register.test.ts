@@ -61,6 +61,25 @@ describe('registerCommands', () => {
     expect(mockedInsertEmbedAtCursor).toHaveBeenCalledWith(plugin.app, '```wordcloud```', true);
   });
 
+  test('embed command with openEditorOnInsert=false inserts embed directly without opening the modal', () => {
+    const plugin = createPluginMock();
+    const deps = createDepsMock();
+    (deps.settingsService.getSnapshot as jest.Mock).mockReturnValue({
+      openEditorOnInsert: false,
+      defaultScopeOnInsert: 'vault',
+    });
+
+    registerCommands(plugin, deps);
+
+    const command = getRegisteredCommand(plugin, 'embed-word-cloud-in-document');
+    command.callback?.();
+
+    expect(mockedInsertEmbedAtCursor).toHaveBeenCalledTimes(1);
+    expect(mockedInsertEmbedAtCursor).toHaveBeenCalledWith(plugin.app, expect.any(String), true);
+    expect(mockedEmbedWordCloudModal).not.toHaveBeenCalled();
+    expect(mockModalOpenSpy).not.toHaveBeenCalled();
+  });
+
   test('registers one command total', () => {
     const plugin = createPluginMock();
     const deps = createDepsMock();

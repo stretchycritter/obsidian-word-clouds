@@ -76,6 +76,7 @@ function compileScopePredicate(rules: SourceSelectionRules): FilePredicate | nul
     .map((path) => path.trim())
     .filter((path) => path.length > 0);
   if (folderPaths.length === 0) {
+    console.warn('[WordCloud] Scope mode is "folder" but no folder paths are configured. No files will be included.');
     return () => false;
   }
 

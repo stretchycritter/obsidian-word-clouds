@@ -75,6 +75,18 @@ const EMBED_SIZE_HEIGHT: Record<EmbeddedWordCloudSize, number> = {
   large: 880,
   xl: 1760,
 };
+/**
+ * Module-level state for embedded word cloud block instances.
+ *
+ * WeakMaps are intentionally keyed by HTMLElement so that entries are
+ * automatically eligible for garbage collection when the host element is
+ * removed from the DOM — no manual cleanup is required for those maps.
+ *
+ * The two regular Maps (sourcePathRefreshTimers and embeddedCloudsBySourcePath)
+ * hold strong references and must be cleared explicitly. Both are cleaned up
+ * in the `plugin.register` teardown callback registered in
+ * `registerEmbeddedWordCloudProcessor`, which runs when the plugin unloads.
+ */
 const embeddedRenderStates = new WeakMap<HTMLElement, EmbeddedRenderState>();
 const embeddedRenderNonces = new WeakMap<HTMLElement, { value: number }>();
 const embeddedCloudInstances = new WeakMap<HTMLElement, EmbeddedCloudInstance>();

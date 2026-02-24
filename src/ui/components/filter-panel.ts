@@ -196,10 +196,10 @@ export class WordCloudFilterPanel {
 
       const removeButton = chipEl.createEl('button', {
         cls: 'vault-word-cloud-chip-remove',
-        text: t('ui.filterPanel.removeTagButton'),
       });
       removeButton.type = 'button';
       removeButton.setAttr('aria-label', t('ui.filterPanel.removeIncludeFilter').replace('{tag}', tag));
+      setIcon(removeButton, 'x');
 
       this.registerDomEvent(removeButton, 'click', () => {
         this.filters.includeTags = this.filters.includeTags.filter((value) => value !== tag);

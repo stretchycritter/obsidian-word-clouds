@@ -1,6 +1,7 @@
 import type { App, TFile } from 'obsidian';
 import type { SourceSelectionRules, TagMatchMode } from '@/settings/types';
 import { normalizeTag } from '@/utils/utils';
+import { extractFrontmatterTags } from '@/utils/frontmatter-tags';
 
 type FilePredicate = (file: TFile) => boolean;
 
@@ -97,24 +98,4 @@ function getNormalizedFileTags(app: App, file: TFile, tagCache: Map<string, Set<
   const normalizedTagSet = new Set(normalized);
   tagCache.set(file.path, normalizedTagSet);
   return normalizedTagSet;
-}
-
-function extractFrontmatterTags(frontmatter: Record<string, unknown> | null | undefined): string[] {
-  if (!frontmatter || typeof frontmatter !== 'object') {
-    return [];
-  }
-
-  const rawTags = frontmatter.tags ?? frontmatter.tag;
-  if (typeof rawTags === 'string') {
-    return rawTags.split(/[\s,]+/).filter((entry) => entry.length > 0);
-  }
-
-  if (Array.isArray(rawTags)) {
-    return rawTags
-      .filter((entry): entry is string => typeof entry === 'string')
-      .map((entry) => entry.trim())
-      .filter((entry) => entry.length > 0);
-  }
-
-  return [];
 }

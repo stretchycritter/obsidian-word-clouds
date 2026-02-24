@@ -22,7 +22,8 @@ export function compilePathPredicate(rules: SourceSelectionRules): FilePredicate
   if (regexSource) {
     try {
       filenameRegex = new RegExp(regexSource, 'i');
-    } catch {
+    } catch (err) {
+      console.warn(`[WordCloud] Invalid filename regex "${regexSource}": ${err instanceof Error ? err.message : String(err)}. The regex filter will be skipped.`);
       filenameRegex = null;
     }
   }

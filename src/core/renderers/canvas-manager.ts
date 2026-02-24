@@ -169,13 +169,14 @@ export async function renderWordCloudCanvas<TExtra>(
       extra,
     };
     const renderSettingsOverride = getRenderSettingsOverride?.(context);
+    if (!getWords && !filters) {
+      throw new Error('Word cloud filters are required when getWords is not provided.');
+    }
     const words = getWords
       ? await getWords(context, updateProgress, renderSettingsOverride)
       : await collectWords(
         services,
-        filters ?? (() => {
-          throw new Error('Word cloud filters are required when getWords is not provided.');
-        })(),
+        filters!,
         scopeFilePath,
         renderSettingsOverride,
         updateProgress,

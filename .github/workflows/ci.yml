@@ -1,3 +1,6 @@
+# Actions are pinned to full commit SHAs for supply-chain security.
+# To update, change both the SHA and the version comment.
+# Dependabot will open PRs to keep these up to date automatically.
 name: CI
 
 on:
@@ -19,10 +22,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@cdbe0c7a39f847b1f44ecba2d02a3ba9afcd0b55 # v4
         with:
           node-version: 20
           cache: npm

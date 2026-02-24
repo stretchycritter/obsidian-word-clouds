@@ -72,13 +72,11 @@ export class NoteWordCloudView extends ItemView {
 
     const setEditPanelOpen = (isOpen: boolean): void => {
       this.isEditPanelOpen = isOpen;
-      editPanelEl.toggleClass('is-open', isOpen);
-      if (!isOpen) {
+      if (isOpen) {
+        editPanelEl.removeAttribute('hidden');
+      } else {
         editPanelEl.setAttr('hidden', 'true');
-        return;
       }
-
-      editPanelEl.removeAttribute('hidden');
     };
 
     const filterPanel = new WordCloudFilterPanel({

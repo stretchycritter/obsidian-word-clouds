@@ -1,5 +1,19 @@
 import type { AggregateResult, Token } from '@/core/pipeline/types';
 
+/**
+ * NOTE: This module is NOT called by the production pipeline (run-transform-pipeline.ts).
+ * Aggregation is handled by an inline loop in run-transform-pipeline.ts for performance.
+ * This module exists as a documented, testable reference for the aggregation and ranking logic.
+ * If you modify aggregation behaviour, update BOTH this module AND run-transform-pipeline.ts.
+ */
+
+/**
+ * The maximum number of distinct words to include in the final word cloud.
+ * Applied before any frequency-threshold filtering — the top-140 by count are selected
+ * first, then the caller may apply additional thresholds on top of that set.
+ * 140 was chosen as the upper limit that renders cleanly at typical vault sizes without
+ * overwhelming the layout algorithm; raising it noticeably increases render time.
+ */
 const MAX_WORDS = 140;
 type CountRecord = { count: number; firstSeen: number };
 type RankedCount = { text: string; count: number; firstSeen: number };

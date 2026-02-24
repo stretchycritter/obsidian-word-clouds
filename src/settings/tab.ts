@@ -1,5 +1,5 @@
 import type { Plugin } from 'obsidian';
-import { PluginSettingTab, Setting, setIcon } from 'obsidian';
+import { App, Modal, PluginSettingTab, Setting, setIcon } from 'obsidian';
 import type {
   DefaultScopeOnInsert,
   PerformanceMode,
@@ -11,7 +11,7 @@ import type {
 import type { VaultCollectionOptions, WordCloudServices } from '@/services/types';
 import type { WordCloudSettingsControls } from '@/services/wordcloud-services';
 import { renderWordCloudCanvas } from '@/core';
-import { t } from '@/i18n';
+import { t, type TranslationKey } from '@/i18n';
 import { renderFilterSettingsPanel } from '@/ui';
 
 type SettingsTabServices = WordCloudServices & WordCloudSettingsControls;
@@ -27,7 +27,7 @@ const FEATURE_REQUEST_ISSUE_URL = `${GITHUB_ISSUE_BASE_URL}?template=feature_req
 const BENCHMARK_MODES: PerformanceMode[] = ['full-speed', 'balanced', 'throttled'];
 declare const __DEV_BUILD__: boolean;
 
-function formatT(key: string, replacements: Record<string, string | number>): string {
+function formatT(key: TranslationKey, replacements: Record<string, string | number>): string {
   let value = t(key);
   for (const [token, replacement] of Object.entries(replacements)) {
     value = value.replace(`{${token}}`, String(replacement));
@@ -50,7 +50,37 @@ function getFontLabel(value: string, fallback: string): string {
   };
 
   const translationKey = keyByValue[value];
-  return translationKey ? t(translationKey) : fallback;
+  return translationKey ? t(translationKey as TranslationKey) : fallback;
+}
+
+class ConfirmResetModal extends Modal {
+  private onConfirm: () => void;
+
+  constructor(app: App, onConfirm: () => void) {
+    super(app);
+    this.onConfirm = onConfirm;
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.createEl('p', { text: t('settings.tab.reset.all.confirm') });
+    const buttonRow = contentEl.createDiv({ cls: 'modal-button-container' });
+    buttonRow.createEl('button', { text: 'Cancel' }).addEventListener('click', () => {
+      this.close();
+    });
+    const confirmBtn = buttonRow.createEl('button', {
+      text: t('settings.tab.reset.all.button'),
+      cls: 'mod-warning',
+    });
+    confirmBtn.addEventListener('click', () => {
+      this.onConfirm();
+      this.close();
+    });
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
+  }
 }
 
 export class VaultWordCloudSettingTab extends PluginSettingTab {
@@ -69,7 +99,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
     const contentEl = containerEl.createDiv({ cls: 'vault-word-cloud-settings-tab' });
     const settings = this.services.getSettingsSnapshot();
 
-    const createSection = (headingKey: string, descKey?: string): HTMLElement => {
+    const createSection = (headingKey: TranslationKey, descKey?: TranslationKey): HTMLElement => {
       const sectionEl = contentEl.createDiv({ cls: 'vault-word-cloud-settings-section' });
       sectionEl.createEl('h3', { text: t(headingKey) });
       if (descKey) {
@@ -81,7 +111,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       return sectionEl;
     };
 
-    const createSubSection = (parentEl: HTMLElement, headingKey: string): HTMLElement => {
+    const createSubSection = (parentEl: HTMLElement, headingKey: TranslationKey): HTMLElement => {
       const subEl = parentEl.createDiv({ cls: 'vault-word-cloud-settings-subsection' });
       subEl.createEl('h4', { text: t(headingKey) });
       return subEl;
@@ -535,7 +565,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
       } else {
         for (const result of this.benchmarkResults) {
           const rowEl = benchmarkBodyEl.createEl('tr');
-          rowEl.createEl('td', { text: t(`settings.tab.performance.processingSpeed.${this.performanceModeLabelKey(result.mode)}`) });
+          rowEl.createEl('td', { text: t(`settings.tab.performance.processingSpeed.${this.performanceModeLabelKey(result.mode)}` as TranslationKey) });
           rowEl.createEl('td', { text: result.message });
         }
       }
@@ -550,13 +580,11 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
         button
           .setButtonText(t('settings.tab.reset.all.button'))
           .setWarning()
-          .onClick(async () => {
-            const confirmed = window.confirm(t('settings.tab.reset.all.confirm'));
-            if (!confirmed) {
-              return;
-            }
-            await this.services.resetAllSettings();
-            this.display();
+          .onClick(() => {
+            new ConfirmResetModal(this.app, async () => {
+              await this.services.resetAllSettings();
+              this.display();
+            }).open();
           });
       });
 

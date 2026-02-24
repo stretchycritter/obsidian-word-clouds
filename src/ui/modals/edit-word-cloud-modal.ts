@@ -11,7 +11,7 @@ import type {
   WordCloudSettings,
 } from '@/settings/types';
 import { DEFAULT_SETTINGS, SUPPORTED_FONT_FAMILIES } from '@/settings/constants';
-import { t } from '@/i18n';
+import { t, type TranslationKey } from '@/i18n';
 import { normalizeTag } from '@/utils/utils';
 import { renderFilterSettingsPanel } from '@/ui/components/filter-settings-panel';
 import { FileSuggest, FolderSuggest } from '@/ui/components/suggest';
@@ -108,7 +108,7 @@ function getFontLabel(value: string, fallback: string): string {
   };
 
   const translationKey = keyByValue[value];
-  return translationKey ? t(translationKey) : fallback;
+  return translationKey ? t(translationKey as TranslationKey) : fallback;
 }
 
 function resolveEffectiveFont(rawFontFamily: string): string {
@@ -191,7 +191,7 @@ export class EmbedWordCloudModal extends Modal {
 
     this.folderPathsWrapperEl = scopeRowEl.createDiv({ cls: 'word-cloud-embed-wizard-section' });
     new Setting(this.folderPathsWrapperEl)
-      .setName('')
+      .setName(t('ui.modals.embed.folderPaths.name'))
       .addText((text) => {
         text
           .setPlaceholder(t('ui.modals.embed.folderPaths.placeholder'))
@@ -228,30 +228,65 @@ export class EmbedWordCloudModal extends Modal {
     const tabEls: HTMLButtonElement[] = [];
 
     for (const tabDef of tabDefs) {
+      const tabId = `word-cloud-tab-${tabDef.key}`;
+      const panelId = `word-cloud-tab-panel-${tabDef.key}`;
+
       const tabEl = tabBarEl.createEl('button', {
         cls: 'word-cloud-embed-wizard-tab',
         text: tabDef.label,
       });
       tabEl.type = 'button';
       tabEl.setAttr('role', 'tab');
+      tabEl.setAttr('id', tabId);
       tabEl.setAttr('aria-selected', 'false');
+      tabEl.setAttr('aria-controls', panelId);
+      tabEl.setAttr('tabindex', '-1');
       tabEls.push(tabEl);
+
+      tabDef.panel.setAttr('id', panelId);
+      tabDef.panel.setAttr('role', 'tabpanel');
+      tabDef.panel.setAttr('aria-labelledby', tabId);
 
       tabEl.addEventListener('click', () => {
         for (let i = 0; i < tabEls.length; i++) {
           tabEls[i].removeClass('is-active');
           tabEls[i].setAttr('aria-selected', 'false');
+          tabEls[i].setAttr('tabindex', '-1');
           tabDefs[i].panel.removeClass('is-active');
         }
         tabEl.addClass('is-active');
         tabEl.setAttr('aria-selected', 'true');
+        tabEl.setAttr('tabindex', '0');
         tabDef.panel.addClass('is-active');
       });
     }
 
+    // Arrow key / Home / End navigation on the tab bar
+    tabBarEl.addEventListener('keydown', (event: KeyboardEvent) => {
+      const currentIndex = tabEls.findIndex((el) => el.getAttribute('aria-selected') === 'true');
+      let nextIndex = -1;
+
+      if (event.key === 'ArrowRight') {
+        nextIndex = (currentIndex + 1) % tabEls.length;
+      } else if (event.key === 'ArrowLeft') {
+        nextIndex = (currentIndex - 1 + tabEls.length) % tabEls.length;
+      } else if (event.key === 'Home') {
+        nextIndex = 0;
+      } else if (event.key === 'End') {
+        nextIndex = tabEls.length - 1;
+      }
+
+      if (nextIndex !== -1) {
+        event.preventDefault();
+        tabEls[nextIndex].click();
+        tabEls[nextIndex].focus();
+      }
+    });
+
     // Activate first tab
     tabEls[0].addClass('is-active');
     tabEls[0].setAttr('aria-selected', 'true');
+    tabEls[0].setAttr('tabindex', '0');
     filtersPanelEl.addClass('is-active');
 
     // Render panel contents
@@ -662,7 +697,7 @@ export class EmbedWordCloudModal extends Modal {
     this.specificFileWrapperEl.empty();
 
     new Setting(this.specificFileWrapperEl)
-      .setName('')
+      .setName(t('ui.modals.embed.file.name'))
       .addText((text) => {
         text
           .setPlaceholder(t('ui.modals.embed.file.placeholder'))

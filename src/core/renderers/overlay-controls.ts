@@ -287,8 +287,12 @@ async function rasterizeSvg(
   format: 'png' | 'jpeg',
 ): Promise<Blob> {
   const svgUrl = URL.createObjectURL(svgBlob);
-  const image = await loadImage(svgUrl);
-  URL.revokeObjectURL(svgUrl);
+  let image: HTMLImageElement;
+  try {
+    image = await loadImage(svgUrl);
+  } finally {
+    URL.revokeObjectURL(svgUrl);
+  }
 
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(width));

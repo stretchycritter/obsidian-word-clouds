@@ -49,7 +49,8 @@ describe("i18n index", () => {
   });
 
   test("t returns key when translation is missing", () => {
-    expect(t("missing.translation.key")).toBe("missing.translation.key");
+    // Cast to TranslationKey to test runtime fallback behaviour for unknown keys
+    expect(t("missing.translation.key" as import("@/i18n").TranslationKey)).toBe("missing.translation.key");
   });
 
   test("t accepts locale override and resolves unsupported values to english", () => {
