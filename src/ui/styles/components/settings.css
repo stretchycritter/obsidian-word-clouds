@@ -14,7 +14,7 @@
     margin-top: 0;
   }
 
-  .vault-word-cloud-settings-section > h3 {
+  .vault-word-cloud-settings-section > .setting-item-heading {
     margin: 0 0 var(--size-4-2) 0;
   }
 

@@ -334,7 +334,7 @@ function triggerBlobDownload(blob: Blob, filename: string): void {
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = filename;
-  anchor.style.display = 'none';
+  anchor.classList.add('wc-hidden');
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();

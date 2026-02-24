@@ -2,7 +2,7 @@
   "test": "this is a test translation",
   "commands.openVaultWordCloud": "Open vault word cloud",
   "commands.openCurrentNoteWordCloud": "Open current note word cloud",
-  "commands.embedWordCloudInDocument": "Insert Word Cloud",
+  "commands.embedWordCloudInDocument": "Insert word cloud",
   "ui.ribbon.openWordClouds": "Open word clouds",
   "notices.openMarkdownNoteForEmbed": "Open a markdown note to insert a word cloud embed.",
   "notices.excludedFromWordClouds": "Excluded \"{word}\" from word clouds.",

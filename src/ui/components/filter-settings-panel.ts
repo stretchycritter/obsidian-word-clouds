@@ -73,7 +73,7 @@ export function renderFilterSettingsPanel(
         });
     });
 
-  nlpSetting.nameEl.style.cursor = 'pointer';
+  nlpSetting.nameEl.addClass('wc-cursor-pointer');
   nlpSetting.nameEl.addEventListener('click', () => {
     const newValue = !currentNlp.enabled;
     nlpToggleComponent.setValue(newValue);

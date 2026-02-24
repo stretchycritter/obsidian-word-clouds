@@ -25,6 +25,7 @@ jest.mock(
     MarkdownRenderer: {
       renderMarkdown: jest.fn(),
     },
+    normalizePath: (path: string) => path.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/|\/$/g, ''),
   }),
   { virtual: true },
 );

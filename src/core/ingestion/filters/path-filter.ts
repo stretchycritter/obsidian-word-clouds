@@ -1,5 +1,6 @@
 import type { SourceSelectionRules } from '@/settings/types';
 import type { TFile } from 'obsidian';
+import { normalizePath } from 'obsidian';
 
 type FilePredicate = (file: TFile) => boolean;
 
@@ -9,9 +10,9 @@ export function compilePathPredicate(rules: SourceSelectionRules): FilePredicate
     return null;
   }
 
-  const folderPrefixes = (pathRules.folderPrefixes ?? []).map((prefix) => prefix.trim()).filter(Boolean);
-  const exactFolders = new Set((pathRules.exactFolders ?? []).map((folder) => folder.trim()).filter(Boolean));
-  const subfolderRoots = (pathRules.subfolderRoots ?? []).map((root) => root.trim()).filter(Boolean);
+  const folderPrefixes = (pathRules.folderPrefixes ?? []).map((prefix) => normalizePath(prefix.trim())).filter(Boolean);
+  const exactFolders = new Set((pathRules.exactFolders ?? []).map((folder) => normalizePath(folder.trim())).filter(Boolean));
+  const subfolderRoots = (pathRules.subfolderRoots ?? []).map((root) => normalizePath(root.trim())).filter(Boolean);
   const filenameEquals = new Set((pathRules.filenameEquals ?? []).map((name) => name.trim().toLowerCase()).filter(Boolean));
   const extensionSet = new Set((pathRules.extensions ?? [])
     .map((extension) => extension.trim().replace(/^\./, '').toLowerCase())

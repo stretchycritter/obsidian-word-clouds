@@ -1,4 +1,5 @@
 import type { App, TFile } from 'obsidian';
+import { normalizePath } from 'obsidian';
 import type { SourceSelectionRules } from '@/settings/types';
 import { compilePathPredicate } from '@/core/ingestion/filters/path-filter';
 import { compileTagPredicate } from '@/core/ingestion/filters/tag-filter';
@@ -73,7 +74,7 @@ function compileScopePredicate(rules: SourceSelectionRules): FilePredicate | nul
   }
 
   const folderPaths = (rules.scope?.folderPaths ?? [])
-    .map((path) => path.trim())
+    .map((path) => normalizePath(path.trim()))
     .filter((path) => path.length > 0);
   if (folderPaths.length === 0) {
     console.warn('[WordCloud] Scope mode is "folder" but no folder paths are configured. No files will be included.');

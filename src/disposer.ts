@@ -17,6 +17,7 @@ export class Disposer {
   }
 
   disposeAll(): void {
+    const errors: unknown[] = [];
     while (this.callbacks.length > 0) {
       const callback = this.callbacks.pop();
       if (!callback) continue;
@@ -24,8 +25,15 @@ export class Disposer {
         callback();
       } catch (err) {
         console.error('[WordCloud] Error during disposal:', err);
-        throw err;
+        errors.push(err);
       }
+    }
+    if (errors.length > 0) {
+      if (errors.length === 1) {
+        throw errors[0];
+      }
+      const messages = errors.map((e) => (e instanceof Error ? e.message : String(e))).join('; ');
+      throw new Error(`[WordCloud] Multiple disposal errors: ${messages}`);
     }
   }
 }

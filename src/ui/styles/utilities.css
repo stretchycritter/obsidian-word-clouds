@@ -3,4 +3,12 @@
   .is-hidden {
     display: none !important;
   }
+
+  .wc-hidden {
+    display: none;
+  }
+
+  .wc-cursor-pointer {
+    cursor: pointer;
+  }
 }

@@ -40,7 +40,7 @@ describe('Disposer', () => {
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
-  test('rethrows disposal errors and does not run earlier callbacks in that pass', () => {
+  test('runs all callbacks even when one errors, then throws after all complete', () => {
     const disposer = new Disposer();
     const earlier = jest.fn();
     const failing = jest.fn(() => {
@@ -52,8 +52,9 @@ describe('Disposer', () => {
 
     expect(() => disposer.disposeAll()).toThrow('dispose failed');
     expect(failing).toHaveBeenCalledTimes(1);
-    expect(earlier).not.toHaveBeenCalled();
+    expect(earlier).toHaveBeenCalledTimes(1);
 
+    // Second call: callbacks already removed, nothing to throw
     disposer.disposeAll();
     expect(earlier).toHaveBeenCalledTimes(1);
   });

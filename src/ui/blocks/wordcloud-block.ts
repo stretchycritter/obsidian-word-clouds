@@ -70,10 +70,10 @@ const FRONTMATTER_OPERATORS = new Set<FrontmatterOperator>([
 const EMBED_RESIZE_DEBOUNCE_MS = 140;
 const EMBED_CONTENT_CHANGE_DEBOUNCE_MS = 5000;
 const EMBED_SIZE_HEIGHT: Record<EmbeddedWordCloudSize, number> = {
-  small: 320,
-  medium: 440,
-  large: 880,
-  xl: 1760,
+  small: 240,
+  medium: 360,
+  large: 480,
+  xl: 600,
 };
 /**
  * Module-level state for embedded word cloud block instances.
@@ -111,7 +111,7 @@ export function registerEmbeddedWordCloudProcessor(
     el.empty();
     const wrapperEl = el.createDiv({ cls: 'word-cloud-embed' });
     const canvasEl = wrapperEl.createDiv({ cls: 'word-cloud-embed-canvas' });
-    canvasEl.style.height = `${EMBED_SIZE_HEIGHT[options.size]}px`;
+    canvasEl.style.setProperty('--wc-embed-height', `${EMBED_SIZE_HEIGHT[options.size]}px`);
 
     try {
       const sourceScope = resolveSourceScope(plugin, ctx, options);
@@ -852,13 +852,13 @@ function parseFrontmatterRules(rawValue: string): FrontmatterRule[] {
 
 function sizeFromHeight(height: number): EmbeddedWordCloudSize {
   const normalized = Math.min(2400, Math.max(200, height));
-  if (normalized <= 380) {
+  if (normalized <= 300) {
     return 'small';
   }
-  if (normalized <= 660) {
+  if (normalized <= 420) {
     return 'medium';
   }
-  if (normalized <= 1320) {
+  if (normalized <= 540) {
     return 'large';
   }
   return 'xl';

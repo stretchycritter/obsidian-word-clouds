@@ -27,6 +27,7 @@
   /* Canvas area within an embedded block */
   .word-cloud-embed-canvas {
     @apply wc-block;
+    height: var(--wc-embed-height);
     min-height: 180px;
     line-height: 0;
   }

@@ -12,7 +12,7 @@ This vault demonstrates embedded word cloud blocks at various sizes and configur
 
 ```wordcloud
 id: b827d376-d25d-4951-ad65-d4fb0a007bc6
-data: eyJzY29wZSI6ImZpbGUiLCJzaXplIjoibWVkaXVtIn0=
+data: eyJzY29wZSI6InZhdWx0Iiwic2l6ZSI6ImxhcmdlIn0=
 ```
 
 
