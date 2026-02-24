@@ -81,3 +81,16 @@ The result is cleaner clouds that surface real themes instead of noise. NLP sett
 ## Development
 
 See [`DEV.md`](./DEV.md)
+
+---
+
+## Third-Party Libraries
+
+| Library | Author | License |
+|---------|--------|---------|
+| [D3.js](https://d3js.org) | Mike Bostock | ISC |
+| [d3-cloud](https://github.com/jasondavies/d3-cloud) | Jason Davies | BSD-3-Clause |
+| [wink-nlp](https://winkjs.org/wink-nlp/) | GRAYPE Systems Pvt. Ltd. | MIT |
+| [wink-eng-lite-web-model](https://github.com/winkjs/wink-eng-lite-web-model) | GRAYPE Systems Pvt. Ltd. | MIT |
+
+See [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md) for full license texts.
