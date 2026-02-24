@@ -1,33 +1,179 @@
-name: Release Obsidian plugin
+# Actions are pinned to full commit SHAs for supply-chain security.
+# To update, change both the SHA and the version comment.
+# Dependabot will open PRs to keep these up to date automatically.
+name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      is-beta:
+        description: "Create as beta release"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
 
 jobs:
-  build:
+  release:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Use Node.js
-        uses: actions/setup-node@v3
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          node-version: "18.x"
+          fetch-depth: 0
 
-      - name: Build plugin
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Read version from manifest
+        id: bump
         run: |
-          npm install
-          npm run build
+          VERSION=$(node -p "require('./manifest.json').version")
+          TAG="${VERSION}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "is_beta=${{ inputs.is-beta }}" >> "$GITHUB_OUTPUT"
 
-      - name: Create release
+      - name: Build release assets
+        run: npm run build:release
+
+      - name: Validate release metadata and artifacts
+        run: npm run release:validate -- "${{ steps.bump.outputs.tag }}"
+
+      - name: Create and push tag (idempotent)
+        run: |
+          git fetch --tags
+
+          if git rev-parse "${{ steps.bump.outputs.tag }}" >/dev/null 2>&1; then
+            echo "Tag already exists: ${{ steps.bump.outputs.tag }}"
+          else
+            git tag "${{ steps.bump.outputs.tag }}"
+            git push origin "refs/tags/${{ steps.bump.outputs.tag }}"
+          fi
+
+      - name: Create (or fetch) GitHub Release and upload assets
+        uses: actions/github-script@v7
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          tag="${GITHUB_REF#refs/tags/}"
+          TAG: ${{ steps.bump.outputs.tag }}
+          IS_BETA: ${{ steps.bump.outputs.is_beta }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require("fs");
+            const path = require("path");
 
-          gh release create "$tag" \
-            --title="$tag" \
-            --draft \
-            main.js manifest.json styles.css
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const tag = process.env.TAG;
+            const isBeta = process.env.IS_BETA === "true";
+
+            // Files to upload (adjust as needed)
+            const files = [
+              "dist/manifest.json",
+              "dist/main.js",
+              "dist/styles.css",
+            ];
+
+            function contentTypeFor(file) {
+              if (file.endsWith(".json")) return "application/json";
+              if (file.endsWith(".js")) return "application/javascript";
+              if (file.endsWith(".css")) return "text/css";
+              return "application/octet-stream";
+            }
+
+            // 1) Find or create the release
+            let release;
+            try {
+              release = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+              core.info(`Release already exists for ${tag}: id=${release.data.id}`);
+            } catch (e) {
+              if (e.status !== 404) throw e;
+
+              // Generate release notes (official API)
+              const notes = await github.rest.repos.generateReleaseNotes({
+                owner,
+                repo,
+                tag_name: tag,
+              });
+
+              release = await github.rest.repos.createRelease({
+                owner,
+                repo,
+                tag_name: tag,
+                name: tag,
+                body: notes.data.body || "",
+                draft: false,
+                prerelease: isBeta,
+              });
+
+              core.info(`Created release for ${tag}: id=${release.data.id}`);
+            }
+
+            const releaseId = release.data.id;
+
+            // 2) Upload assets (skip missing files)
+            for (const file of files) {
+              if (!fs.existsSync(file)) {
+                core.warning(`File not found, skipping: ${file}`);
+                continue;
+              }
+
+              const name = path.basename(file);
+              const data = fs.readFileSync(file);
+
+              // If rerun: delete existing asset with same name first
+              const existingAssets = await github.rest.repos.listReleaseAssets({
+                owner,
+                repo,
+                release_id: releaseId,
+                per_page: 100,
+              });
+
+              const existing = existingAssets.data.find(a => a.name === name);
+              if (existing) {
+                core.info(`Deleting existing asset: ${name}`);
+                await github.rest.repos.deleteReleaseAsset({
+                  owner,
+                  repo,
+                  asset_id: existing.id,
+                });
+              }
+
+              core.info(`Uploading asset: ${name}`);
+              await github.rest.repos.uploadReleaseAsset({
+                owner,
+                repo,
+                release_id: releaseId,
+                name,
+                data,
+                headers: {
+                  "content-type": contentTypeFor(file),
+                  "content-length": data.length,
+                },
+              });
+            }
+
+            core.info("Release publishing complete.");
