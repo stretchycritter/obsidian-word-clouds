@@ -1,4 +1,4 @@
-import type { App, CachedMetadata, TAbstractFile, TFile } from 'obsidian';
+import { type App, type CachedMetadata, type TAbstractFile, TFile } from 'obsidian';
 import { filterSourceFilesByMetadata } from '@/core/ingestion/metadata-file-filter';
 
 describe('filterSourceFilesByMetadata', () => {
@@ -206,17 +206,13 @@ function createFile(path: string, mtime = 0, ctime = 0): TFile {
   const dotIndex = name.lastIndexOf('.');
   const basename = dotIndex >= 0 ? name.slice(0, dotIndex) : name;
   const extension = dotIndex >= 0 ? name.slice(dotIndex + 1) : '';
-  return {
+  return Object.assign(new TFile(), {
     path,
     name,
     basename,
     extension,
-    stat: {
-      mtime,
-      ctime,
-      size: 0,
-    },
-  } as TFile;
+    stat: { mtime, ctime, size: 0 },
+  });
 }
 
 function createMockApp(

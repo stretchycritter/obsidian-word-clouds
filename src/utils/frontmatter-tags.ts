@@ -7,7 +7,7 @@ import type { FrontMatterCache } from 'obsidian';
  * Shared utility — previously duplicated in obsidian-source.ts and filters/tag-filter.ts.
  */
 export function extractFrontmatterTags(frontmatter: FrontMatterCache | null | undefined): string[] {
-  const raw = frontmatter?.tags;
+  const raw: unknown = frontmatter?.tags;
   if (!raw) {
     return [];
   }

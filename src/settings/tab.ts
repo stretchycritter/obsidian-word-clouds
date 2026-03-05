@@ -56,7 +56,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
 
     const createSubSection = (parentEl: HTMLElement, headingKey: TranslationKey): HTMLElement => {
       const subEl = parentEl.createDiv({ cls: 'vault-word-cloud-settings-subsection' });
-      subEl.createEl('h4', { text: t(headingKey) });
+      new Setting(subEl).setName(t(headingKey)).setHeading();
       return subEl;
     };
 
@@ -81,13 +81,13 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
             draftWord = value;
           });
 
-          text.inputEl.addEventListener('keydown', async (event) => {
+          text.inputEl.addEventListener('keydown', (event) => {
             if (event.key !== 'Enter') {
               return;
             }
 
             event.preventDefault();
-            await submitDraftWord();
+            void submitDraftWord();
           });
         })
         .addButton((button) => {
@@ -113,9 +113,10 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           removeButton.setAttr('aria-label', formatT('settings.tab.filters.excludedWords.removeAria', { word }));
           removeButton.setAttr('data-tooltip-position', 'top');
           removeButton.setAttr('data-tooltip', formatT('settings.tab.filters.excludedWords.removeTooltip', { word }));
-          removeButton.addEventListener('click', async () => {
-            await this.services.removeExclusionListWord(word);
-            this.display();
+          removeButton.addEventListener('click', () => {
+            void this.services.removeExclusionListWord(word).then(() => {
+              this.display();
+            });
           });
         }
       }
@@ -129,11 +130,11 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
           nlp: { ...settings.filters.nlp },
         },
         {
-          onMinWordLengthChange: async (value) => {
-            await this.services.updateFilterSettings({ minWordLength: value });
+          onMinWordLengthChange: (value) => {
+            void this.services.updateFilterSettings({ minWordLength: value });
           },
-          onNlpSettingsChange: async (nlp) => {
-            await this.services.updateFilterSettings({ nlp });
+          onNlpSettingsChange: (nlp) => {
+            void this.services.updateFilterSettings({ nlp });
           },
         },
       );
@@ -214,7 +215,7 @@ export class VaultWordCloudSettingTab extends PluginSettingTab {
         resolveExtraContext: () => null,
         getAriaLabel: () => t('settings.tab.preview.ariaLabel'),
         getNoWordsMessage: () => t('settings.tab.preview.noWords'),
-        getWords: async () => this.services.getSettingsPreviewWords(),
+        getWords: () => Promise.resolve(this.services.getSettingsPreviewWords()),
         getDrawOptions: () => ({
           enableViewportInteraction: false,
           enableWordClickSearch: false,

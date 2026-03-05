@@ -28,7 +28,7 @@ export class SettingsService {
   constructor(private readonly plugin: Plugin) {}
 
   async load(): Promise<void> {
-    const loaded = await this.plugin.loadData();
+    const loaded: unknown = await this.plugin.loadData();
     const raw = (loaded && typeof loaded === 'object') ? loaded as { openEditorOnInsert?: unknown; defaultScopeOnInsert?: unknown; exclusionListWords?: unknown; render?: unknown; filters?: unknown } : {};
     const rawScope = raw.defaultScopeOnInsert;
     this.settings = {

@@ -92,9 +92,10 @@ export function renderResetSection(
         .setButtonText(t('settings.tab.reset.all.button'))
         .setWarning()
         .onClick(() => {
-          new ConfirmResetModal(app, async () => {
-            await services.resetAllSettings();
-            onDisplay();
+          new ConfirmResetModal(app, () => {
+            void services.resetAllSettings().then(() => {
+              onDisplay();
+            });
           }).open();
         });
     });

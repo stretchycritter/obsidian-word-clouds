@@ -1,6 +1,6 @@
 {
   "name": "word-clouds",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Explore word clouds of your entire vault, individual notes, and filtered content. Embed them in any document and export them to common formats.",
   "main": "main.js",
   "scripts": {
@@ -36,7 +36,8 @@
     "@typescript-eslint/parser": "^8.46.0",
     "autoprefixer": "^10.4.24",
     "esbuild": "^0.20.2",
-    "eslint": "^9.39.1",
+    "eslint": "^9.39.3",
+    "eslint-plugin-obsidianmd": "^0.1.9",
     "jest": "^30.2.0",
     "obsidian": "latest",
     "postcss": "^8.5.6",

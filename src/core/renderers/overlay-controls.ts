@@ -58,7 +58,7 @@ function renderWordCloudOverlayControls(options: WordCloudOverlayControlsOptions
     refreshButton.setAttr('aria-label', t('ui.overlay.refreshWordCloud'));
 
     let isRefreshing = false;
-    refreshButton.addEventListener('click', async (event) => {
+    refreshButton.addEventListener('click', (event) => {
       event.preventDefault();
       if (isRefreshing) {
         return;
@@ -66,14 +66,12 @@ function renderWordCloudOverlayControls(options: WordCloudOverlayControlsOptions
 
       isRefreshing = true;
       refreshButton.disabled = true;
-      try {
-        await onRefresh();
-      } finally {
+      void Promise.resolve(onRefresh()).finally(() => {
         if (refreshButton.isConnected) {
           refreshButton.disabled = false;
         }
         isRefreshing = false;
-      }
+      });
     });
   };
 
@@ -90,7 +88,7 @@ function renderWordCloudOverlayControls(options: WordCloudOverlayControlsOptions
     editButton.setAttr('aria-label', t('ui.overlay.editEmbeddedWordCloud'));
 
     let isEditing = false;
-    editButton.addEventListener('click', async (event) => {
+    editButton.addEventListener('click', (event) => {
       event.preventDefault();
       if (isEditing) {
         return;
@@ -98,14 +96,12 @@ function renderWordCloudOverlayControls(options: WordCloudOverlayControlsOptions
 
       isEditing = true;
       editButton.disabled = true;
-      try {
-        await onEdit();
-      } finally {
+      void Promise.resolve(onEdit()).finally(() => {
         if (editButton.isConnected) {
           editButton.disabled = false;
         }
         isEditing = false;
-      }
+      });
     });
   };
 
@@ -222,7 +218,7 @@ function renderWordCloudOverlayControls(options: WordCloudOverlayControlsOptions
       text: t('ui.overlay.exportAs').replace('{format}', label),
     });
     button.setAttr('aria-label', t('ui.overlay.exportAs').replace('{format}', label));
-    button.addEventListener('click', async (event) => {
+    button.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
       const currentSvgEl = svgElRef.current;
@@ -230,13 +226,13 @@ function renderWordCloudOverlayControls(options: WordCloudOverlayControlsOptions
         toggleMenu(false);
         return;
       }
-      try {
-        await exportSvg(currentSvgEl, format, exportBaseName);
-      } catch (error) {
-        console.error('Word clouds: export failed', error);
-      } finally {
-        toggleMenu(false);
-      }
+      void exportSvg(currentSvgEl, format, exportBaseName)
+        .catch((error) => {
+          console.error('Word clouds: export failed', error);
+        })
+        .finally(() => {
+          toggleMenu(false);
+        });
     });
   };
 

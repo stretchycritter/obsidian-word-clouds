@@ -46,5 +46,5 @@ export async function openSearchForWord(app: App, word: string, options: SearchO
     },
   });
 
-  app.workspace.revealLeaf(searchLeaf);
+  void app.workspace.revealLeaf(searchLeaf);
 }

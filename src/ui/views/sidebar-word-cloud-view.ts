@@ -143,13 +143,14 @@ export class NoteWordCloudView extends ItemView {
     await this.renderCloud(cloudCanvasEl, setEditPanelOpen);
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await -- ItemView contract requires async
   async onClose(): Promise<void> {
     this.cloudCanvasEl = null;
   }
 
-  async onResize(): Promise<void> {
+  onResize(): void {
     if (this.cloudCanvasEl) {
-      await this.renderCloud(this.cloudCanvasEl);
+      void this.renderCloud(this.cloudCanvasEl);
     }
   }
 

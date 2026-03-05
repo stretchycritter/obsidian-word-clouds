@@ -1,4 +1,4 @@
-import type { App, TFile } from 'obsidian';
+import { type App, TFile } from 'obsidian';
 import type { LinkRules, SourceSelectionRules, TagMatchMode } from '@/settings/types';
 import { getFileTags } from '@/core/ingestion';
 import { normalizeTag } from '@/utils/utils';
@@ -192,18 +192,8 @@ function isPathInFolder(path: string, folders: string[]): boolean {
 }
 
 function asTFile(value: unknown): TFile | null {
-  if (!value || typeof value !== 'object') {
-    return null;
+  if (value instanceof TFile) {
+    return value;
   }
-
-  if (!('path' in value) || !('basename' in value) || !('extension' in value) || !('stat' in value)) {
-    return null;
-  }
-
-  // TFolder has a 'children' array; TFile does not
-  if ('children' in value) {
-    return null;
-  }
-
-  return value as TFile;
+  return null;
 }

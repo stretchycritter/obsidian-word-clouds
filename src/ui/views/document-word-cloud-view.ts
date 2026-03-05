@@ -95,10 +95,10 @@ export class VaultWordCloudView extends ItemView {
     await this.renderCloud(canvasEl, setEditPanelOpen);
   }
 
-  async onResize(): Promise<void> {
+  onResize(): void {
     const canvasEl = this.contentEl.querySelector('.vault-word-cloud-canvas');
     if (canvasEl instanceof HTMLDivElement) {
-      await this.renderCloud(canvasEl);
+      void this.renderCloud(canvasEl);
     }
   }
 

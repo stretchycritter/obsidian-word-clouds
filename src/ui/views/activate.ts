@@ -11,7 +11,7 @@ export async function activateVaultWordCloudView(app: App): Promise<void> {
     active: true,
   });
 
-  workspace.revealLeaf(leaf);
+  void workspace.revealLeaf(leaf);
 }
 
 export async function activateNoteWordCloudView(app: App): Promise<void> {
@@ -27,5 +27,5 @@ export async function activateNoteWordCloudView(app: App): Promise<void> {
     active: true,
   });
 
-  workspace.revealLeaf(leaf);
+  void workspace.revealLeaf(leaf);
 }

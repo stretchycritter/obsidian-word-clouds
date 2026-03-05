@@ -270,7 +270,7 @@ function normalizeFrontmatterRules(rawRules: unknown): FrontmatterRule[] {
     }
 
     const operator = typeof candidate.operator === 'string' && allowed.has(candidate.operator)
-      ? candidate.operator as FrontmatterRule['operator']
+      ? candidate.operator
       : 'equals';
     const value = typeof candidate.value === 'string' ? candidate.value : '';
 

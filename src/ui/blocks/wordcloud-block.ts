@@ -218,7 +218,7 @@ export function registerEmbeddedWordCloudProcessor(
         }),
         onRefresh: () => render(source, el, ctx),
         onAfterRender: () => {
-          registerEmbeddedResizeObserver(el, canvasEl, () => render(source, el, ctx));
+          registerEmbeddedResizeObserver(el, canvasEl, () => { void render(source, el, ctx); });
         },
       });
     } catch (error) {

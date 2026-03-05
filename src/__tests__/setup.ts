@@ -10,6 +10,15 @@ jest.mock(
         this.app = app;
       }
     },
+    TFile: class TFile {
+      path = '';
+      name = '';
+      basename = '';
+      extension = '';
+      stat = { mtime: 0, ctime: 0, size: 0 };
+      vault = {};
+      parent = null;
+    },
     moment: {
       locale: jest.fn(),
     },
